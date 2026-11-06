@@ -1,0 +1,150 @@
+{
+  "schemaVersion": "0.1",
+  "description": "Initial registry contract. These entries describe adapters; the browser prototype does not execute them yet.",
+  "adapters": [
+    {
+      "id": "arduino-cli",
+      "name": "Arduino IDE / Arduino CLI",
+      "kind": "local-cli-adapter",
+      "officialDocs": "https://docs.arduino.cc/arduino-cli/",
+      "projectFiles": [
+        "*.ino",
+        "libraries/"
+      ],
+      "targetConfig": {
+        "boardFqbn": "required"
+      },
+      "capabilities": [
+        "project-open-export",
+        "compile",
+        "upload",
+        "serial-monitor"
+      ],
+      "outputs": [
+        "elf",
+        "hex",
+        "bin",
+        "stdout",
+        "stderr"
+      ],
+      "commands": {
+        "compile": "arduino-cli compile --fqbn <FQBN> <PROJECT_DIR>",
+        "upload": "arduino-cli upload -p <PORT> --fqbn <FQBN> <PROJECT_DIR>",
+        "monitor": "arduino-cli monitor -p <PORT>"
+      }
+    },
+    {
+      "id": "platformio-core",
+      "name": "PlatformIO Core",
+      "kind": "local-cli-adapter",
+      "officialDocs": "https://docs.platformio.org/page/core/index.html",
+      "projectFiles": [
+        "platformio.ini",
+        "src/**",
+        "include/**",
+        "lib/**"
+      ],
+      "targetConfig": {
+        "environment": "defined in platformio.ini",
+        "boardId": "required",
+        "framework": "required"
+      },
+      "capabilities": [
+        "project-open-export",
+        "compile",
+        "upload",
+        "serial-monitor"
+      ],
+      "outputs": [
+        "elf",
+        "hex",
+        "bin",
+        "map",
+        "stdout",
+        "stderr"
+      ],
+      "commands": {
+        "compile": "pio run -d <PROJECT_DIR>",
+        "upload": "pio run -d <PROJECT_DIR> -t upload",
+        "monitor": "pio device monitor -d <PROJECT_DIR>"
+      }
+    },
+    {
+      "id": "esp-idf",
+      "name": "ESP-IDF",
+      "kind": "local-cli-adapter",
+      "officialDocs": "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/index.html",
+      "projectFiles": [
+        "CMakeLists.txt",
+        "main/**",
+        "sdkconfig"
+      ],
+      "targetConfig": {
+        "target": "required; e.g. esp32s3"
+      },
+      "capabilities": [
+        "project-open-export",
+        "compile",
+        "upload",
+        "serial-monitor"
+      ],
+      "outputs": [
+        "elf",
+        "bin",
+        "map",
+        "stdout",
+        "stderr"
+      ],
+      "commands": {
+        "compile": "idf.py build",
+        "upload": "idf.py flash",
+        "monitor": "idf.py monitor"
+      }
+    },
+    {
+      "id": "zephyr-west",
+      "name": "Zephyr / west",
+      "kind": "local-cli-adapter",
+      "officialDocs": "https://docs.zephyrproject.org/latest/develop/west/build-flash-debug.html",
+      "projectFiles": [
+        "CMakeLists.txt",
+        "prj.conf",
+        "src/**"
+      ],
+      "targetConfig": {
+        "board": "required"
+      },
+      "capabilities": [
+        "project-open-export",
+        "compile",
+        "upload",
+        "debug"
+      ],
+      "outputs": [
+        "elf",
+        "hex",
+        "bin",
+        "stdout",
+        "stderr"
+      ],
+      "commands": {
+        "compile": "west build -b <BOARD> <PROJECT_DIR>",
+        "upload": "west flash",
+        "debug": "west debug"
+      }
+    }
+  ],
+  "protocol": {
+    "beforeRun": "Show command and project directory; require explicit user action.",
+    "resultFields": [
+      "adapterId",
+      "adapterVersion",
+      "command",
+      "exitCode",
+      "stdout",
+      "stderr",
+      "durationMs",
+      "artifactHashes"
+    ]
+  }
+}
