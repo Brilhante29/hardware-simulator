@@ -16,10 +16,28 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 - `studio.html`: bancada de medição, cenários editáveis, biblioteca e validação.
 - `editor.html`: editor livre com peças em pixel art, fios, sketch Arduino simplificado e projetos JSON.
 - `lab/sn74hc595.html`: registrador digital interativo.
+- `boot.html`: dá boot no `firmware.hex` do PlatformIO num Arduino Uno emulado.
 
 ## Tour em vídeo
 
 [docs/media/hardware-studio-tour.mp4](docs/media/hardware-studio-tour.mp4) (1min48, 1080p, com trilha chiptune original) mostra as animações da oficina, a bancada, o editor com três projetos que combinam placas, o registrador e os testes. O roteiro em [tools/demo-video](tools/demo-video/README.md) regrava o vídeo.
+
+## Boot de firmware (Arduino Uno)
+
+Igual ao fluxo que você já usa com PlatformIO: **o PlatformIO compila, o Hardware Studio dá boot**. O emulador do ATmega328P (`src/emulator/avr.mjs`) foi escrito para este projeto, executa cada instrução do `firmware.hex` e emula Timer0/1/2, GPIO, PWM, USART (TX e RX) e ADC.
+
+```sh
+# no platformio.ini do seu projeto
+extra_scripts = post:/caminho/para/hardware-simulator/tools/platformio/simulate.py
+
+pio run -t simulate                          # compila e roda em tempo real; digite para mandar pela serial
+SIM_ARGS="--seconds 5 --pins" pio run -t simulate   # roda 5 s e mostra cada mudança de pino
+node tools/avr-run.mjs .pio/build/uno/firmware.hex  # sem PlatformIO
+```
+
+No navegador, abra `boot.html`, solte o `.pio/build/uno/firmware.hex` e use **Vigiar arquivo** (Chrome/Edge): a cada `pio run` o chip reinicia sozinho com o firmware novo. Há monitor serial, botões nos pinos de entrada e um potenciômetro no A0.
+
+Ainda não emula: EEPROM, SPI, I²C, watchdog, sleep real, outras placas (ESP32) e o consumo elétrico do chip. `node tests/avr.mjs` roda 9 testes com firmwares reais compilados pelo PlatformIO (`tests/fixtures/avr`).
 
 ## Aparência
 
@@ -74,6 +92,7 @@ Veja [modelos elétricos e evidências](docs/ELECTRICAL_MODELS.md) e [primeira v
 
 ```sh
 node tests/all.mjs
+node tests/avr.mjs
 node tests/editor.mjs
 node tests/display-contrast.mjs
 ```

@@ -1,0 +1,36 @@
+<!doctype html><html lang="pt-BR" data-surface="boot"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Boot · Arduino Uno</title>
+<meta name="description" content="Dê boot no firmware.hex do PlatformIO num Arduino Uno emulado, direto no navegador.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%230f7c8a' d='M1 3h14v10H1z'/%3E%3Cpath fill='%23ffb347' d='M11 5h2v2h-2z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./src/display.css"><script src="./src/display.js"></script>
+<link rel="stylesheet" href="./src/editor/parts.css"><script src="./src/editor/parts-art.js"></script>
+<link rel="stylesheet" href="./src/boot/boot.css"><script type="module" src="./src/boot/boot.mjs"></script>
+</head><body>
+<header class="bar"><a class="brand" href="./">hardware<b>studio</b></a><span class="crumb">/ boot</span>
+<span class="chip-info" id="chipInfo">ATmega328P · 16 MHz · sem firmware</span></header>
+<main>
+<section class="board-side">
+  <div id="drop" class="drop">
+    <div class="board-wrap" id="boardWrap"></div>
+    <div class="drop-hint" id="dropHint"><b>Solte o firmware.hex aqui</b><span>ou</span><button id="pickButton" class="primary">Escolher .hex</button><small>PlatformIO: <code>.pio/build/uno/firmware.hex</code></small></div>
+  </div>
+  <div class="controls">
+    <button id="runButton" class="primary" disabled>▶ Boot</button>
+    <button id="resetButton" disabled title="Reiniciar o chip">↻ Reset</button>
+    <button id="watchButton" title="Recarrega sozinho quando você roda pio run de novo">👁 Vigiar arquivo</button>
+    <span id="clock" class="clock">t = 0,000 s</span>
+  </div>
+  <div class="inputs">
+    <div><span class="label">Entradas digitais</span><small>Clique num pino de entrada para ligá-lo ao GND (como um botão).</small><div id="pinGrid" class="pin-grid"></div></div>
+    <label class="analog"><span class="label">A0 <b id="a0Value">2,50 V</b></span><input id="a0Slider" type="range" min="0" max="5" step="0.01" value="2.5"></label>
+  </div>
+</section>
+<section class="serial-side">
+  <div class="serial-head"><span class="label">Monitor serial</span><button id="clearSerial" class="link">limpar</button></div>
+  <pre id="serial" class="serial" aria-live="polite"></pre>
+  <form id="serialForm" class="serial-input"><input id="serialText" placeholder="Enviar para o Uno…" autocomplete="off"><button>Enviar</button></form>
+  <details class="peek-lite"><summary>Como funciona?</summary><p>Quem compila é o PlatformIO (<code>pio run</code>). Esta página só carrega o <code>firmware.hex</code> e executa cada instrução do ATmega328P, com timers, serial, PWM e ADC. No terminal: <code>pio run -t simulate</code>. Não emula ainda EEPROM, SPI, I²C nem o consumo elétrico.</p></details>
+</section>
+</main>
+<input id="fileInput" type="file" accept=".hex" hidden>
+</body></html>
