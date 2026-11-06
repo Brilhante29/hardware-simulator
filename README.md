@@ -17,6 +17,18 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 - `editor.html`: editor livre original, fios, peças e importação Wokwi.
 - `lab/sn74hc595.html`: registrador digital interativo.
 
+## Aparência
+
+Use **Claro** ou **Escuro** para mudar a oficina e as telas de simulação. A escolha inicial acompanha o sistema. O ajuste **Cores** é independente do tema:
+
+1. Desativado: clique duas vezes em **Cores**, sem precisar de um duplo clique rápido. O segundo clique abre o popup.
+2. Confirme **Usar cores acessíveis** para aplicar azul/dourado, contraste e pistas por símbolos/padrões nos dois temas.
+3. Ativado: um clique abre o popup. Desmarque a opção e confirme para desligar. Cancelar ou Escape mantém a preferência anterior.
+
+A oficina também tem uma pista óptica clicável experimental. Ela não é uma placa de Ishihara calibrada, não identifica daltonismo e não garante que apenas pessoas daltônicas a enxerguem. O acesso equivalente por botão e teclado permanece disponível. Não é necessário declarar nenhuma condição. Só a preferência de aparência é salva localmente.
+
+O tema escuro traz lua, estrelas e iluminação noturna; o claro traz sol e uma paleta azul/lilás. Clique no robô para ele acenar. As animações respeitam a pausa e movimento reduzido.
+
 ## O que funciona
 
 | Recurso | Escopo atual |
@@ -41,9 +53,12 @@ Veja [modelos elétricos e evidências](docs/ELECTRICAL_MODELS.md) e [primeira v
 
 ```sh
 node tests/all.mjs
+node tests/display-contrast.mjs
 ```
 
 24 grupos: 8 digitais + 16 elétricos. Incluem os 256 valores do registrador, solução RC fechada, partição de passos, balanço de potência em 500 configurações e consequências das falhas. Também podem ser executados em **Bancada → Validação** e exportados como JSON. Não são ensaios destrutivos de hardware físico.
+
+A verificação de aparência testa 80 pares de tokens reais de texto/fundo nas quatro paletas contra 4,5:1. Ela não equivale a uma auditoria completa de acessibilidade nem a validação clínica da pista óptica.
 
 ## Desempenho e acessibilidade
 

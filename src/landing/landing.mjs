@@ -1,6 +1,15 @@
 import {SCENARIOS,createCapacitorState,stepCapacitor} from '../engine/electrical.mjs';
 const $=id=>document.getElementById(id),canvas=$('workshopCanvas'),ctx=canvas.getContext('2d',{alpha:true});
-const palette={ink:'#293e34',dark:'#395446',mid:'#678268',light:'#9fb08a',pale:'#dce4c4',cream:'#f3eddb',orange:'#cc7246',rust:'#9c5438',wood:'#bda17a',edge:'#8a785a',lime:'#d4ed86'};
+let palette={},sceneDark=false,sceneAccessible=false,waveUntil=0;
+function displayPalette(){
+ sceneDark=document.documentElement.dataset.theme==='dark';sceneAccessible=document.documentElement.dataset.accessible==='true';
+ palette=sceneDark?{ink:'#101a33',dark:'#2c3e69',mid:'#5274a8',light:'#91b7e3',pale:'#c9defb',cream:'#eff6ff',orange:'#c08df2',rust:'#7750a7',wood:'#6278ad',edge:'#33496d',lime:'#77e7f6'}:{ink:'#28375f',dark:'#405d96',mid:'#7097cb',light:'#a8c7ee',pale:'#e3eeff',cream:'#fafcff',orange:'#a777da',rust:'#6f47a3',wood:'#8b9ac2',edge:'#56668d',lime:'#4fe1ee'};
+ if(sceneAccessible)Object.assign(palette,{orange:sceneDark?'#ffdc73':'#d3a333',rust:'#8a651d',lime:sceneDark?'#9edcff':'#78ccf0',mid:'#648bb3',light:'#a9c9e9'});
+ const original=['#e4e7d7','#d1d8c0','#c8d5b0','#dde6be','#f3e1a1','#a3b88d','#819e76','#e7c368','#365447','#809c5555','#d9dcc9','#e6e7da','#d3bd95','#ac916b','#d3bf73','#596550','#75826b','#e4b658','#9b9b84','#dd9162'];
+ const colors=sceneDark?['#1c2947','#304467','#355583','#142343','#dbeaff','#314973','#4d6a9c','#75cfff','#2c4165','#79d9ef44','#172039','#131a2e','#9ab7df','#51668d','#77d3ef','#39415b','#71809b','#ffd784','#abb9d1','#d0a3f0']:['#dce9ff','#bed1ef','#98b9e6','#bedfff','#ffdb91','#829fd8','#6086bc','#80d9f8','#314c77','#76def144','#cedbf3','#e8effc','#b8c9e7','#7d90b8','#447fba','#555f7c','#8296af','#dba64b','#99abc4','#c4a0eb'];
+ original.forEach((key,i)=>palette[key]=colors[i]);
+}
+displayPalette();
 let scenario='nominal',config={...SCENARIOS.find(s=>s.id===scenario).config},state=createCapacitorState(),reading=stepCapacitor(state,config,0),time=0,burstAt=-99,last=0,lastPaint=0,lastUI=0,raf=0,visible=true;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');let motion=!reduced.matches;
 const rect=(x,y,w,h,c)=>{ctx.fillStyle=palette[c]||c;ctx.fillRect(Math.round(x),Math.round(y),w,h);};
@@ -14,7 +23,7 @@ function plant(x,y){rect(x,y,22,19,'rust');rect(x-3,y-4,28,5,'orange');rect(x+3,
 function robot(x,y){const bob=motion?Math.round(Math.sin(time*2.6))*2:0;y+=bob;
  rect(x+4,y+39,10,17,'dark');rect(x+31,y+39,10,17,'dark');rect(x,y+53,16,7,'ink');rect(x+29,y+53,17,7,'ink');
  rect(x+6,y+10,34,34,'mid');rect(x+10,y+14,26,25,'pale');rect(x+16,y+21,14,9,'dark');text('H',x+19,y+29,10,'lime');
- rect(x-5,y+17,9,24,'dark');rect(x-8,y+34,9,7,'wood');rect(x+42,y+15,9,20,'dark');rect(x+48,y+11,7,10,'wood');
+ rect(x-5,y+17,9,24,'dark');rect(x-8,y+34,9,7,'wood');const waving=motion&&time<waveUntil;rect(x+42,y+(waving?-6:15),9,20,'dark');rect(x+48,y+(waving?-12+Math.round(Math.sin(time*12))*3:11),7,10,'wood');
  rect(x+19,y-22,3,9,'ink');rect(x+16,y-26,9,5,state.fault?'orange':'lime');
  rect(x+2,y-14,42,24,'ink');rect(x+6,y-18,34,4,'mid');rect(x+6,y-10,34,15,'pale');
  const blink=Math.floor(time*2)%11===9;rect(x+13,y-5,5,blink?2:5,'dark');rect(x+28,y-5,5,blink?2:5,'dark');if(state.fault){text('!',x+50,y-18,21,'orange');}
@@ -27,7 +36,7 @@ function draw(){
  for(let x=65;x<500;x+=17)for(let y=72;y<225;y+=17)rect(x,y,2,2,'#d1d8c0');
  // High window and late afternoon light.
  rect(329,63,146,100,'dark');rect(336,70,132,86,'#c8d5b0');rect(343,77,118,72,'#dde6be');
- rect(430,83,17,17,'#f3e1a1');rect(425,88,27,7,'#f3e1a1');
+ rect(430,83,17,17,'#f3e1a1');rect(425,88,27,7,'#f3e1a1');if(sceneDark){rect(438,81,15,14,'#dde6be');[[351,85],[385,93],[415,77],[453,101]].forEach(([x,y])=>star(x,y,1,'cream'));}
  poly([[344,135],[357,121],[369,121],[384,103],[397,103],[416,128],[444,115],[461,133],[461,149],[344,149]],'#a3b88d');
  poly([[344,144],[373,134],[400,142],[427,130],[448,137],[461,135],[461,149],[344,149]],'#819e76');
  rect(399,70,6,86,'dark');rect(336,110,132,5,'dark');rect(323,159,158,7,'mid');
@@ -39,7 +48,7 @@ function draw(){
  // Articulated desk lamp; fixed illumination, moving pixels stay local.
  path([[287,217],[287,141],[269,111],[292,85]],'dark',6);rect(277,214,27,5,'ink');rect(265,105,9,9,'ink');
  poly([[284,77],[306,84],[319,101],[279,89]],'dark');rect(286,89,20,5,'lime');
- ctx.globalAlpha=.13;poly([[286,94],[307,96],[379,216],[226,216]],'#e7c368');ctx.globalAlpha=1;
+ ctx.globalAlpha=sceneDark?.22:.13;poly([[286,94],[307,96],[379,216],[226,216]],'#e7c368');ctx.globalAlpha=1;
  // Oscilloscope with an RC trace from the same circuit state.
  rect(77,100,144,78,'edge');rect(82,94,134,79,'light');rect(87,100,91,62,'dark');rect(92,105,81,51,'ink');
  for(let i=0;i<4;i++)rect(94,114+i*11,77,1,'#365447');for(let i=0;i<6;i++)rect(101+i*13,106,1,49,'#365447');
@@ -78,12 +87,12 @@ function draw(){
  rect(173,214,37,3,'dark');rect(176,210,19,4,'orange');rect(207,215,12,1,'light');
  plant(491,213);rect(52,193,21,20,'cream');rect(55,191,15,3,'dark');path([[73,196],[79,196],[79,207],[73,207]],'wood',3);text('Ω',57,207,10,'orange');
  if(motion){const steam=Math.round(time*10)%16;ctx.globalAlpha=.3;rect(59,180-steam,2,7,'mid');rect(65,175-steam,2,7,'mid');ctx.globalAlpha=1;}
- star(41,121,3,'light');star(512,92,3,'orange');star(253,37,2,'light');text('GOOD IDEAS START HERE',196,344,8,'mid');
+ if(sceneAccessible){text(state.fault?'X':'O',466,180,12,'cream');path([[267,209],[462,209]],'cream',1);for(let x=270;x<461;x+=9)rect(x,208,4,3,'ink');}star(41,121,3,'light');star(512,92,3,'orange');star(253,37,2,'light');text('GOOD IDEAS START HERE',196,344,8,'mid');
 }
 function updateUI(){const f=(n,d=2)=>n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});$('voltageValue').textContent=f(reading.terminalVoltage)+' V';$('currentValue').textContent=f(reading.current*1000)+' mA';$('powerValue').textContent=reading.resistorPower>=1?f(reading.resistorPower)+' W':f(reading.resistorPower*1000,1)+' mW';$('voltageLabel').textContent=state.fault?'NOS TERMINAIS ABERTOS':'NO CAPACITOR';
  const feedback=state.fault?'C1 abriu. A corrente parou — e R1 deixou de dissipar potência.':reading.terminalVoltage>16?'Passou de 16 V. Há estresse elétrico; o modo de falha exige outro modelo.':'A corrente carrega o capacitor. Acompanhe a tensão subir.';
  if($('sceneFeedback').textContent!==feedback)$('sceneFeedback').textContent=feedback;
- $('sceneFeedback').classList.toggle('failed',!!state.fault);$('sceneBadge').classList.toggle('failed',!!state.fault);const badge=state.fault?'C1: CIRCUITO ABERTO':reading.terminalVoltage>16?'LIMITE ULTRAPASSADO':'CIRCUITO VIVO';if($('sceneBadge').textContent.trim()!==badge)$('sceneBadge').innerHTML='<i></i>'+badge;
+ $('sceneFeedback').classList.toggle('failed',!!state.fault);$('sceneBadge').classList.toggle('failed',!!state.fault);const badge=state.fault?'× C1: CIRCUITO ABERTO':reading.terminalVoltage>16?'△ LIMITE ULTRAPASSADO':'○ CIRCUITO VIVO';if($('sceneBadge').textContent.trim()!==badge)$('sceneBadge').innerHTML='<i></i>'+badge;
 }
 function advance(dt){const before=state.fault;reading=stepCapacitor(state,config,dt);if(!before&&state.fault)burstAt=time;}
 function tick(now){raf=0;if(!motion||!visible||document.hidden)return;if(!last)last=now;const dt=Math.min((now-last)/1000,.1);last=now;time+=dt;advance(dt*(scenario==='extreme'?.006:.08));if(now-lastPaint>=1000/24){draw();lastPaint=now;}if(now-lastUI>=160){updateUI();lastUI=now;}raf=requestAnimationFrame(tick);}
@@ -92,3 +101,6 @@ function select(id){const selected=SCENARIOS.find(s=>s.id===id);if(!selected)ret
 function syncMotion(){document.body.classList.toggle('no-motion',!motion);$('motionToggle').setAttribute('aria-pressed',String(motion));$('motionToggle').setAttribute('aria-label',motion?'Pausar animações':'Ativar animações');$('motionToggle').innerHTML=motion?'Ⅱ <span>Pausar movimento</span>':'▶ <span>Ativar movimento</span>';schedule();draw();}
 document.querySelectorAll('[data-scenario]').forEach(b=>b.onclick=()=>select(b.dataset.scenario));$('restore').onclick=()=>select('nominal');$('motionToggle').onclick=()=>{motion=!motion;syncMotion();};reduced.addEventListener('change',()=>{motion=!reduced.matches;syncMotion();});
 new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;schedule();},{threshold:.05}).observe(canvas);document.addEventListener('visibilitychange',schedule);window.addEventListener('pagehide',()=>cancelAnimationFrame(raf));window.addEventListener('pageshow',schedule);document.fonts.ready.then(draw);if(!motion)advance(.8);updateUI();syncMotion();
+
+document.addEventListener('hardware-display-change',()=>{displayPalette();draw();updateUI();});
+const waveButton=document.createElement('button');waveButton.className='robot-wave';waveButton.type='button';waveButton.setAttribute('aria-label','Cumprimentar o robô');waveButton.title='Dê um oi para o robô';waveButton.innerHTML='<span>dar um oi</span>';document.querySelector('.scene').append(waveButton);waveButton.onclick=()=>{waveUntil=time+3;draw();};
