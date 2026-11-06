@@ -1,19 +1,32 @@
 const $ = (selector) => document.querySelector(selector);
-const svgNS = 'http://www.w3.org/2000/svg';
 const STORE_KEY = 'hardware-simulator-project-v1';
 const CUSTOM_KEY = 'hardware-simulator-custom-parts-v1';
 const STARTER_CODE = `// Exemplo: pisca o LED ligado ao pino 13\nvoid setup() {\n  pinMode(13, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(500);\n  digitalWrite(13, LOW);\n  delay(500);\n}`;
 
 const catalog = [
-  {type:'uno',name:'Arduino Uno',category:'Placas',tag:'MCU',width:182,height:220,icon:'board',pins:[['D13',0,48],['D12',0,69],['D11',0,90],['D10',0,111],['D9',0,132],['D8',0,153],['GND',182,175],['5V',182,196]],description:'Placa de desenvolvimento ATmega328P.',voltage:'5 V',kind:'board'},
+  {type:'uno',name:'Arduino Uno',category:'Placas',tag:'MCU',width:182,height:220,icon:'board',pins:[['D0',0,26],['D1',0,38],['D2',0,50],['D3',0,62],['D4',0,74],['D5',0,86],['D6',0,98],['D7',0,110],['D8',0,122],['D9',0,134],['D10',0,146],['D11',0,158],['D12',0,170],['D13',0,182],['A0',182,38],['A1',182,58],['A2',182,78],['A3',182,98],['A4',182,118],['A5',182,138],['5V',182,164],['GND',182,190]],description:'Placa de desenvolvimento ATmega328P.',voltage:'5 V',kind:'board'},
   {type:'led',name:'LED',category:'Básicos',tag:'LED',width:82,height:70,icon:'led',pins:[['A',0,38],['K',82,38]],description:'Diodo emissor de luz. A = ânodo, K = cátodo.',kind:'load'},
   {type:'resistor',name:'Resistor',category:'Básicos',tag:'R',width:104,height:66,icon:'resistor',pins:[['1',0,34],['2',104,34]],description:'Resistor genérico em série com o circuito.',kind:'conductor'},
   {type:'button',name:'Botão',category:'Básicos',tag:'SW',width:82,height:66,icon:'button',pins:[['1',0,34],['2',82,34]],description:'Chave momentânea. Alterne para abrir ou fechar o contato.',kind:'switch'},
   {type:'source',name:'Fonte DC',category:'Energia',tag:'5V',width:80,height:72,icon:'source',pins:[['+',0,36],['−',80,36]],description:'Fonte de alimentação DC ideal para protótipos.',voltage:'5 V',kind:'source'},
+  {type:'vcc',name:'Trilho VCC',category:'Energia',tag:'+5V',width:72,height:66,icon:'custom',pins:[['VCC',72,33]],description:'Trilho de alimentação positivo ideal de 5 V.',voltage:'5 V',kind:'highRail'},
+  {type:'gnd',name:'Trilho GND',category:'Energia',tag:'GND',width:72,height:66,icon:'custom',pins:[['GND',72,33]],description:'Referência de terra do circuito.',voltage:'0 V',kind:'lowRail'},
   {type:'buzzer',name:'Buzzer',category:'Saídas',tag:'BZ',width:82,height:68,icon:'buzzer',pins:[['+',0,35],['−',82,35]],description:'Transdutor sonoro que responde a uma saída energizada.',kind:'load'},
   {type:'pot',name:'Potenciômetro',category:'Sensores',tag:'10K',width:104,height:78,icon:'pot',pins:[['VCC',0,17],['GND',0,60],['SIG',104,39]],description:'Divisor resistivo ajustável com saída de sinal.',kind:'sensor'},
   {type:'display',name:'Display 16×2',category:'Displays',tag:'LCD',width:112,height:72,icon:'display',pins:[['VCC',0,18],['GND',0,54],['SDA',112,25],['SCL',112,48]],description:'Display de caracteres com interface I²C.',kind:'display'},
   {type:'gate',name:'Porta AND',category:'Lógica',tag:'AND',width:90,height:72,icon:'gate',pins:[['A',0,20],['B',0,52],['Y',90,36]],description:'Saída lógica AND de duas entradas.',kind:'logic'},
+  {type:'switch',name:'Chave liga/desliga',category:'Básicos',tag:'SW',width:94,height:66,icon:'button',pins:[['1',0,34],['2',94,34]],description:'Chave mantida. Alterne o contato no painel de propriedades.',kind:'switch'},
+  {type:'capacitor',name:'Capacitor',category:'Básicos',tag:'C',width:82,height:66,icon:'custom',pins:[['+',0,34],['−',82,34]],description:'Componente passivo; o modelo transitório será adicionado em uma próxima etapa.',kind:'passive'},
+  {type:'diode',name:'Diodo',category:'Básicos',tag:'D',width:82,height:66,icon:'custom',pins:[['A',0,34],['K',82,34]],description:'Diodo semicondutor polarizado; modelo elétrico completo ainda em desenvolvimento.',kind:'passive'},
+  {type:'transistor',name:'Transistor NPN',category:'Básicos',tag:'NPN',width:94,height:82,icon:'custom',pins:[['B',0,41],['C',94,22],['E',94,61]],description:'Transistor de junção bipolar NPN para montagem de protótipos.',kind:'passive'},
+  {type:'ldr',name:'Sensor de luz LDR',category:'Sensores',tag:'LDR',width:100,height:68,icon:'custom',pins:[['1',0,34],['2',100,34]],description:'Fotoresistor para projetos de detecção de luminosidade.',kind:'sensor'},
+  {type:'ultrasonic',name:'Sensor ultrassônico',category:'Sensores',tag:'HC-SR04',width:118,height:84,icon:'custom',pins:[['VCC',0,18],['TRIG',0,40],['ECHO',118,40],['GND',118,66]],description:'Sensor de distância com sinais de trigger e echo.',kind:'sensor'},
+  {type:'servo',name:'Micro servo',category:'Saídas',tag:'SG90',width:96,height:82,icon:'custom',pins:[['GND',0,18],['VCC',0,41],['SIG',96,30]],description:'Atuador de posição com alimentação e sinal PWM.',kind:'actuator'},
+  {type:'motor',name:'Motor DC',category:'Saídas',tag:'M',width:82,height:72,icon:'custom',pins:[['+',0,36],['−',82,36]],description:'Motor DC para protótipos e robótica.',kind:'actuator'},
+  {type:'relay',name:'Módulo relé',category:'Saídas',tag:'1CH',width:118,height:90,icon:'custom',pins:[['VCC',0,18],['GND',0,68],['IN',0,43],['COM',118,18],['NO',118,45],['NC',118,70]],description:'Relé de um canal com entrada de controle e contatos.',kind:'actuator'},
+  {type:'rgb',name:'LED RGB',category:'Saídas',tag:'RGB',width:92,height:78,icon:'custom',pins:[['R',0,18],['G',0,38],['B',0,58],['COM',92,38]],description:'LED vermelho, verde e azul de cátodo comum.',kind:'load'},
+  {type:'segment',name:'Display 7 segmentos',category:'Displays',tag:'7-SEG',width:96,height:96,icon:'custom',pins:[['A',0,15],['B',96,15],['C',96,34],['D',0,34],['E',0,54],['F',96,54],['G',0,74],['COM',96,74]],description:'Display numérico de sete segmentos.',kind:'display'},
+  {type:'neopixel',name:'NeoPixel RGB',category:'Displays',tag:'LED',width:92,height:76,icon:'custom',pins:[['VCC',0,18],['GND',0,56],['DIN',92,28],['DOUT',92,52]],description:'LED RGB endereçável. Protocolo de dados ainda não é simulado.',kind:'display'},
 ];
 const categories = [
   ['Todos','◈'],['Placas','▦'],['Básicos','◉'],['Sensores','⌁'],['Displays','▤'],['Saídas','◖'],['Energia','ϟ'],['Lógica','⋈'],['Customizados','✳']
@@ -84,7 +97,7 @@ function renderCatalog(){
 function pinDef(part,pinName){const def=defFor(part.type);return def?.pins.find(([name])=>name===pinName)}
 function partNode(id,pinName){const part=project.parts.find(item=>item.id===id);const pin=part&&pinDef(part,pinName);if(!part||!pin)return null;return {x:part.x+pin[1],y:part.y+pin[2]}}
 function renderWires(){
-  const paths=project.wires.map(wire=>{const a=partNode(wire.a.part,wire.a.pin),b=partNode(wire.b.part,wire.b.pin);if(!a||!b)return '';const mid=Math.round((a.x+b.x)/2);return `<g class="wire-group"><path class="wire-line ${selectedWire===wire.id?'selected':''}" data-wire="${wire.id}" d="M ${a.x} ${a.y} H ${mid} V ${b.y} H ${b.x}"/><circle class="wire-dot" cx="${a.x}" cy="${a.y}" r="3"/><circle class="wire-dot" cx="${b.x}" cy="${b.y}" r="3"/></g>`}).join('');
+  const paths=project.wires.map(wire=>{const a=partNode(wire.a.part,wire.a.pin),b=partNode(wire.b.part,wire.b.pin);if(!a||!b)return '';const mid=Math.round((a.x+b.x)/2);return `<g class="wire-group"><path class="wire-line ${selectedWire===wire.id?'selected':''}" data-wire="${safeText(wire.id)}" style="--wire-color:${safeText(wire.color||'#708a7a')}" d="M ${a.x} ${a.y} H ${mid} V ${b.y} H ${b.x}"/><circle class="wire-dot" cx="${a.x}" cy="${a.y}" r="3"/><circle class="wire-dot" cx="${b.x}" cy="${b.y}" r="3"/></g>`}).join('');
   wireLayer.innerHTML=paths;wireLayer.querySelectorAll('[data-wire]').forEach(path=>path.addEventListener('click',event=>{event.stopPropagation();selectedWire=path.dataset.wire;selectedId=null;renderAll()}));
   if(pendingPin){const node=partNode(pendingPin.part,pendingPin.pin);if(node){const preview=$('#wirePreview');preview.innerHTML=`<svg viewBox="0 0 1800 1200" preserveAspectRatio="none"><path class="preview-line" d="M ${node.x} ${node.y} L ${pointerCanvas.x} ${pointerCanvas.y}"/></svg>`}}
 }
@@ -94,15 +107,17 @@ function partMarkup(part){
   const classes=['part',`part-${part.type}`,selectedId===part.id?'selected':'',part.settings?.pressed?'pressed':'',part.settings?.lit?'lit':''].filter(Boolean).join(' ');
   let inner='';
   if(part.type==='uno')inner='<div class="uno-board"><div class="uno-usb"></div><div class="uno-label">ARDUINO</div><div class="uno-chip"></div><div class="uno-pinbank"><i></i><i></i><i></i><i></i><i></i></div><div class="uno-led"></div></div>';
-  else if(part.type==='led')inner='<div class="led-bulb"></div>';
+  else if(part.type==='led')inner=`<div class="led-bulb" style="--led-color:${safeText(part.settings?.color||'#63c879')}"></div>`;
   else if(part.type==='resistor')inner='<div class="resistor-body"></div>';
-  else if(part.type==='button')inner='<div class="button-cap"></div>';
+  else if(part.type==='button'||part.type==='switch')inner='<div class="button-cap"></div>';
   else if(part.type==='source')inner='<div class="source-symbol">±</div>';
+  else if(part.type==='vcc')inner='<div class="source-symbol">+</div>';
+  else if(part.type==='gnd')inner='<div class="source-symbol">⏚</div>';
   else if(part.type==='buzzer')inner='<div class="buzzer-disc"></div>';
   else if(part.type==='pot')inner='<div class="pot-knob"></div>';
   else if(part.type==='display')inner=`<span class="display-face">${safeText((part.settings?.screen||'HELLO WORLD').slice(0,13))}</span>`;
   else if(part.type==='gate')inner='<span class="display-face" style="color:#57916b;font-size:20px">&amp;</span>';
-  else inner=`<span class="custom-chip">${safeText(part.name)}</span>`;
+  else inner=`<span class="generic-chip"><b>${safeText((def.tag||part.name.slice(0,3)).slice(0,7))}</b><small>${safeText(part.name)}</small></span>`;
   const pins=def.pins.map(([name,x,y])=>`<span class="pin ${pendingPin?.part===part.id&&pendingPin?.pin===name?'pending':''}" data-pin="${safeText(name)}" title="${safeText(name)}" style="left:${x}px;top:${y}px"></span><span class="pin-label ${x===0?'left':'right'}" style="left:${x===0?'auto':x+7+'px'};right:${x===0?'calc(100% + 5px)':'auto'};top:${y-4}px">${safeText(name)}</span>`).join('');
   return `<div class="${classes}" data-part="${safeText(part.id)}" style="left:${part.x}px;top:${part.y}px;width:${def.width}px;height:${def.height+18}px"><div class="part-card" style="width:${def.width}px;height:${def.height}px">${inner}</div><div class="part-title">${safeText(part.name||def.name)}</div>${pins}</div>`;
 }
@@ -114,11 +129,11 @@ function renderParts(){
       if(event.target.closest('.pin'))return;
       if(event.button!==0)return;
       const part=project.parts.find(item=>item.id===id);if(!part)return;
-      if(event.detail===2&&part.type==='button'&&simulationTimer){part.settings.pressed=!part.settings.pressed;renderAll();return}
-      selectedId=id;selectedWire=null;renderAll();
+      if(event.detail===2&&['button','switch'].includes(part.type)){part.settings.pressed=!part.settings.pressed;renderAll();if(simulationTimer)updateSimulation();return}
+      selectedId=id;selectedWire=null;el.classList.add('selected');renderInspector();
       const startX=event.clientX,startY=event.clientY,originalX=part.x,originalY=part.y;
       const move=e=>{part.x=Math.max(8,Math.min(1680,originalX+(e.clientX-startX)/zoom));part.y=Math.max(8,Math.min(1080,originalY+(e.clientY-startY)/zoom));el.style.left=part.x+'px';el.style.top=part.y+'px';renderWires();renderInspector()};
-      const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);snapshot();markChanged()};
+      const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);renderWires();renderParts();renderInspector();snapshot();markChanged()};
       window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});
       event.preventDefault();
     });
@@ -145,7 +160,7 @@ function renderInspector(){
   const def=defFor(part.type);if(!def)return;
   const pins=def.pins.map(pin=>`<div class="property-row"><span>${safeText(pin[0])}</span><b>${project.wires.filter(w=>[w.a,w.b].some(end=>end.part===part.id&&end.pin===pin[0])).length?'Conectado':'Livre'}</b></div>`).join('');
   let controls='';
-  if(part.type==='button')controls=`<div class="property-section"><p class="property-label">Estado do contato</p><div class="switch-row"><span>${part.settings?.pressed?'Pressionado':'Aberto'}</span><button id="toggleButtonPart" class="toggle ${part.settings?.pressed?'on':''}" aria-label="Alternar botão"></button></div></div>`;
+  if(def.kind==='switch')controls=`<div class="property-section"><p class="property-label">Estado do contato</p><div class="switch-row"><span>${part.settings?.pressed?(part.type==='switch'?'Fechado':'Pressionado'):'Aberto'}</span><button id="toggleButtonPart" class="toggle ${part.settings?.pressed?'on':''}" aria-label="Alternar botão"></button></div></div>`;
   if(part.type==='resistor')controls+=`<div class="property-section"><p class="property-label">Valor</p><input id="partValue" class="property-input" value="${safeText(part.settings?.value||'220 Ω')}" /></div>`;
   if(part.type==='led')controls+=`<div class="property-section"><p class="property-label">Cor</p><div class="property-row"><span>Cor do LED</span><input id="ledColor" type="color" value="${safeText(part.settings?.color||'#e56d5c')}" style="width:30px;height:24px;border:0;background:transparent;cursor:pointer" /></div><div class="property-row"><span>Estado</span><b>${part.settings?.lit?'Ligado':'Desligado'}</b></div></div>`;
   view.innerHTML=`<div class="property-header"><div class="property-type">${safeText(def.category)} · ${safeText(def.tag||'COMPONENTE')}</div><h2>${safeText(part.name||def.name)}</h2></div><div class="property-section"><p class="property-label">Identificação</p><label class="property-row"><span>Nome</span><input id="partName" class="property-input" style="width:130px" value="${safeText(part.name||def.name)}" /></label>${def.voltage?`<div class="property-row"><span>Tensão nominal</span><b>${safeText(def.voltage)}</b></div>`:''}</div>${controls}<div class="property-section"><p class="property-label">Terminais</p>${pins}</div><div class="property-section"><p class="property-label">Sobre</p><p style="font-size:9px;line-height:1.55;color:#77827a;margin:0">${safeText(def.description||'Componente personalizado do seu projeto.')}</p></div><div class="property-section"><button id="deleteSelectedPart" class="text-button delete-part">Remover componente</button></div>`;
@@ -173,10 +188,10 @@ function deleteSelected(){
 function unionFind(nodes,edges){const parent=new Map(nodes.map(n=>[n,n]));const find=x=>{let r=x;while(parent.get(r)!==r)r=parent.get(r);while(parent.get(x)!==x){const next=parent.get(x);parent.set(x,r);x=next}return r};for(const[a,b]of edges){if(!parent.has(a))parent.set(a,a);if(!parent.has(b))parent.set(b,b);parent.set(find(a),find(b))}return find}
 function updateSimulation(){
   const nodes=[],edges=[];const node=(part,pin)=>`${part}:${pin}`;
-  for(const part of project.parts){for(const[pin]of defFor(part.type)?.pins||[])nodes.push(node(part.id,pin));if(['resistor'].includes(part.type))edges.push([node(part.id,'1'),node(part.id,'2')]);if(part.type==='button'&&part.settings?.pressed)edges.push([node(part.id,'1'),node(part.id,'2')]);if(part.type==='pot')edges.push([node(part.id,'VCC'),node(part.id,'SIG')]);}
+  for(const part of project.parts){for(const[pin]of defFor(part.type)?.pins||[])nodes.push(node(part.id,pin));if(part.type==='resistor'||defFor(part.type)?.kind==='conductor')edges.push([node(part.id,defFor(part.type).pins[0][0]),node(part.id,defFor(part.type).pins[1][0])]);if((['button','switch'].includes(part.type)||defFor(part.type)?.kind==='switch')&&part.settings?.pressed)edges.push([node(part.id,defFor(part.type).pins[0][0]),node(part.id,defFor(part.type).pins[1][0])]);}
   for(const wire of project.wires)edges.push([node(wire.a.part,wire.a.pin),node(wire.b.part,wire.b.pin)]);
   const find=unionFind(nodes,edges);const highs=new Set(),lows=new Set();
-  for(const part of project.parts){if(part.type==='source'){highs.add(find(node(part.id,'+')));lows.add(find(node(part.id,'−')))}if(part.type==='uno'){highs.add(find(node(part.id,'5V')));lows.add(find(node(part.id,'GND')));for(let pin=0;pin<14;pin++){const label=`D${pin}`;if(!pinDef(part,label))continue;const level=part.settings?.outputs?.[label];if(level===1)highs.add(find(node(part.id,label)));if(level===0)lows.add(find(node(part.id,label)))} }}
+  for(const part of project.parts){const definition=defFor(part.type);if(part.type==='source'||definition?.kind==='source'){const pins=definition.pins;highs.add(find(node(part.id,part.type==='source'?'+':pins[0][0])));lows.add(find(node(part.id,part.type==='source'?'−':pins[1][0])))}if(definition?.kind==='highRail')highs.add(find(node(part.id,definition.pins[0][0])));if(definition?.kind==='lowRail')lows.add(find(node(part.id,definition.pins[0][0])));if(part.type==='uno'){highs.add(find(node(part.id,'5V')));lows.add(find(node(part.id,'GND')));for(let pin=0;pin<14;pin++){const label=`D${pin}`;if(!pinDef(part,label))continue;const level=part.settings?.outputs?.[label];if(level===1)highs.add(find(node(part.id,label)));if(level===0)lows.add(find(node(part.id,label)))} }}
   const lights=[];
   for(const part of project.parts){if(part.type==='led'){const anode=find(node(part.id,'A')),cathode=find(node(part.id,'K'));const lit=Array.from(highs).some(h=>h===anode)&&Array.from(lows).some(l=>l===cathode);part.settings.lit=lit;lights.push(lit)}if(part.type==='buzzer'){const pos=find(node(part.id,'+')),neg=find(node(part.id,'−'));part.settings.lit=Array.from(highs).some(h=>h===pos)&&Array.from(lows).some(l=>l===neg)}}
   renderParts();if(selectedId)renderInspector();
@@ -201,9 +216,124 @@ function loadExample(id){stopSimulation();snapshot();if(id==='empty'){project={v
 }
 function openExamples(){ $('#examplesList').innerHTML=examples.map(item=>`<button class="example-card" data-example="${item.id}"><span class="example-card-icon">${item.icon}</span><b>${safeText(item.title)}</b><small>${safeText(item.category)}<br />${safeText(item.description)}</small></button>`).join('');$('#examplesList').querySelectorAll('[data-example]').forEach(button=>button.addEventListener('click',()=>loadExample(button.dataset.example)));$('#examplesDialog').showModal() }
 function fitCircuit(){if(!project.parts.length){zoom=1;panX=25;panY=25;renderAll();return}const rect=viewport.getBoundingClientRect();const boxes=project.parts.map(p=>{const d=defFor(p.type);return{x:p.x,y:p.y,w:d.width,h:d.height}});const minX=Math.min(...boxes.map(b=>b.x)),minY=Math.min(...boxes.map(b=>b.y)),maxX=Math.max(...boxes.map(b=>b.x+b.w)),maxY=Math.max(...boxes.map(b=>b.y+b.h));zoom=Math.max(.45,Math.min(1.25,Math.min((rect.width-140)/(maxX-minX+40),(rect.height-170)/(maxY-minY+40))));panX=(rect.width-(maxX-minX)*zoom)/2-minX*zoom;panY=(rect.height-(maxY-minY)*zoom)/2-minY*zoom;renderAll()}
-function exportProject(){project.code=$('#codeEditor').value;const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${(project.title||'circuito').toLowerCase().replace(/[^a-z0-9]+/g,'-')}.json`;a.click();URL.revokeObjectURL(url);toast('Arquivo JSON exportado')}
-function importProject(file){const reader=new FileReader();reader.onload=()=>{try{const value=JSON.parse(reader.result);if(!Array.isArray(value.parts)||!Array.isArray(value.wires))throw new Error('invalid');snapshot();project={version:1,title:String(value.title||'Projeto importado'),parts:value.parts.map(p=>({...p,settings:p.settings||{}})),wires:value.wires,code:String(value.code||STARTER_CODE)};$('#codeEditor').value=project.code;selectedId=null;selectedWire=null;pendingPin=null;renderAll();markChanged();toast('Projeto importado com sucesso')}catch{toast('JSON inválido ou formato de circuito desconhecido')}};reader.readAsText(file)}
-function createCustomPart(){const name=$('#customName').value.trim(),category=$('#customCategory').value,pins=$('#customPins').value.split(',').map(v=>v.trim()).filter(Boolean);if(!name||!pins.length){toast('Informe nome e pelo menos um pino');return}const safePins=pins.slice(0,8);const def={type:`custom-${Date.now().toString(36)}`,name,category,tag:'CUSTOM',width:120,height:86,icon:'custom',description:`Componente personalizado com ${safePins.length} terminal(is).`,kind:'custom',pins:safePins.map((pin,index)=>[pin,index<Math.ceil(safePins.length/2)?0:120,16+Math.floor(index/(Math.ceil(safePins.length/2)))*48])};customParts.push(def);localStorage.setItem(CUSTOM_KEY,JSON.stringify(customParts));activeCategory=category;renderAll();$('#customPartDialog').close();$('#customName').value='';$('#customPins').value='';addPart(def.type);toast('Peça adicionada à biblioteca local')}
+function exportProject(){project.code=$('#codeEditor').value;const blob=new Blob([JSON.stringify({...project,customComponents:customParts},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${(project.title||'circuito').toLowerCase().replace(/[^a-z0-9]+/g,'-')}.json`;a.click();URL.revokeObjectURL(url);toast('Arquivo JSON exportado')}
+function makePinLayout(names,width=148,paired=false){
+  const rows=Math.ceil(names.length/2),height=Math.max(86,rows*20+20),leftCount=rows;
+  return{width,height,pins:names.map((name,index)=>{
+    if(paired&&index<2)return[String(name).slice(0,20),index===0?0:width,42];
+    const adjusted=paired?index-2:index;
+    const sideCount=paired?Math.ceil(Math.max(0,names.length-2)/2):leftCount;
+    return[String(name).slice(0,20),adjusted<sideCount?0:width,14+(adjusted<sideCount?adjusted:adjusted-sideCount)*20];
+  })};
+}
+function normalizeCustomDefinitions(definitions){
+  return(Array.isArray(definitions)?definitions:[]).filter(d=>d&&typeof d.type==='string'&&d.type.startsWith('custom-')&&typeof d.name==='string'&&Array.isArray(d.pins)&&d.pins.length>0).slice(0,100).map(d=>{
+    const names=[...new Set(d.pins.slice(0,40).map((pin,i)=>String(Array.isArray(pin)?pin[0]:pin||`P${i+1}`).slice(0,20)))];
+    const kind=['custom','conductor','switch','source'].includes(d.kind)?d.kind:'custom';
+    const layout=makePinLayout(names,148,['conductor','switch','source'].includes(kind));
+    return{type:d.type.slice(0,48),name:d.name.slice(0,30),category:categories.some(c=>c[0]===d.category)?d.category:'Customizados',tag:String(d.tag||'CUSTOM').slice(0,8),width:layout.width,height:layout.height,icon:'custom',description:String(d.description||'Componente importado com pinos personalizados.').slice(0,120),kind,pins:layout.pins};
+  });
+}
+function convertWokwiDiagram(diagram){
+  const connections=Array.isArray(diagram.connections)?diagram.connections:[];
+  const references=new Map();
+  const endpoint=(address)=>{if(typeof address!=='string')return null;const split=address.indexOf(':');if(split<1)return null;return{id:address.slice(0,split),pin:address.slice(split+1)}};
+  for(const connection of connections){if(!Array.isArray(connection))continue;for(const address of connection.slice(0,2)){const point=endpoint(address);if(!point)continue;if(!references.has(point.id))references.set(point.id,new Set());references.get(point.id).add(point.pin)}}
+  const typeMap={'wokwi-arduino-uno':'uno','wokwi-arduino-nano':'uno','wokwi-led':'led','wokwi-resistor':'resistor','wokwi-pushbutton':'button','wokwi-pushbutton-6mm':'button','wokwi-slide-switch':'switch','wokwi-buzzer':'buzzer','wokwi-potentiometer':'pot','wokwi-lcd1602':'display','wokwi-lcd2004':'display','wokwi-hc-sr04':'ultrasonic','wokwi-servo':'servo','wokwi-neopixel':'neopixel','wokwi-rgb-led':'rgb','wokwi-7segment':'segment','wokwi-photoresistor-sensor':'ldr','wokwi-relay-module':'relay','wokwi-vcc':'vcc','wokwi-gnd':'gnd'};
+  const pinMap=(sourceType,raw)=>{
+    const p=String(raw).trim();
+    if(['wokwi-arduino-uno','wokwi-arduino-nano'].includes(sourceType)){
+      if(/^\d+$/.test(p))return`D${p}`;
+      if(/^D\d+$/.test(p))return p;
+      if(/^GND(?:\.\d+)?$/i.test(p))return'GND';
+      if(/^5V(?:\.\d+)?$/i.test(p))return'5V';
+      if(/^A[0-5]$/i.test(p))return p.toUpperCase();
+    }
+    if(['wokwi-led','wokwi-rgb-led'].includes(sourceType)&&['C','K'].includes(p.toUpperCase()))return'K';
+    if(sourceType==='wokwi-buzzer')return({'1':'+','2':'−','+':'+','-':'−','−':'−'})[p]||p;
+    if(['wokwi-pushbutton','wokwi-pushbutton-6mm'].includes(sourceType)){
+      if(/^1(?:\.|$)/.test(p))return'1';if(/^2(?:\.|$)/.test(p))return'2';
+    }
+    if(sourceType==='wokwi-servo')return({'PWM':'SIG','V+':'VCC','GND':'GND'})[p]||p;
+    if(sourceType==='wokwi-vcc')return'VCC';if(sourceType==='wokwi-gnd')return'GND';
+    return p;
+  };
+  const sourceParts=Array.isArray(diagram.parts)?diagram.parts:[];
+  const xValues=sourceParts.map(part=>Number(part.left??part.x??0)).filter(Number.isFinite),yValues=sourceParts.map(part=>Number(part.top??part.y??0)).filter(Number.isFinite);
+  const minX=xValues.length?Math.min(...xValues):0,minY=yValues.length?Math.min(...yValues):0;
+  const importedCustom=[],partTypes=new Map(),partPinMaps=new Map(),parts=[];
+  for(let index=0;index<sourceParts.length&&index<250;index++){
+    const source=sourceParts[index]||{},id=String(source.id||`part-${index}`).slice(0,60),sourceType=String(source.type||'unknown');
+    const connected=[...(references.get(id)||[])];let targetType=typeMap[sourceType]||null;
+    let mappedPins=targetType?connected.map(pin=>[pin,pinMap(sourceType,pin)]):[];
+    if(targetType){const def=defFor(targetType);if(!def||mappedPins.some(([,mapped])=>!pinDef({type:targetType},mapped)))targetType=null}
+    let definition=targetType?defFor(targetType):null;
+    if(!definition){
+      const names=connected.length?connected:['P1','P2'];const rawNames=[...new Set(names)].slice(0,40);
+      const customType=`custom-wokwi-${id.toLowerCase().replace(/[^a-z0-9-]/g,'-').slice(0,24)}-${index}`;
+      const layout=makePinLayout(rawNames,148,false);const boardLike=/arduino|esp|pico|stm|attiny|board|microcontroller/i.test(sourceType);
+      definition={type:customType,name:String(sourceType.replace(/^wokwi-/,'').replace(/[-_]/g,' ')).slice(0,30),category:boardLike?'Placas':'Customizados',tag:boardLike?'BOARD':'WOKWI',width:layout.width,height:layout.height,icon:'custom',description:`Peça importada do Wokwi (${sourceType}); modelo elétrico ainda não cadastrado.`,kind:'custom',pins:layout.pins};
+      importedCustom.push(definition);targetType=customType;mappedPins=rawNames.map(pin=>[pin,pin]);
+    }
+    const attrs=source.attrs&&typeof source.attrs==='object'?source.attrs:{};
+    const rawName=attrs.label||attrs.name||id;
+    const colorMap={red:'#e56d5c',green:'#64c77d',blue:'#63a8e7',yellow:'#edc65a',white:'#f2f3e8',orange:'#ee9457',purple:'#ae82df'};
+    let color=typeof attrs.color==='string'?(colorMap[attrs.color.toLowerCase()]||(/^#[\da-f]{6}$/i.test(attrs.color)?attrs.color:null)):null;
+    const value=attrs.resistance!==undefined?`${attrs.resistance} Ω`:undefined;
+    const x=Number(source.left??source.x??150)-minX+100,y=Number(source.top??source.y??100)-minY+90;
+    parts.push({id,type:targetType,name:String(rawName).slice(0,40),x:Math.max(10,Math.min(1650,Number.isFinite(x)?x:100+index*18)),y:Math.max(10,Math.min(1050,Number.isFinite(y)?y:100+index*18)),settings:{...(color?{color}:{}),...(value?{value}:{})}});
+    partTypes.set(id,{type:targetType,sourceType});partPinMaps.set(id,new Map(mappedPins));
+  }
+  const wires=[];let skipped=0;
+  for(let index=0;index<connections.length&&index<1000;index++){
+    const connection=connections[index];if(!Array.isArray(connection)||connection.length<2){skipped++;continue}
+    const from=endpoint(connection[0]),to=endpoint(connection[1]);if(!from||!to){skipped++;continue}
+    const fromInfo=partTypes.get(from.id),toInfo=partTypes.get(to.id);if(!fromInfo||!toInfo){skipped++;continue}
+    const mapFor=(point,info)=>partPinMaps.get(point.id)?.get(point.pin)||pinMap(info.sourceType,point.pin);
+    const aPin=mapFor(from,fromInfo),bPin=mapFor(to,toInfo),aPart=parts.find(part=>part.id===from.id),bPart=parts.find(part=>part.id===to.id);
+    if(!aPart||!bPart||!pinDef(aPart,aPin)||!pinDef(bPart,bPin)){skipped++;continue}
+    const colors={red:'#d86c62',green:'#54a873',blue:'#648fc6',yellow:'#c6a14c',purple:'#9874b4',orange:'#ca8550',black:'#68746c','':''};
+    const color=colors[String(connection[2]||'').toLowerCase()]||'';
+    wires.push({id:`w${index+1}`,a:{part:from.id,pin:aPin},b:{part:to.id,pin:bPin},...(color?{color}:{})});
+  }
+  return{project:{version:1,title:'Circuito importado do Wokwi',parts,wires,code:STARTER_CODE},customComponents:importedCustom,skipped,originalParts:sourceParts.length};
+}
+function importProject(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const source=JSON.parse(reader.result);let value=source,extraCustom=[],skipped=0,isWokwi=Array.isArray(source.connections);
+      if(isWokwi){const converted=convertWokwiDiagram(source);value=converted.project;extraCustom=converted.customComponents;skipped=converted.skipped}
+      if(!Array.isArray(value.parts)||!Array.isArray(value.wires))throw new Error('invalid');
+      snapshot();
+      const definitions=normalizeCustomDefinitions([...(Array.isArray(value.customComponents)?value.customComponents:[]),...extraCustom]);
+      customParts=[...customParts.filter(def=>!definitions.some(next=>next.type===def.type)),...definitions];localStorage.setItem(CUSTOM_KEY,JSON.stringify(customParts));
+      const safeParts=value.parts.slice(0,250).map((part,index)=>{
+        const def=defFor(part.type);if(!def)return null;
+        const raw=part.settings&&typeof part.settings==='object'?part.settings:{};
+        const settings={pressed:raw.pressed===true,value:typeof raw.value==='string'?raw.value.slice(0,24):undefined,color:typeof raw.color==='string'&&/^#[\da-f]{6}$/i.test(raw.color)?raw.color:undefined,screen:typeof raw.screen==='string'?raw.screen.slice(0,13):undefined};
+        if(raw.outputs&&typeof raw.outputs==='object')settings.outputs=Object.fromEntries(Object.entries(raw.outputs).filter(([pin,level])=>/^D(?:[0-9]|1[0-3])$/.test(pin)&&(level===0||level===1)));
+        return{id:String(part.id||`part-${index}`).slice(0,60),type:def.type,name:String(part.name||def.name).slice(0,40),x:Math.max(0,Math.min(1680,Number.isFinite(Number(part.x))?Number(part.x):40)),y:Math.max(0,Math.min(1080,Number.isFinite(Number(part.y))?Number(part.y):40)),settings};
+      }).filter(Boolean);
+      const ids=new Set(safeParts.map(part=>part.id));
+      const safeWires=value.wires.slice(0,1000).filter(wire=>wire&&ids.has(wire.a?.part)&&ids.has(wire.b?.part)&&pinDef(safeParts.find(part=>part.id===wire.a.part),String(wire.a.pin))&&pinDef(safeParts.find(part=>part.id===wire.b.part),String(wire.b.pin))).map((wire,index)=>({id:String(wire.id||`wire-${index}`).slice(0,60),a:{part:String(wire.a.part),pin:String(wire.a.pin)},b:{part:String(wire.b.part),pin:String(wire.b.pin)},...(typeof wire.color==='string'&&/^#[\da-f]{6}$/i.test(wire.color)?{color:wire.color}:{})}));
+      project={version:1,title:String(value.title||'Projeto importado').slice(0,80),parts:safeParts,wires:safeWires,code:String(value.code||STARTER_CODE).slice(0,20000)};
+      $('#codeEditor').value=project.code;selectedId=null;selectedWire=null;pendingPin=null;renderAll();markChanged();
+      if(isWokwi)toast(`Importado: ${safeParts.length} peças, ${safeWires.length} fios${skipped?` · ${skipped} conexão(ões) não reconhecida(s)`:''}. O código vem em arquivo separado no Wokwi.`);
+      else toast('Projeto importado com sucesso');
+    }catch{toast('JSON inválido ou formato de circuito desconhecido')}
+  };
+  reader.readAsText(file);
+}
+function createCustomPart(){
+  const name=$('#customName').value.trim(),category=$('#customCategory').value,pins=$('#customPins').value.split(',').map(value=>value.trim()).filter(Boolean),behavior=$('#customBehavior').value;
+  if(!name||!pins.length){toast('Informe nome e pelo menos um pino');return}
+  if(['conductor','switch','source'].includes(behavior)&&pins.length<2){toast('Esse comportamento precisa de pelo menos dois pinos');return}
+  const safePins=pins.slice(0,24),kind={visual:'custom',conductor:'conductor',switch:'switch',source:'source'}[behavior],paired=['conductor','switch','source'].includes(kind),layout=makePinLayout(safePins,148,paired);
+  const description=behavior==='source'?'Fonte DC 5 V: primeiro pino positivo, segundo negativo.':behavior==='conductor'?'Conduz entre os dois primeiros pinos.':behavior==='switch'?'Chave entre os dois primeiros pinos.':'Componente visual personalizado.';
+  const def={type:`custom-${Date.now().toString(36)}`,name,category,tag:'CUSTOM',width:layout.width,height:layout.height,icon:'custom',description,kind,pins:layout.pins};
+  customParts.push(def);localStorage.setItem(CUSTOM_KEY,JSON.stringify(customParts));activeCategory=category;renderAll();$('#customPartDialog').close();$('#customName').value='';$('#customPins').value='';addPart(def.type);toast('Peça adicionada à biblioteca local');
+}
 function updateZoom(next,clientX,clientY){const before=zoom;zoom=Math.max(.45,Math.min(1.6,next));if(clientX!==undefined){const rect=viewport.getBoundingClientRect(),x=clientX-rect.left,y=clientY-rect.top;panX=x-(x-panX)*(zoom/before);panY=y-(y-panY)*(zoom/before)}renderAll()}
 function handleViewportPointer(event){if(event.target.closest('.part')||event.target.closest('.canvas-bottom'))return;if(activeTool==='wire')return;const startX=event.clientX,startY=event.clientY,originX=panX,originY=panY;const move=e=>{panX=originX+e.clientX-startX;panY=originY+e.clientY-startY;canvas.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`};const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up)};window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true})}
 
@@ -218,7 +348,7 @@ $('#exportButton').addEventListener('click',exportProject);$('#importButton').ad
 $('#searchInput').addEventListener('input',event=>{searchTerm=event.target.value.trim().toLowerCase();renderCatalog()});
 $('#zoomIn').addEventListener('click',()=>updateZoom(zoom+.1));$('#zoomOut').addEventListener('click',()=>updateZoom(zoom-.1));$('#zoomValue').addEventListener('click',()=>{zoom=1;panX=0;panY=0;renderAll()});$('#fitButton').addEventListener('click',fitCircuit);
 $('#wireTool').addEventListener('click',()=>{activeTool='wire';$('#wireTool').classList.add('selected');$('#selectTool').classList.remove('selected');$('#canvasHint').innerHTML='Clique em dois pinos para conectar <button id="cancelWire" class="text-button">Cancelar</button>';$('#cancelWire').addEventListener('click',()=>{pendingPin=null;activeTool='select';$('#wireTool').classList.remove('selected');$('#selectTool').classList.add('selected');renderAll()})});
-$('#selectTool').addEventListener('click',()=>{activeTool='select';pendingPin=null;$('#selectTool').classList.add('selected');$('#wireTool').classList.remove('selected');$('#canvasHint').innerHTML='<span class="hint-key">⌘</span> + arraste para mover · clique nos pinos para conectar';renderAll()});
+$('#selectTool').addEventListener('click',()=>{activeTool='select';pendingPin=null;$('#selectTool').classList.add('selected');$('#wireTool').classList.remove('selected');$('#canvasHint').textContent='arraste o fundo para mover · clique nos pinos para conectar';renderAll()});
 viewport.addEventListener('pointerdown',handleViewportPointer);
 viewport.addEventListener('pointermove',event=>{const rect=viewport.getBoundingClientRect();pointerCanvas={x:(event.clientX-rect.left-panX)/zoom,y:(event.clientY-rect.top-panY)/zoom};if(pendingPin)renderWires()});
 viewport.addEventListener('wheel',event=>{event.preventDefault();updateZoom(zoom+(event.deltaY<0?.05:-.05),event.clientX,event.clientY)},{passive:false});

@@ -48,7 +48,7 @@
             <button id="zoomIn" class="tool-button" title="Aumentar zoom" aria-label="Aumentar zoom">＋</button>
             <button id="fitButton" class="tool-button fit-button" title="Enquadrar circuito" aria-label="Enquadrar circuito">⛶</button>
           </div>
-          <div class="canvas-hint" id="canvasHint"><span class="hint-key">⌘</span> + arraste para mover · clique nos pinos para conectar</div>
+          <div class="canvas-hint" id="canvasHint">arraste o fundo para mover · clique nos pinos para conectar</div>
           <div class="run-group"><span id="runStatus" class="run-status"><span></span>Pronto para simular</span><button id="runButton" class="button button-run"><span id="runIcon">▶</span><span id="runLabel">Simular</span><kbd>⌘ ↵</kbd></button></div>
         </div>
         <section id="viewport" class="viewport" aria-label="Área de montagem do circuito">
@@ -87,8 +87,9 @@
       <div class="modal-header"><div><p class="eyebrow">BIBLIOTECA ABERTA</p><h2>Componente personalizado</h2></div><button class="icon-button" data-close="customPartDialog" aria-label="Fechar">×</button></div>
       <p class="modal-description">Crie uma peça com nome e pinos. Ela fica disponível neste navegador e pode ser conectada como as outras.</p>
       <label class="form-field">Nome da peça<input id="customName" maxlength="30" placeholder="Ex.: Sensor de luz" /></label>
-      <label class="form-field">Categoria<select id="customCategory"><option value="Customizados">Customizados</option><option value="Sensores">Sensores</option><option value="Displays">Displays</option><option value="Lógica">Lógica</option></select></label>
-      <label class="form-field">Pinos (separados por vírgula)<input id="customPins" maxlength="80" placeholder="VCC, GND, OUT" /></label>
+      <label class="form-field">Categoria<select id="customCategory"><option value="Customizados">Customizados</option><option value="Básicos">Básicos</option><option value="Sensores">Sensores</option><option value="Displays">Displays</option><option value="Saídas">Saídas</option><option value="Energia">Energia</option><option value="Lógica">Lógica</option></select></label>
+      <label class="form-field">Pinos (separados por vírgula)<input id="customPins" maxlength="300" placeholder="VCC, GND, OUT" /></label>
+      <label class="form-field">Comportamento<select id="customBehavior"><option value="visual">Só visual</option><option value="conductor">Condutor entre os dois primeiros pinos</option><option value="switch">Chave aberta/fechada</option><option value="source">Fonte DC 5 V (pinos + e −)</option></select></label>
       <div class="modal-actions"><button class="button button-quiet" data-close="customPartDialog">Cancelar</button><button id="createCustomPart" class="button button-dark">Criar peça</button></div>
     </dialog>
     <dialog id="helpDialog" class="modal compact-modal">
@@ -97,6 +98,6 @@
       <p class="code-note">A simulação é local e está em fase inicial: LEDs e buzzer reagem às conexões, botões e saídas digitais simuladas.</p>
     </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="./src/app.js"></script>
+    <script src="./src/app.js" defer></script>
   </body>
 </html>

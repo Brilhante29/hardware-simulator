@@ -9,16 +9,17 @@ O aplicativo não precisa de instalação, backend nem conta. Abra `index.html` 
 ## O que já funciona
 
 - Editor visual com seleção, movimentação, zoom, enquadramento e conexão de terminais.
-- Biblioteca local com Arduino Uno, LED, resistor, botão, fonte DC, buzzer, potenciômetro, display e porta AND.
-- Criação de componentes personalizados com pinos nomeados, disponíveis no navegador atual.
+- Catálogo local com mais de 20 peças: Arduino Uno, passivos, chaves, sensores, saídas, displays e lógica.
+- Criação de componentes personalizados com pinos nomeados e comportamento visual, condutor, chave ou fonte DC; os componentes personalizados viajam junto no JSON exportado.
 - Simulação básica de circuito: continuidade por fios, resistores e chaves; LEDs e buzzer reagem às fontes e às saídas digitais.
 - Intérprete inicial de sketch para sequências `digitalWrite(pin, HIGH/LOW)` e `delay(ms)`.
+- Importação de `diagram.json` do Wokwi: componentes reconhecidos viram peças do catálogo e peças ainda não reconhecidas são preservadas como componentes personalizados; fios reconhecidos mantêm suas cores.
 - Exemplos, desfazer/refazer, propriedades, salvamento automático, importação e exportação JSON.
 - Interface responsiva e sem dependências externas para a lógica do simulador.
 
 ## Limites atuais
 
-Esta é a primeira fatia funcional, não uma emulação completa de hardware. O código não é compilado como C++ real. O simulador ainda não modela tensão/corrente analógica, sensores físicos, protocolos I²C/SPI, Wi-Fi, múltiplas placas, depuração ou todos os componentes comerciais. Componentes personalizados nesta versão são peças visuais com pinos; seu comportamento elétrico ainda não pode ser programado pela interface.
+Esta é a primeira fatia funcional, não uma emulação completa de hardware. O código não é compilado como C++ real. O simulador ainda não modela tensão/corrente analógica, sensores físicos, protocolos I²C/SPI, Wi-Fi, múltiplas placas, depuração ou todos os componentes comerciais. Algumas peças do catálogo, como displays, sensores e lógica, já podem ser colocadas e conectadas visualmente, mas ainda não têm modelos elétricos próprios. Componentes personalizados aceitam comportamento simples de condutor, chave ou fonte; não há editor para escrever novos modelos de firmware. Na importação do Wokwi, o `diagram.json` traz a montagem, mas o código costuma estar em um arquivo separado e precisa ser colado no editor.
 
 ## Próximas etapas recomendadas
 
