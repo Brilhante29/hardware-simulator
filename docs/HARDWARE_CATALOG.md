@@ -1,6 +1,6 @@
 # Catálogo oficial e perfil wearable
 
-Este índice reúne 54 placas, SoCs, sensores, periféricos e componentes de múltiplos fabricantes. Os links levam a páginas oficiais ou documentação do mantenedor; use essas páginas para obter a revisão atual do datasheet, erratas, manual de referência, esquemáticos e pinout. A presença no índice não significa que o componente já esteja simulado.
+Este índice reúne 114 placas, SoCs, sensores, periféricos e componentes de múltiplos fabricantes. Os links levam a páginas oficiais ou documentação do mantenedor; use essas páginas para obter a revisão atual do datasheet, erratas, manual de referência, esquemáticos e pinout. A presença no índice não significa que o componente já esteja simulado.
 
 ## Wearable Stroke Alert
 
@@ -35,3 +35,4 @@ O protótipo atual cobre apenas comportamento digital básico e operações limi
 - Ecossistema mundial é grande e muda continuamente; este seed é extensível, não uma alegação de cobertura completa.
 
 Veja [hardware-catalog.json](../data/hardware-catalog.json).
+

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8f7" />
+    <meta name="description" content="Monte circuitos, conecte componentes e teste suas ideias no Hardware Simulator." />
+    <title>Hardware Simulator</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Hardware Simulator início">
+          <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v4m8-4v4M8 16v4m8-4v4M4 8h4m8 0h4M4 16h4m8 0h4M8 8h8v8H8z" /></svg></span>
+          <span class="brand-name">hardware<span>simulator</span></span>
+        </a>
+        <div class="project-name"><span class="saved-dot"></span><span id="projectTitle">Circuito sem título</span><button id="renameProject" class="icon-button tiny" title="Renomear projeto" aria-label="Renomear projeto">✎</button></div>
+        <div class="top-actions">
+          <button id="undoButton" class="icon-button" title="Desfazer" aria-label="Desfazer">↶</button>
+          <button id="redoButton" class="icon-button" title="Refazer" aria-label="Refazer">↷</button>
+          <span class="top-divider"></span>
+          <button id="exportButton" class="button button-quiet">Exportar</button>
+          <button id="importButton" class="button button-quiet">Importar</button>
+          <button id="saveButton" class="button button-dark"><span>Salvar</span><span class="button-shortcut">⌘ S</span></button>
+          <input id="importFile" type="file" accept="application/json,.json" hidden />
+        </div>
+      </header>
+
+      <aside class="library-panel">
+        <div class="panel-heading"><div><p class="eyebrow">BIBLIOTECA</p><h1>Componentes</h1></div><button id="customPartButton" class="icon-button add-button" title="Criar componente" aria-label="Criar componente">＋</button></div>
+        <label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input id="searchInput" type="search" placeholder="Buscar peça..." /><kbd>/</kbd></label>
+        <div id="categoryList" class="category-list" aria-label="Categorias"></div>
+        <div class="library-divider"></div>
+        <div class="section-title"><span id="libraryHeading">Todos os componentes</span><span id="componentCount" class="count-pill"></span></div>
+        <div id="componentList" class="component-list"></div>
+        <div class="library-footer"><span class="online-indicator"></span><span>Biblioteca local</span><button id="helpButton" class="text-button">Ajuda</button></div>
+      </aside>
+
+      <main class="workspace">
+        <div class="workspace-toolbar">
+          <div class="tool-group">
+            <button id="selectTool" class="tool-button selected" title="Selecionar e mover" aria-label="Selecionar">↖</button>
+            <button id="wireTool" class="tool-button" title="Conectar pinos" aria-label="Conectar fios"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="6" r="2.5"/><path d="M7 17c6 0 4-10 10-10"/></svg></button>
+            <span class="tool-divider"></span>
+            <button id="zoomOut" class="tool-button" title="Diminuir zoom" aria-label="Diminuir zoom">−</button>
+            <button id="zoomValue" class="zoom-value" title="Redefinir zoom">100%</button>
+            <button id="zoomIn" class="tool-button" title="Aumentar zoom" aria-label="Aumentar zoom">＋</button>
+            <button id="fitButton" class="tool-button fit-button" title="Enquadrar circuito" aria-label="Enquadrar circuito">⛶</button>
+          </div>
+          <div class="canvas-hint" id="canvasHint">arraste o fundo para mover · clique nos pinos para conectar</div>
+          <div class="run-group"><span id="runStatus" class="run-status"><span></span>Pronto para simular</span><button id="runButton" class="button button-run"><span id="runIcon">▶</span><span id="runLabel">Simular</span><kbd>⌘ ↵</kbd></button></div>
+        </div>
+        <section id="viewport" class="viewport" aria-label="Área de montagem do circuito">
+          <div id="canvas" class="canvas">
+            <svg id="wireLayer" class="wire-layer" viewBox="0 0 1800 1200" preserveAspectRatio="none" aria-label="Fios do circuito"></svg>
+            <div id="partLayer" class="part-layer"></div>
+            <div id="wirePreview" class="wire-preview"></div>
+            <div class="canvas-watermark">HARDWARE SIMULATOR <span>·</span> BETA</div>
+          </div>
+          <div id="emptyState" class="empty-state" hidden><div class="empty-icon">＋</div><h2>Seu circuito começa aqui</h2><p>Escolha uma peça na biblioteca para começar a montar.</p><button id="emptyAddButton" class="button button-dark">Adicionar componente</button></div>
+          <div class="canvas-bottom"><button id="examplesButton" class="example-launch"><span class="sparkle">✳</span><span><b>Comece por um exemplo</b><small>Explore circuitos prontos e personalize</small></span><span class="arrow">→</span></button><span id="canvasStats" class="canvas-stats">0 peças <span>·</span> 0 conexões</span></div>
+        </section>
+        <div class="statusbar"><span><span class="status-led"></span><span id="saveStatus">Todas as alterações salvas</span></span><span class="status-center">Simulação local <span>·</span> seus projetos ficam neste navegador</span><span id="statusZoom">100%</span></div>
+      </main>
+
+      <aside class="inspector-panel">
+        <div class="inspector-tabs"><button id="propertiesTab" class="inspector-tab active">Propriedades</button><button id="codeTab" class="inspector-tab">Código <span class="code-dot"></span></button></div>
+        <div id="propertiesView" class="inspector-view"></div>
+        <div id="codeView" class="inspector-view code-view" hidden>
+          <div class="code-heading"><div><p class="eyebrow">FIRMWARE</p><h2>Arduino sketch</h2></div><span class="language-pill">C++</span></div>
+          <p class="code-description">Escreva o comportamento das saídas digitais. A simulação atual interpreta <code>digitalWrite()</code> e <code>delay()</code>.</p>
+          <textarea id="codeEditor" spellcheck="false" aria-label="Código Arduino"></textarea>
+          <div class="code-actions"><button id="resetCode" class="text-button">Restaurar exemplo</button><span id="codeStatus">Pronto</span></div>
+          <div class="code-note"><b>Intérprete inicial</b><br />Esta versão reconhece instruções simples de nível lógico. Compilação Arduino real e mais APIs entram nas próximas etapas.</div>
+        </div>
+        <div class="inspector-bottom"><span class="kbd-hint"><kbd>Del</kbd> remover peça selecionada</span><button id="clearButton" class="text-button danger-text">Limpar circuito</button></div>
+      </aside>
+    </div>
+
+    <dialog id="examplesDialog" class="modal">
+      <div class="modal-header"><div><p class="eyebrow">PONTO DE PARTIDA</p><h2>Exemplos de circuito</h2></div><button class="icon-button" data-close="examplesDialog" aria-label="Fechar">×</button></div>
+      <p class="modal-description">Abra um circuito pronto e use como base para sua própria ideia.</p>
+      <div id="examplesList" class="examples-list"></div>
+    </dialog>
+    <dialog id="customPartDialog" class="modal compact-modal">
+      <div class="modal-header"><div><p class="eyebrow">BIBLIOTECA ABERTA</p><h2>Componente personalizado</h2></div><button class="icon-button" data-close="customPartDialog" aria-label="Fechar">×</button></div>
+      <p class="modal-description">Crie uma peça com nome e pinos. Ela fica disponível neste navegador e pode ser conectada como as outras.</p>
+      <label class="form-field">Nome da peça<input id="customName" maxlength="30" placeholder="Ex.: Sensor de luz" /></label>
+      <label class="form-field">Categoria<select id="customCategory"><option value="Customizados">Customizados</option><option value="Básicos">Básicos</option><option value="Sensores">Sensores</option><option value="Displays">Displays</option><option value="Saídas">Saídas</option><option value="Energia">Energia</option><option value="Lógica">Lógica</option></select></label>
+      <label class="form-field">Pinos (separados por vírgula)<input id="customPins" maxlength="300" placeholder="VCC, GND, OUT" /></label>
+      <label class="form-field">Comportamento<select id="customBehavior"><option value="visual">Só visual</option><option value="conductor">Condutor entre os dois primeiros pinos</option><option value="switch">Chave aberta/fechada</option><option value="source">Fonte DC 5 V (pinos + e −)</option></select></label>
+      <div class="modal-actions"><button class="button button-quiet" data-close="customPartDialog">Cancelar</button><button id="createCustomPart" class="button button-dark">Criar peça</button></div>
+    </dialog>
+    <dialog id="helpDialog" class="modal compact-modal">
+      <div class="modal-header"><div><p class="eyebrow">GUIA RÁPIDO</p><h2>Como montar</h2></div><button class="icon-button" data-close="helpDialog" aria-label="Fechar">×</button></div>
+      <ol class="help-list"><li>Escolha os componentes na biblioteca à esquerda.</li><li>Conecte dois terminais clicando primeiro em um pino e depois no outro.</li><li>Arraste as peças para organizar o circuito. Botões alternam com clique duplo ou pelo painel.</li><li>Pressione <kbd>⌘ ↵</kbd> para iniciar a simulação do sketch.</li><li>Exporte seu projeto como JSON para compartilhar ou guardar.</li></ol>
+      <p class="code-note">A simulação é local e está em fase inicial: LEDs e buzzer reagem às conexões, botões e saídas digitais simuladas.</p>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./src/app.js" defer></script>
+  </body>
+</html>
+
