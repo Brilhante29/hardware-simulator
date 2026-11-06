@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "0.1",
+  "project": {
+    "id": "wearable-stroke-alert-lab",
+    "title": "Wearable sensing and alert research prototype",
+    "sourcePaper": {
+      "title": "Wearable Stroke Alert System - New Health of Things Approach Based on Generative AI and Datafusion for Real-Time Stroke Monitoring",
+      "doi": "10.1109/SBESC65055.2024.10771817",
+      "hardwareBOMSpecified": false
+    },
+    "purpose": "Compare candidate electronics architectures for research and education; not a medical device."
+  },
+  "sharedSensors": [
+    {
+      "part": "BMI270",
+      "role": "motion",
+      "bus": "I2C-or-SPI",
+      "modelTarget": "protocol+deterministic-signal",
+      "source": "https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi270/"
+    },
+    {
+      "part": "MAX86141",
+      "role": "optical-PPG",
+      "bus": "SPI",
+      "modelTarget": "protocol+synthetic-signal",
+      "source": "https://www.analog.com/en/products/max86141.html"
+    },
+    {
+      "part": "ADS1292R",
+      "role": "ECG-front-end",
+      "bus": "SPI",
+      "modelTarget": "protocol+synthetic-signal",
+      "source": "https://www.ti.com/product/ADS1292R"
+    },
+    {
+      "part": "TMP117",
+      "role": "temperature",
+      "bus": "I2C",
+      "modelTarget": "protocol+synthetic-signal",
+      "source": "https://www.ti.com/product/TMP117"
+    },
+    {
+      "part": "MAX17048",
+      "role": "battery-gauge",
+      "bus": "I2C",
+      "modelTarget": "protocol+power-estimate",
+      "source": "https://www.analog.com/en/products/max17048.html"
+    }
+  ],
+  "variants": [
+    {
+      "id": "esp32-s3",
+      "compute": "ESP32-S3",
+      "toolchain": {
+        "name": "ESP-IDF",
+        "url": "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/index.html"
+      },
+      "board": null,
+      "pinMap": null,
+      "firmwareArtifact": null,
+      "pcb": null
+    },
+    {
+      "id": "nrf52840",
+      "compute": "nRF52840",
+      "toolchain": {
+        "name": "Zephyr or nRF Connect SDK",
+        "url": "https://docs.nordicsemi.com/bundle/ps_nrf52840/page/keyfeatures_html5.html"
+      },
+      "board": null,
+      "pinMap": null,
+      "firmwareArtifact": null,
+      "pcb": null
+    },
+    {
+      "id": "stm32u5",
+      "compute": "STM32U5",
+      "toolchain": {
+        "name": "STM32Cube ecosystem",
+        "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32u5-series/documentation.html"
+      },
+      "board": null,
+      "pinMap": null,
+      "firmwareArtifact": null,
+      "pcb": null
+    },
+    {
+      "id": "rp2350",
+      "compute": "RP2350",
+      "toolchain": {
+        "name": "Pico SDK",
+        "url": "https://www.raspberrypi.com/documentation/microcontrollers/"
+      },
+      "board": null,
+      "pinMap": null,
+      "firmwareArtifact": null,
+      "pcb": null
+    }
+  ],
+  "experiment": {
+    "stimulusFixtures": [],
+    "metrics": [
+      "latency",
+      "memory",
+      "estimated-energy",
+      "sample-loss",
+      "fault-response"
+    ],
+    "status": "template-only"
+  }
+}

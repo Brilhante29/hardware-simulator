@@ -33,6 +33,10 @@ Esta é a primeira fatia funcional, não uma emulação completa de hardware. O 
 
 Índice inicial com 54 placas, SoCs e periféricos, mais plano de simulação do wearable: [catálogo JSON](data/hardware-catalog.json) · [guia do catálogo e wearable](docs/HARDWARE_CATALOG.md). O catálogo é uma base de fontes oficiais; nem todo item possui modelo funcional ainda.
 
+## Experimentos de hardware ponta a ponta
+
+O projeto está sendo estruturado para comparar variantes de SoC/MCU, periféricos, firmware e PCB no mesmo experimento. Veja o [plano de arquitetura](docs/SIMULATOR_ARCHITECTURE.md) e o [template de variantes wearable](examples/wearable-platform-matrix.json). Estes arquivos definem direção e formato inicial; editor PCB, compilação e emulação de MCU ainda não estão implementados.
+
 ## Estrutura
 
 ```text
