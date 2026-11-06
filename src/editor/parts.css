@@ -1,0 +1,44 @@
+/* Peças do editor em pixel art, na paleta da oficina. */
+@font-face{font-family:Pixelify;src:url('../../assets/fonts/pixelify-sans.woff') format('woff');font-weight:400 700;font-display:swap}
+[data-surface=editor]{--px-sy:#28375f;--px-edge:#1c2748;--px-k:#28375f;--px-d:#405d96;--px-m:#7097cb;--px-l:#a8c7ee;--px-p:#e3eeff;--px-c:#fafcff;--px-o:#a777da;--px-r:#6f47a3;--px-g:#33d6e6;--px-mt:#c3cede;--px-mt2:#8592ab;--px-bd:#33508c;--px-bd2:#4a6fb0;--px-ic:#1f2742;--px-bp:#3f7fd6;--px-lcd:#9fd88f;--px-lcdt:#1f4a2a}
+[data-surface=editor][data-theme=dark]{--px-sy:#c9d8f5;--px-edge:#8fa6d4;--px-k:#0b1124;--px-d:#3a5488;--px-m:#6d93cf;--px-l:#9cc0ee;--px-p:#d6e6ff;--px-c:#f2f7ff;--px-o:#c08df2;--px-r:#7c52b4;--px-g:#77e7f6;--px-mt:#b9c6dc;--px-mt2:#7584a3;--px-bd:#2c4a85;--px-bd2:#4067ad;--px-ic:#151c33;--px-bp:#3b78d0}
+[data-surface=editor] .part-card{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible}
+[data-surface=editor] .part.selected .part-card{outline:2px dashed var(--px-o);outline-offset:5px}
+[data-surface=editor] .part:hover .px-art{filter:drop-shadow(1px 0 0 var(--px-edge)) drop-shadow(-1px 0 0 var(--px-edge)) drop-shadow(0 1px 0 var(--px-edge)) drop-shadow(0 -1px 0 var(--px-edge)) drop-shadow(3px 3px 0 color-mix(in srgb,var(--px-o) 45%,transparent))}
+.px-art{display:block;overflow:visible;image-rendering:pixelated;filter:drop-shadow(1px 0 0 var(--px-edge)) drop-shadow(-1px 0 0 var(--px-edge)) drop-shadow(0 1px 0 var(--px-edge)) drop-shadow(0 -1px 0 var(--px-edge))}
+.px-art .sy{fill:var(--px-sy)}
+.px-art .k{fill:var(--px-k)}.px-art .d{fill:var(--px-d)}.px-art .m{fill:var(--px-m)}.px-art .l{fill:var(--px-l)}.px-art .p{fill:var(--px-p)}.px-art .c{fill:var(--px-c)}
+.px-art .o{fill:var(--px-o)}.px-art .r{fill:var(--px-r)}.px-art .g{fill:var(--px-g)}.px-art .mt{fill:var(--px-mt)}.px-art .mt2{fill:var(--px-mt2)}
+.px-art .bd{fill:var(--px-bd)}.px-art .bd2{fill:var(--px-bd2)}.px-art .ic{fill:var(--px-ic)}.px-art .bp{fill:var(--px-bp)}
+.px-art .lcd{fill:var(--px-lcd)}.px-art .lcdt{fill:var(--px-lcdt)}.px-art .hl{fill:#fff;opacity:.6}
+.px-art .rb{fill:#e8c88f}.px-art .rbh{fill:#f5e1b8}.px-art .rbs{fill:#c99a5a}
+.px-art .ld{fill:#e8a257}.px-art .ld2{fill:#b46f30}.px-art .sq{fill:#7a3d1d}
+.px-art .mk{fill:#eef2f8;opacity:.92}.px-art .mk2{fill:#c8d2e2}
+.px-art .sg{fill:#5d2a33}
+.px-art .pt{font-family:Pixelify,monospace;font-weight:600}
+/* LED: apagado = cor desbotada; aceso = cor cheia com brilho */
+.px-art .lb{fill:color-mix(in srgb,var(--led) 38%,var(--px-p))}
+.px-art .lr{fill:color-mix(in srgb,var(--led) 45%,var(--px-mt2))}
+.px-art .ray{fill:var(--led);opacity:0}
+.part-led.lit .px-art .lb{fill:var(--led)}
+.part-led.lit .px-art .lr{fill:color-mix(in srgb,var(--led) 70%,#000)}
+.part-led.lit .px-art .bulb{filter:drop-shadow(0 0 7px var(--led)) drop-shadow(0 0 14px var(--led))}
+.part-led.lit .px-art .ray{opacity:1;animation:pxBlink .5s steps(2) infinite}
+.px-art .ledL{fill:#5a3b2c}.px-art .ledL.on{fill:#ffb347;filter:drop-shadow(0 0 4px #ffb347)}
+/* Buzzer: ondas quando energizado */
+.px-art .wv{fill:var(--px-o);opacity:0}
+.part-buzzer.lit .px-art .wv{opacity:1;animation:pxBlink .3s steps(2) infinite}
+.part-buzzer.lit .px-art{animation:pxBuzz .12s steps(2) infinite}
+/* Botão afunda */
+.px-art .cap{transition:transform .08s}
+.part-button.pressed .px-art .cap{transform:translateY(3px)}
+.part-button.pressed .px-art .cap .o{fill:var(--px-r)}
+/* Pinos quadrados, como ilhas de solda */
+[data-surface=editor] .pin{width:9px;height:9px;border-radius:0;border:2px solid var(--px-edge);background:var(--px-mt);box-shadow:none}
+[data-surface=editor] .pin:hover,[data-surface=editor] .pin.pending{background:var(--px-g);box-shadow:0 0 0 3px color-mix(in srgb,var(--px-g) 35%,transparent)}
+[data-surface=editor] .part-title{font:600 10px Pixelify,monospace;letter-spacing:.3px}
+/* Miniaturas da biblioteca */
+.component-art .px-thumb{width:46px;height:38px;max-width:none;max-height:none}
+@keyframes pxBlink{50%{opacity:.35}}
+@keyframes pxBuzz{50%{transform:translate(1px,-1px)}}
+@media(prefers-reduced-motion:reduce){.px-art,.px-art *{animation:none!important;transition:none!important}}

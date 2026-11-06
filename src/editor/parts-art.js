@@ -1,0 +1,154 @@
+// Arte em pixel das peças do editor. Cada desenho usa o tamanho e os pinos do catálogo,
+// então os terminais terminam exatamente onde o pino é clicável.
+(() => {
+  const R = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" class="${c}"/>`;
+  const F = (x, y, w, h, color) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" style="fill:${color}"/>`;
+  const T = (x, y, s, c, size = 10, anchor = 'start') => `<text x="${x}" y="${y}" class="pt ${c}" font-size="${size}" text-anchor="${anchor}">${s}</text>`;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function disc(cx, cy, r, c, colorStyle) {
+    let out = '';
+    for (let y = -r; y < r; y += 2) { const yy = y + 1; const hw = Math.round(Math.sqrt(Math.max(0, r * r - yy * yy)) / 2) * 2; if (hw > 0) out += colorStyle ? F(cx - hw, cy + y, hw * 2, 2, colorStyle) : R(cx - hw, cy + y, hw * 2, 2, c); }
+    return out;
+  }
+  // terminal horizontal até a borda (x=0 ou x=W)
+  const leadL = (y, to) => R(0, y - 1, to, 2, 'mt');
+  const leadR = (y, from, W) => R(from, y - 1, W - from, 2, 'mt');
+
+  const ART = {
+    uno(def, part) {
+      let s = R(6, 2, 170, 216, 'k') + R(8, 4, 166, 212, 'bd');
+      s += R(28, 58, 64, 2, 'bd2') + R(90, 58, 2, 42, 'bd2') + R(24, 172, 92, 2, 'bd2') + R(114, 150, 2, 24, 'bd2') + R(132, 96, 2, 50, 'bd2');
+      s += R(10, 18, 12, 172, 'k'); for (let i = 0; i < 14; i++) { const y = 26 + i * 12; s += R(0, y - 1, 10, 2, 'mt') + R(14, y - 2, 4, 4, 'mt'); }
+      s += R(160, 30, 12, 168, 'k'); [38, 58, 78, 98, 118, 138, 164, 190].forEach(y => { s += R(164, y - 2, 4, 4, 'mt') + R(172, y - 1, 10, 2, 'mt'); });
+      s += R(110, 0, 36, 26, 'mt2') + R(114, 2, 28, 20, 'mt') + R(58, 0, 34, 20, 'k') + R(62, 4, 26, 12, 'd');
+      s += R(64, 120, 72, 26, 'ic') + R(64, 129, 4, 8, 'bd');
+      for (let i = 0; i < 8; i++) s += R(68 + i * 8, 116, 4, 4, 'mt') + R(68 + i * 8, 146, 4, 4, 'mt');
+      s += R(100, 72, 20, 8, 'mt') + R(36, 30, 14, 14, 'k') + R(38, 32, 10, 10, 'o');
+      s += T(36, 104, 'UNO', 'c', 24) + T(38, 192, '~ DIGITAL', 'p', 7);
+      const on = part?.settings?.outputs?.D13 === 1;
+      s += R(140, 62, 10, 6, on ? 'ledL on' : 'ledL') + T(152, 69, 'L', 'p', 7) + R(140, 80, 10, 6, 'g') + T(152, 87, 'ON', 'p', 7);
+      return s;
+    },
+    led(def, part) {
+      const col = esc(part?.settings?.color || '#63c879');
+      let s = `<g style="--led:${col}">`;
+      s += leadL(38, 30) + leadR(38, 52, 82) + T(4, 30, '+', 'm', 9);
+      s += `<g class="rays">${R(40, 0, 2, 4, 'ray')}${R(18, 10, 4, 2, 'ray')}${R(60, 10, 4, 2, 'ray')}${R(22, 2, 2, 4, 'ray')}${R(58, 2, 2, 4, 'ray')}</g>`;
+      s += `<g class="bulb">${R(34, 8, 14, 2, 'lb')}${R(30, 10, 22, 2, 'lb')}${R(28, 12, 26, 26, 'lb')}${R(26, 38, 30, 6, 'lr')}</g>`;
+      s += R(32, 14, 4, 10, 'hl') + R(32, 26, 2, 4, 'hl');
+      return s + '</g>';
+    },
+    resistor() {
+      let s = leadL(34, 26) + leadR(34, 78, 104);
+      s += R(24, 28, 6, 12, 'rb') + R(74, 28, 6, 12, 'rb') + R(28, 26, 48, 16, 'rb') + R(28, 26, 48, 3, 'rbh') + R(28, 39, 48, 3, 'rbs');
+      s += F(36, 26, 4, 16, '#c9443a') + F(44, 26, 4, 16, '#c9443a') + F(52, 26, 4, 16, '#6b3d22') + F(66, 26, 4, 16, '#d6a83a');
+      return s;
+    },
+    button(def, part) {
+      let s = leadL(34, 24) + leadR(34, 58, 82) + R(22, 12, 38, 42, 'k') + R(24, 14, 34, 38, 'd');
+      [[26, 16], [52, 16], [26, 46], [52, 46]].forEach(([x, y]) => { s += R(x, y, 4, 4, 'mt'); });
+      return s + `<g class="cap">${disc(41, 35, 11, 'r')}${disc(41, 33, 11, 'o')}${R(36, 28, 4, 4, 'hl')}</g>`;
+    },
+    switch(def, part) {
+      const on = !!part?.settings?.pressed;
+      return leadL(34, 24) + leadR(34, 70, 94) + R(22, 20, 50, 28, 'k') + R(24, 22, 46, 24, 'd') + R(30, 30, 34, 8, 'k') + R(on ? 48 : 32, 26, 14, 16, 'c') + R(on ? 50 : 34, 28, 10, 2, 'p') + T(47, 16, on ? 'ON' : 'OFF', on ? 'g' : 'm', 8, 'middle');
+    },
+    source() {
+      let s = R(8, 4, 64, 60, 'k') + R(10, 6, 60, 56, 'p') + R(16, 12, 48, 20, 'k') + T(40, 27, '5.0V', 'g', 12, 'middle');
+      s += R(0, 35, 14, 2, 'mt') + F(12, 32, 10, 10, '#e25a4f') + F(14, 34, 6, 6, '#ff8b7d');
+      s += R(66, 35, 14, 2, 'mt') + R(58, 32, 10, 10, 'k') + R(60, 34, 6, 6, 'd');
+      return s + disc(40, 48, 6, 'm') + R(39, 43, 2, 5, 'k') + T(16, 58, 'PSU', 'm', 7);
+    },
+    vcc() { return R(28, 32, 44, 2, 'mt') + R(26, 10, 4, 4, 'o') + R(22, 14, 12, 4, 'o') + R(18, 18, 20, 4, 'o') + R(26, 22, 4, 18, 'o') + R(18, 40, 20, 4, 'sy'); },
+    gnd() { return R(30, 32, 42, 2, 'mt') + R(28, 12, 4, 22, 'sy') + R(14, 32, 32, 4, 'sy') + R(20, 38, 20, 4, 'sy') + R(26, 44, 8, 4, 'sy') ; },
+    buzzer() {
+      let s = leadL(35, 22) + leadR(35, 60, 82) + disc(41, 34, 20, 'k') + disc(41, 34, 16, 'ic') + disc(41, 34, 5, 'p') + T(28, 24, '+', 'c', 9);
+      return s + `<g class="waves">${R(66, 22, 2, 6, 'wv')}${R(68, 28, 2, 14, 'wv')}${R(66, 42, 2, 6, 'wv')}${R(14, 22, 2, 6, 'wv')}${R(12, 28, 2, 14, 'wv')}${R(14, 42, 2, 6, 'wv')}</g>`;
+    },
+    pot() {
+      return leadL(17, 26) + leadL(60, 26) + leadR(39, 78, 104) + R(24, 10, 56, 58, 'k') + R(26, 12, 52, 54, 'bp') + disc(52, 39, 16, 'c') + R(50, 27, 4, 24, 'm') + R(40, 37, 24, 4, 'm') + R(30, 14, 4, 4, 'p') + R(70, 60, 4, 4, 'p');
+    },
+    display(def, part) {
+      const txt = String(part?.settings?.screen || 'HELLO WORLD').slice(0, 13);
+      let s = R(0, 17, 10, 2, 'mt') + R(0, 53, 10, 2, 'mt') + R(102, 24, 10, 2, 'mt') + R(102, 47, 10, 2, 'mt');
+      s += R(8, 2, 96, 68, 'k') + R(10, 4, 92, 64, 'bd') + R(14, 12, 84, 46, 'k') + R(18, 16, 76, 38, 'lcd');
+      return s + T(22, 32, esc(txt.slice(0, 8)), 'lcdt', 11) + T(22, 47, esc(txt.slice(8)), 'lcdt', 11) + R(12, 6, 4, 4, 'mt') + R(96, 6, 4, 4, 'mt');
+    },
+    gate() {
+      let s = leadL(20, 22) + leadL(52, 22) + leadR(36, 68, 90) + R(22, 16, 46, 40, 'ic') + R(22, 32, 4, 8, 'p');
+      for (let i = 0; i < 4; i++) s += R(28 + i * 10, 10, 4, 6, 'mt') + R(28 + i * 10, 56, 4, 6, 'mt');
+      return s + T(46, 41, 'AND', 'c', 11, 'middle');
+    },
+    capacitor() {
+      let s = leadL(34, 28) + leadR(34, 54, 82) + R(28, 8, 26, 50, 'd') + R(28, 8, 26, 4, 'l') + R(28, 54, 26, 4, 'k') + R(46, 12, 6, 42, 'p');
+      return s + R(48, 20, 2, 4, 'd') + R(48, 30, 2, 4, 'd') + R(48, 40, 2, 4, 'd') + R(30, 14, 4, 30, 'm');
+    },
+    diode() { return leadL(34, 24) + leadR(34, 58, 82) + R(24, 27, 34, 14, 'k') + R(26, 29, 20, 2, 'd') + R(50, 27, 4, 14, 'l'); },
+    transistor() {
+      return leadL(41, 28) + R(64, 21, 30, 2, 'mt') + R(64, 60, 30, 2, 'mt') + R(26, 26, 4, 30, 'k') + R(30, 18, 34, 46, 'k') + R(60, 18, 4, 46, 'd') + T(44, 45, 'NPN', 'c', 8, 'middle');
+    },
+    ldr() {
+      let s = leadL(34, 30) + leadR(34, 70, 100) + disc(50, 34, 20, 'ld2') + disc(50, 34, 18, 'ld');
+      return s + R(38, 22, 24, 3, 'sq') + R(59, 22, 3, 9, 'sq') + R(38, 28, 24, 3, 'sq') + R(38, 28, 3, 9, 'sq') + R(38, 34, 24, 3, 'sq') + R(59, 34, 3, 9, 'sq') + R(38, 40, 24, 3, 'sq') + R(38, 40, 3, 9, 'sq') + R(38, 46, 24, 3, 'sq');
+    },
+    ultrasonic() {
+      let s = R(0, 17, 14, 2, 'mt') + R(0, 39, 14, 2, 'mt') + R(104, 39, 14, 2, 'mt') + R(104, 65, 14, 2, 'mt');
+      s += R(12, 4, 94, 76, 'k') + R(14, 6, 90, 72, 'bp');
+      [36, 82].forEach(cx => { s += disc(cx, 40, 17, 'mt2') + disc(cx, 40, 14, 'mt') + disc(cx, 40, 9, 'k'); for (let i = -6; i <= 4; i += 4) s += R(cx + i, 38, 2, 2, 'mt2') + R(cx - 1, 38 + i, 2, 2, 'mt2'); });
+      return s + R(52, 10, 14, 6, 'mt') + T(59, 72, 'HC-SR04', 'c', 7, 'middle');
+    },
+    servo() {
+      let s = F(0, 17, 22, 2, '#6b4a2f') + F(0, 40, 22, 2, '#e25a4f') + F(74, 29, 22, 2, '#f2b44a');
+      s += R(10, 32, 76, 18, 'k') + R(12, 34, 72, 14, 'bp') + R(20, 18, 56, 48, 'k') + R(22, 20, 52, 44, 'bp');
+      return s + R(26, 26, 44, 8, 'c') + disc(28, 30, 5, 'c') + disc(68, 30, 5, 'c') + disc(36, 30, 6, 'p') + R(34, 28, 4, 4, 'm') + T(48, 58, 'SG90', 'c', 9, 'middle');
+    },
+    motor() {
+      return leadL(36, 16) + leadR(36, 60, 82) + R(38, 4, 4, 12, 'k') + R(14, 20, 8, 32, 'mt2') + R(20, 14, 42, 44, 'mt') + R(20, 22, 42, 2, 'mt2') + R(20, 48, 42, 2, 'mt2') + R(60, 18, 4, 36, 'mt2') + T(41, 41, 'M', 'k', 13, 'middle');
+    },
+    relay() {
+      let s = '';[18, 43, 68].forEach(y => { s += R(0, y - 1, 12, 2, 'mt'); });[18, 45, 70].forEach(y => { s += R(104, y - 1, 14, 2, 'mt'); });
+      s += R(10, 2, 98, 86, 'k') + R(12, 4, 94, 82, 'bd') + R(24, 12, 54, 48, 'k') + R(26, 14, 50, 44, 'bp') + T(51, 34, 'RELÉ', 'c', 9, 'middle') + T(51, 46, '5V', 'p', 8, 'middle');
+      s += F(82, 8, 22, 74, '#2f7a4c') + F(84, 10, 18, 70, '#3f9a63');
+      [18, 45, 70].forEach(y => { s += disc(93, y, 5, 'mt') + R(90, y - 1, 7, 2, 'mt2'); });
+      return s + R(28, 70, 6, 4, 'g') + T(38, 74, 'IN', 'p', 7);
+    },
+    rgb() {
+      let s = leadL(18, 30) + leadL(38, 30) + leadL(58, 30) + leadR(38, 62, 92);
+      s += R(36, 12, 20, 2, 'mk') + R(32, 14, 28, 2, 'mk') + R(30, 16, 32, 32, 'mk') + R(28, 48, 36, 6, 'mk2');
+      return s + F(36, 28, 5, 5, '#e25a4f') + F(44, 28, 5, 5, '#4fd06b') + F(52, 28, 5, 5, '#4a8cf0') + R(34, 18, 4, 8, 'hl');
+    },
+    segment() {
+      let s = '';[[0, 15], [0, 34], [0, 54], [0, 74]].forEach(([, y]) => { s += R(0, y - 1, 16, 2, 'mt'); });[[96, 15], [96, 34], [96, 54], [96, 74]].forEach(([, y]) => { s += R(80, y - 1, 16, 2, 'mt'); });
+      s += R(16, 4, 64, 88, 'k') + R(18, 6, 60, 84, 'ic');
+      const seg = [[34, 16, 26, 4], [60, 20, 4, 22], [60, 46, 4, 22], [34, 68, 26, 4], [30, 46, 4, 22], [30, 20, 4, 22], [34, 42, 26, 4]];
+      return s + seg.map(([x, y, w, h]) => R(x, y, w, h, 'sg')).join('') + R(68, 70, 4, 4, 'sg');
+    },
+    neopixel() {
+      let s = leadL(18, 12) + leadL(56, 12) + leadR(28, 80, 92) + leadR(52, 80, 92) + R(10, 4, 72, 68, 'k') + R(12, 6, 68, 64, 'bd');
+      s += R(26, 18, 40, 40, 'mt2') + R(28, 20, 36, 36, 'c') + disc(46, 38, 12, 'p');
+      return s + F(40, 34, 4, 4, '#e25a4f') + F(46, 34, 4, 4, '#4fd06b') + F(43, 40, 4, 4, '#4a8cf0');
+    },
+  };
+
+  function generic(def) {
+    const W = def.width, H = def.height, board = def.category === 'Placas';
+    const left = def.pins.filter(p => p[1] === 0), right = def.pins.filter(p => p[1] !== 0);
+    const bx = left.length ? 14 : 6, bw = W - bx - (right.length ? 14 : 6);
+    let s = left.map(p => R(0, p[2] - 1, bx + 2, 2, 'mt')).join('') + right.map(p => R(bx + bw - 2, p[2] - 1, W - bx - bw + 2, 2, 'mt')).join('');
+    if (board) {
+      s += R(bx, 2, bw, H - 4, 'k') + R(bx + 2, 4, bw - 4, H - 8, 'bd');
+      s += R(bx + bw / 2 - 26, 10, 52, H - 26, 'mt2') + R(bx + bw / 2 - 24, 12, 48, H - 30, 'mt');
+      s += R(bx + 6, H - 14, 8, 6, 'g') + T(bx + bw / 2, H / 2 + 2, esc(String(def.tag || 'MCU').slice(0, 7)), 'k', 12, 'middle');
+    } else {
+      s += R(bx, 4, bw, H - 8, 'ic') + R(bx, H / 2 - 4, 4, 8, 'p') + R(bx + 6, 8, 4, 4, 'mt2');
+      s += T(bx + bw / 2, H / 2 + 4, esc(String(def.tag || def.name || 'IC').slice(0, 8)), 'c', 11, 'middle');
+    }
+    return s;
+  }
+
+  function svg(def, part, cls) {
+    const body = ART[def.type] ? ART[def.type](def, part || {}) : generic(def);
+    return `<svg class="px-art ${cls || ''}" viewBox="0 0 ${def.width} ${def.height}" width="${def.width}" height="${def.height}" shape-rendering="crispEdges" aria-hidden="true">${body}</svg>`;
+  }
+  window.PixelParts = { art: (def, part) => svg(def, part), thumb: def => svg(def, { settings: {} }, 'px-thumb') };
+})();

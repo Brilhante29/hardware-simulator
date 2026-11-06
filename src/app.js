@@ -67,6 +67,7 @@ function allCatalog(){return [...catalog,...customParts]}
 function defFor(type){return allCatalog().find(item=>item.type===type)}
 function safeText(text){return String(text).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}
 function partIcon(type,large=false){
+  const def=defFor(type);if(def&&window.PixelParts)return window.PixelParts.thumb(def);
   const size=large?40:36;
   const shapes={
     board:`<svg viewBox="0 0 44 40" width="${size}" height="${size}"><rect x="7" y="3" width="30" height="34" rx="4" fill="#dff0e5" stroke="#57876a"/><rect x="18" y="15" width="10" height="9" rx="1" fill="#343d37"/><path d="M7 10H3m4 6H3m4 6H3m4 6H3m34-18h4m-4 6h4m-4 6h4m-4 6h4" stroke="#829689" stroke-width="2"/></svg>`,
@@ -105,19 +106,7 @@ let pointerCanvas={x:0,y:0};
 function partMarkup(part){
   const def=defFor(part.type);if(!def)return'';
   const classes=['part',`part-${part.type}`,selectedId===part.id?'selected':'',part.settings?.pressed?'pressed':'',part.settings?.lit?'lit':''].filter(Boolean).join(' ');
-  let inner='';
-  if(part.type==='uno')inner='<div class="uno-board"><div class="uno-usb"></div><div class="uno-label">ARDUINO</div><div class="uno-chip"></div><div class="uno-pinbank"><i></i><i></i><i></i><i></i><i></i></div><div class="uno-led"></div></div>';
-  else if(part.type==='led')inner=`<div class="led-bulb" style="--led-color:${safeText(part.settings?.color||'#63c879')}"></div>`;
-  else if(part.type==='resistor')inner='<div class="resistor-body"></div>';
-  else if(part.type==='button'||part.type==='switch')inner='<div class="button-cap"></div>';
-  else if(part.type==='source')inner='<div class="source-symbol">±</div>';
-  else if(part.type==='vcc')inner='<div class="source-symbol">+</div>';
-  else if(part.type==='gnd')inner='<div class="source-symbol">⏚</div>';
-  else if(part.type==='buzzer')inner='<div class="buzzer-disc"></div>';
-  else if(part.type==='pot')inner='<div class="pot-knob"></div>';
-  else if(part.type==='display')inner=`<span class="display-face">${safeText((part.settings?.screen||'HELLO WORLD').slice(0,13))}</span>`;
-  else if(part.type==='gate')inner='<span class="display-face" style="color:#57916b;font-size:20px">&amp;</span>';
-  else inner=`<span class="generic-chip"><b>${safeText((def.tag||part.name.slice(0,3)).slice(0,7))}</b><small>${safeText(part.name)}</small></span>`;
+  const inner=window.PixelParts?window.PixelParts.art(def,part):'';
   const pins=def.pins.map(([name,x,y])=>`<span class="pin ${pendingPin?.part===part.id&&pendingPin?.pin===name?'pending':''}" data-pin="${safeText(name)}" title="${safeText(name)}" style="left:${x}px;top:${y}px"></span><span class="pin-label ${x===0?'left':'right'}" style="left:${x===0?'auto':x+7+'px'};right:${x===0?'calc(100% + 5px)':'auto'};top:${y-4}px">${safeText(name)}</span>`).join('');
   return `<div class="${classes}" data-part="${safeText(part.id)}" style="left:${part.x}px;top:${part.y}px;width:${def.width}px;height:${def.height+18}px"><div class="part-card" style="width:${def.width}px;height:${def.height}px">${inner}</div><div class="part-title">${safeText(part.name||def.name)}</div>${pins}</div>`;
 }
