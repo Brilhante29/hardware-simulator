@@ -77,7 +77,7 @@ $$('.scenario-buttons button').forEach((el, i) => el.style.setProperty('--i', i)
 
 // --- descobertas ---------------------------------------------------------------
 const QUEST = [
-  ['calm', 'Carga tranquila'], ['over', 'Sobretensão'], ['boom', 'Ruptura didática'], ['fix', 'Peça trocada'], ['hi', 'Oi, robô!'],
+  ['calm', 'Carga tranquila'], ['over', 'Sobretensão'], ['boom', 'Queimou de verdade'], ['fix', 'Peça trocada'], ['hi', 'Oi, robô!'],
 ];
 const found = new Set();
 const quest = document.createElement('div'); quest.className = 'mx-quest'; quest.style.setProperty('--i', 2);

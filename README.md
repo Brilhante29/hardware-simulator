@@ -12,7 +12,7 @@ python3 -m http.server 8080
 
 Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos a um backend e não carrega fontes de terceiros. A hospedagem de uma prévia pode exigir autenticação do provedor.
 
-- `index.html`: oficina animada, cenários 12 V, 32 V e 100×.
+- `index.html`: oficina animada; 12 V, 32 V e 100× com desfecho calculado e relógio real.
 - `studio.html`: bancada de medição, cenários editáveis, biblioteca e validação.
 - `editor.html`: editor livre com peças em pixel art, fios, sketch Arduino simplificado e projetos JSON.
 - `lab/sn74hc595.html`: registrador digital interativo.
@@ -41,9 +41,9 @@ Textos complementares ficam em abinhas (ⓘ) que abrem e recolhem; os limites do
 
 | Recurso | Escopo atual |
 | --- | --- |
-| Capacitor | Carga RC analítica com limitação de corrente; energia; falha aberta/curto injetável |
-| Resistor | Potência I²R e referência contínua SFR25 com redução por temperatura ambiente |
-| LED | Aproximação DC com Vf fixo, alertas de corrente, potência, tensão reversa e temperatura estimada |
+| Capacitor | Carga com fonte CV/CC, fuga real acima da nominal, aquecimento, H₂, pressão e válvula; falha manual opcional |
+| Resistor | SFR25 com aquecimento (200 K/W), escurecimento, fumaça e abertura |
+| LED | Diodo de Shockley ajustado ao datasheet, junção aquecendo, perda de brilho, avalanche reversa e queima |
 | SN74HC595 | Modelo lógico, estados X/Z, clocks, latch, clear e OE; todos os 256 bytes testados |
 | Biblioteca | 114 referências oficiais de placas, SoCs, MCUs e periféricos; cada item mostra o estado do modelo |
 | Editor livre | Montagem, fios, peças personalizadas, projetos JSON, gavetas no celular; cada peça diz se é simulada ou só visual |
@@ -52,9 +52,21 @@ Textos complementares ficam em abinhas (ⓘ) que abrem e recolhem; os limites do
 
 **114 referências não são 114 dispositivos emulados.** O catálogo amplia a pesquisa, enquanto os modelos funcionais são os explicitados acima. No editor, LEDs, buzzer, chaves, resistores, fontes e o Uno participam da simulação lógica de continuidade; sensores, motores, displays e demais peças são só visuais e o inspetor avisa. O editor não compila C++ e não usa o motor analógico da bancada.
 
-## Falhas e precisão
+## O que acontece de verdade
 
-O botão **100×** configura uma fonte de 1.600 V para um capacitor paramétrico de 16 V. O cenário injeta uma falha ao cruzar a tensão nominal; a animação indica essa hipótese. Ela **não calcula pressão, arco, fragmentos, tempo real de ruptura ou probabilidade de explosão**. Na falha aberta, I e P em R1 caem a zero. Na falha em curto, o circuito é recalculado com a limitação de corrente da fonte. Os limites de datasheet indicam estresse, não um instante garantido de destruição.
+A bancada e a oficina usam o mesmo motor eletrotérmico (`src/engine/physics.mjs`). O desfecho sai da física, não de um gatilho:
+
+| Cenário | Desfecho calculado | Base |
+| --- | --- | --- |
+| 12 V em C1 de 16 V | Carrega; nada esquenta | Fuga 0,01·C·V (16 µA) |
+| 32 V (2×) via 1 kΩ | C1 trava em ~21,6 V como um zener, esquenta, gera H₂ e abre a válvula em **minutos** | CDE: "modo tensão constante… o hidrogênio gera pressão e falha" |
+| 1.600 V (100×) via 1 kΩ, fonte de 200 mA | **R1 queima primeiro** (40 W num resistor de 0,4 W): escurece em ~1 s, fumaça em ~1,5 s, abre em ~3 s. C1 só esquenta | Vishay SFR25: 0,4 W, 200 K/W, 155 °C |
+| 30 V / 3 A direto | Válvula abre em ~1 s, sem estilhaços | Nichicon: válvula ensaiada sem chamas nem fragmentos |
+| Válvula obstruída | Só aqui a lata estoura | Nichicon: função da válvula |
+| Capacitor invertido a 1 A | Conduz e ventila em segundos | Nichicon: ensaio reverso de 1 A |
+| LED sem resistor (5 V) | ~280 mA, junção passa de 125 °C e o chip abre em ~2 s | Kingbright: IF 30 mA, RthJA 560 °C/W |
+
+Números que nenhum datasheet traz (capacidade térmica, volume livre da lata, pressão de abertura da válvula, temperaturas em que a laca fuma) são **premissas declaradas** e aparecem em **Ver fontes**. Os tempos são estimativas da ordem de grandeza, não certificação. A falha manual (aberto/curto) continua disponível para estudo.
 
 Veja [modelos elétricos e evidências](docs/ELECTRICAL_MODELS.md) e [primeira validação digital](docs/FIRST_VALIDATION.md).
 

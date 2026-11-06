@@ -14,14 +14,24 @@
   const leadL = (y, to) => R(0, y - 1, to, 2, 'mt');
   const leadR = (y, from, W) => R(from, y - 1, W - from, 2, 'mt');
 
+  // Código de cores IEC 60062 a partir do valor ("220 Ω", "4,7 kΩ", "1k").
+  const COLORS = ['#1b1b1b', '#7a4a23', '#d23b2f', '#f08a24', '#f2d23c', '#3a9a4a', '#2f6fd1', '#8a4fd1', '#8c8c8c', '#f4f4f4'];
+  function bands(text) {
+    const m = String(text).replace(',', '.').match(/([\d.]+)\s*([kKmM]?)/); let ohms = m ? parseFloat(m[1]) : 220;
+    if (m && /k/i.test(m[2])) ohms *= 1e3; if (m && m[2] === 'M') ohms *= 1e6;
+    if (!(ohms >= 1)) return [COLORS[2], COLORS[2], COLORS[1]];
+    const exp = Math.floor(Math.log10(ohms)) - 1, digits = Math.round(ohms / 10 ** exp);
+    const d1 = Math.min(9, Math.floor(digits / 10)), d2 = digits % 10, mult = Math.max(0, Math.min(9, exp));
+    return [COLORS[d1], COLORS[d2], COLORS[mult]];
+  }
   const ART = {
     uno(def, part) {
-      let s = R(6, 2, 170, 216, 'k') + R(8, 4, 166, 212, 'bd');
-      s += R(28, 58, 64, 2, 'bd2') + R(90, 58, 2, 42, 'bd2') + R(24, 172, 92, 2, 'bd2') + R(114, 150, 2, 24, 'bd2') + R(132, 96, 2, 50, 'bd2');
+      let s = R(6, 2, 170, 216, 'k') + R(8, 4, 166, 212, 'ub');
+      s += R(28, 58, 64, 2, 'ub2') + R(90, 58, 2, 42, 'ub2') + R(24, 172, 92, 2, 'ub2') + R(114, 150, 2, 24, 'ub2') + R(132, 96, 2, 50, 'ub2');
       s += R(10, 18, 12, 172, 'k'); for (let i = 0; i < 14; i++) { const y = 26 + i * 12; s += R(0, y - 1, 10, 2, 'mt') + R(14, y - 2, 4, 4, 'mt'); }
       s += R(160, 30, 12, 168, 'k'); [38, 58, 78, 98, 118, 138, 164, 190].forEach(y => { s += R(164, y - 2, 4, 4, 'mt') + R(172, y - 1, 10, 2, 'mt'); });
       s += R(110, 0, 36, 26, 'mt2') + R(114, 2, 28, 20, 'mt') + R(58, 0, 34, 20, 'k') + R(62, 4, 26, 12, 'd');
-      s += R(64, 120, 72, 26, 'ic') + R(64, 129, 4, 8, 'bd');
+      s += R(64, 120, 72, 26, 'ic') + R(64, 129, 4, 8, 'ub');
       for (let i = 0; i < 8; i++) s += R(68 + i * 8, 116, 4, 4, 'mt') + R(68 + i * 8, 146, 4, 4, 'mt');
       s += R(100, 72, 20, 8, 'mt') + R(36, 30, 14, 14, 'k') + R(38, 32, 10, 10, 'o');
       s += T(36, 104, 'UNO', 'c', 24) + T(38, 192, '~ DIGITAL', 'p', 7);
@@ -38,11 +48,11 @@
       s += R(32, 14, 4, 10, 'hl') + R(32, 26, 2, 4, 'hl');
       return s + '</g>';
     },
-    resistor() {
+    resistor(def, part) {
       let s = leadL(34, 26) + leadR(34, 78, 104);
       s += R(24, 28, 6, 12, 'rb') + R(74, 28, 6, 12, 'rb') + R(28, 26, 48, 16, 'rb') + R(28, 26, 48, 3, 'rbh') + R(28, 39, 48, 3, 'rbs');
-      s += F(36, 26, 4, 16, '#c9443a') + F(44, 26, 4, 16, '#c9443a') + F(52, 26, 4, 16, '#6b3d22') + F(66, 26, 4, 16, '#d6a83a');
-      return s;
+      const [b1, b2, mult] = bands(part?.settings?.value || '220 Ω');
+      return s + F(36, 26, 4, 16, b1) + F(44, 26, 4, 16, b2) + F(52, 26, 4, 16, mult) + F(66, 26, 4, 16, '#d6a83a');
     },
     button(def, part) {
       let s = leadL(34, 24) + leadR(34, 58, 82) + R(22, 12, 38, 42, 'k') + R(24, 14, 34, 38, 'd');
