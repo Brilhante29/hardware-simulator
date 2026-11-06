@@ -42,3 +42,31 @@
 @keyframes pxBlink{50%{opacity:.35}}
 @keyframes pxBuzz{50%{transform:translate(1px,-1px)}}
 @media(prefers-reduced-motion:reduce){.px-art,.px-art *{animation:none!important;transition:none!important}}
+/* Estado do modelo: o que reage à simulação e o que é só desenho */
+[data-surface=editor] .model-status{margin:10px 0 0;padding:8px 10px;font-size:11px;line-height:1.5;border-left:3px solid var(--accent);background:var(--panel);color:var(--ink)}
+[data-surface=editor] .model-status.visual{border-left-color:var(--warning);color:var(--muted)}
+[data-surface=editor] .component-visual{font:9px Pixelify,monospace;color:var(--muted);letter-spacing:.3px;margin-top:-4px}
+/* Gavetas no celular e tablet */
+.mobile-dock,.drawer-shade{display:none}
+@media(max-width:850px){
+  .mobile-dock{display:flex;gap:6px;position:fixed;left:50%;bottom:34px;transform:translateX(-50%);z-index:70;padding:6px;background:var(--surface);border:2px solid var(--ink);box-shadow:4px 4px 0 var(--accent2)}
+  .mobile-dock button{border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 12px system-ui,sans-serif;padding:9px 12px;white-space:nowrap;cursor:pointer}
+  .mobile-dock button[data-drawer=library]{display:none}
+  .drawer-shade{display:block;position:fixed;inset:0;z-index:64;background:rgba(10,16,40,.35);opacity:0;pointer-events:none;transition:opacity .2s}
+  body.drawer-library .drawer-shade,body.drawer-inspector .drawer-shade{opacity:1;pointer-events:auto}
+  .inspector-panel{display:flex!important;position:fixed;top:0;right:0;bottom:0;width:min(360px,90vw);z-index:66;background:var(--surface);border-left:2px solid var(--ink);transform:translateX(105%);transition:transform .28s cubic-bezier(.2,1.1,.4,1);overflow:auto}
+  body.drawer-inspector .inspector-panel{transform:none}
+  .canvas-bottom{bottom:96px!important}
+}
+@media(max-width:620px){
+  .mobile-dock{bottom:30px}
+  .mobile-dock button{padding:9px 10px;font-size:11px}
+  .mobile-dock button[data-drawer=library]{display:inline-block}
+  .library-panel{display:block!important;position:fixed;top:0;left:0;bottom:0;width:min(320px,88vw);z-index:66;background:var(--surface);border-right:2px solid var(--ink);transform:translateX(-105%);transition:transform .28s cubic-bezier(.2,1.1,.4,1);overflow:auto}
+  body.drawer-library .library-panel{transform:none}
+}
+@media(prefers-reduced-motion:reduce){.inspector-panel,.library-panel,.drawer-shade{transition:none!important}}
+@media(max-width:850px){.inspector-panel,.library-panel{padding-bottom:110px!important}}
+[data-surface=editor] .peek-lite summary{cursor:pointer;list-style:none}
+[data-surface=editor] .peek-lite summary::after{content:" +";color:var(--accent2)}
+[data-surface=editor] .peek-lite[open] summary::after{content:" ×"}

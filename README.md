@@ -14,7 +14,7 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 
 - `index.html`: oficina animada, cenários 12 V, 32 V e 100×.
 - `studio.html`: bancada de medição, cenários editáveis, biblioteca e validação.
-- `editor.html`: editor livre original, fios, peças e importação Wokwi.
+- `editor.html`: editor livre com peças em pixel art, fios, sketch Arduino simplificado e projetos JSON.
 - `lab/sn74hc595.html`: registrador digital interativo.
 
 ## Tour em vídeo
@@ -46,10 +46,11 @@ Textos complementares ficam em abinhas (ⓘ) que abrem e recolhem; os limites do
 | LED | Aproximação DC com Vf fixo, alertas de corrente, potência, tensão reversa e temperatura estimada |
 | SN74HC595 | Modelo lógico, estados X/Z, clocks, latch, clear e OE; todos os 256 bytes testados |
 | Biblioteca | 114 referências oficiais de placas, SoCs, MCUs e periféricos; cada item mostra o estado do modelo |
-| Editor livre | Montagem, conexão, componentes simples personalizados, JSON e importação de `diagram.json` |
+| Editor livre | Montagem, fios, peças personalizadas, projetos JSON, gavetas no celular; cada peça diz se é simulada ou só visual |
+| Sketch no editor | `setup()` uma vez e `loop()` repetido, constantes, `#define`, `LED_BUILTIN`, `for`, `if`, `digitalWrite`, `delay`; o resto vira aviso |
 | Arduino / PlatformIO | Exportação de exemplo `.ino` ou projeto ZIP; sem compilação, upload ou plugin de IDE ainda |
 
-**114 referências não são 114 dispositivos emulados.** O catálogo amplia a pesquisa, enquanto os modelos funcionais são os explicitados acima. O editor livre continua com seu motor inicial de continuidade e interpretação limitada de `digitalWrite`/`delay`; ele não usa automaticamente o novo motor analógico.
+**114 referências não são 114 dispositivos emulados.** O catálogo amplia a pesquisa, enquanto os modelos funcionais são os explicitados acima. No editor, LEDs, buzzer, chaves, resistores, fontes e o Uno participam da simulação lógica de continuidade; sensores, motores, displays e demais peças são só visuais e o inspetor avisa. O editor não compila C++ e não usa o motor analógico da bancada.
 
 ## Falhas e precisão
 
@@ -61,10 +62,11 @@ Veja [modelos elétricos e evidências](docs/ELECTRICAL_MODELS.md) e [primeira v
 
 ```sh
 node tests/all.mjs
+node tests/editor.mjs
 node tests/display-contrast.mjs
 ```
 
-24 grupos: 8 digitais + 16 elétricos. Incluem os 256 valores do registrador, solução RC fechada, partição de passos, balanço de potência em 500 configurações e consequências das falhas. Também podem ser executados em **Bancada → Validação** e exportados como JSON. Não são ensaios destrutivos de hardware físico.
+24 grupos: 8 digitais + 16 elétricos. Incluem os 256 valores do registrador, solução RC fechada, partição de passos, balanço de potência em 500 configurações e consequências das falhas. `tests/editor.mjs` cobre o interpretador de sketch do editor (13 casos, incluindo que expressões não executam código arbitrário). Os 24 grupos também podem ser executados em **Bancada → Validação** e exportados como JSON. Não são ensaios destrutivos de hardware físico.
 
 A verificação de aparência testa 80 pares de tokens reais de texto/fundo nas quatro paletas contra 4,5:1. Ela não equivale a uma auditoria completa de acessibilidade nem a validação clínica da pista óptica.
 

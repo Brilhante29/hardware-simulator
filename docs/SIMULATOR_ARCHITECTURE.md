@@ -43,7 +43,7 @@ O arquivo [wearable-platform-matrix.json](../examples/wearable-platform-matrix.j
 
 ## O que existe hoje
 
-A primeira versão do Hardware Simulator é um editor local leve, com circuito digital básico, exemplos, projetos JSON e importação parcial de diagramas Wokwi. Ainda não tem editor de esquemático/PCB, ERC/DRC, pinout completo dos MCUs, compilação de firmware, emulação de SoC ou resolução analógica. O catálogo de 54 fontes é índice de documentos, não uma biblioteca de 54 modelos operacionais.
+A primeira versão do Hardware Simulator é um editor local leve, com circuito digital básico, exemplos, projetos JSON próprios e um interpretador de um subconjunto de sketches Arduino (`src/editor/sketch.js`). Ainda não tem editor de esquemático/PCB, ERC/DRC, pinout completo dos MCUs, compilação de firmware, emulação de SoC ou resolução analógica. O catálogo de 54 fontes é índice de documentos, não uma biblioteca de 54 modelos operacionais.
 
 ## Documentação oficial de software
 

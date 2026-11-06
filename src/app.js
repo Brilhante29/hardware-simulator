@@ -49,7 +49,7 @@ const defaultProject = () => ({version:1,title:'LED piscando',parts:[
 let project = readSavedProject() || defaultProject();
 let customParts = readCustomParts();
 let activeCategory='Todos', selectedId=null, selectedWire=null, pendingPin=null;
-let zoom=1, panX=0, panY=0, activeTool='select', simulationTimer=null, simulationStep=0, simulationSteps=[];
+let zoom=1, panX=0, panY=0, activeTool='select', simulationTimer=null;
 let undoStack=[], redoStack=[], saveTimer=null, toastTimer=null, searchTerm='';
 const viewport=$('#viewport'), canvas=$('#canvas'), partLayer=$('#partLayer'), wireLayer=$('#wireLayer');
 
@@ -92,7 +92,7 @@ function renderCatalog(){
   const list=allCatalog().filter(item=>(activeCategory==='Todos'||item.category===activeCategory)&&(!searchTerm||item.name.toLowerCase().includes(searchTerm)||item.type.toLowerCase().includes(searchTerm)));
   $('#libraryHeading').textContent=activeCategory==='Todos'?'Todos os componentes':activeCategory;
   $('#componentCount').textContent=list.length;
-  $('#componentList').innerHTML=list.map(item=>`<button class="component-card" data-add="${safeText(item.type)}" title="Adicionar ${safeText(item.name)}"><span class="component-art">${partIcon(item.type)}</span><span class="component-name">${safeText(item.name)}</span><span class="component-tag">${safeText(item.tag||'CUSTOM')}</span></button>`).join('')||'<div class="no-results">Nenhuma peça encontrada.<br />Tente outro nome ou crie a sua.</div>';
+  $('#componentList').innerHTML=list.map(item=>`<button class="component-card" data-add="${safeText(item.type)}" title="Adicionar ${safeText(item.name)}"><span class="component-art">${partIcon(item.type)}</span><span class="component-name">${safeText(item.name)}</span>${modelStatus(item)?.sim?'':'<span class="component-visual" title="Só visual: ainda sem modelo elétrico">só visual</span>'}<span class="component-tag">${safeText(item.tag||'CUSTOM')}</span></button>`).join('')||'<div class="no-results">Nenhuma peça encontrada.<br />Tente outro nome ou crie a sua.</div>';
   $('#componentList').querySelectorAll('[data-add]').forEach(button=>button.addEventListener('click',()=>addPart(button.dataset.add)));
 }
 function pinDef(part,pinName){const def=defFor(part.type);return def?.pins.find(([name])=>name===pinName)}
@@ -101,6 +101,7 @@ function renderWires(){
   const paths=project.wires.map(wire=>{const a=partNode(wire.a.part,wire.a.pin),b=partNode(wire.b.part,wire.b.pin);if(!a||!b)return '';const mid=Math.round((a.x+b.x)/2);return `<g class="wire-group"><path class="wire-line ${selectedWire===wire.id?'selected':''}" data-wire="${safeText(wire.id)}" style="--wire-color:${safeText(wire.color||'#708a7a')}" d="M ${a.x} ${a.y} H ${mid} V ${b.y} H ${b.x}"/><circle class="wire-dot" cx="${a.x}" cy="${a.y}" r="3"/><circle class="wire-dot" cx="${b.x}" cy="${b.y}" r="3"/></g>`}).join('');
   wireLayer.innerHTML=paths;wireLayer.querySelectorAll('[data-wire]').forEach(path=>path.addEventListener('click',event=>{event.stopPropagation();selectedWire=path.dataset.wire;selectedId=null;renderAll()}));
   if(pendingPin){const node=partNode(pendingPin.part,pendingPin.pin);if(node){const preview=$('#wirePreview');preview.innerHTML=`<svg viewBox="0 0 1800 1200" preserveAspectRatio="none"><path class="preview-line" d="M ${node.x} ${node.y} L ${pointerCanvas.x} ${pointerCanvas.y}"/></svg>`}}
+  if(!pendingPin)$('#wirePreview').innerHTML='';
 }
 let pointerCanvas={x:0,y:0};
 function partMarkup(part){
@@ -142,6 +143,15 @@ function renderAll(){
   $('#runStatus').classList.toggle('running',active);$('#runStatus').innerHTML=active?'<span></span>Simulação em execução':'<span></span>Pronto para simular';
   updateHistoryButtons();
 }
+function modelStatus(def){
+  if(!def)return null;const k=def.kind,t=def.type;
+  if(t==='uno')return{sim:true,text:'Simulado: saídas D0–D13 vêm do sketch.'};
+  if(t==='led'||t==='buzzer')return{sim:true,text:'Simulado: liga quando há tensão no sentido certo. Sem corrente nem brilho proporcional.'};
+  if(k==='conductor')return{sim:true,text:'Simulado como condutor ideal: liga os dois terminais, sem queda de tensão.'};
+  if(k==='switch')return{sim:true,text:'Simulado: abre e fecha o contato.'};
+  if(k==='source'||k==='highRail'||k==='lowRail')return{sim:true,text:'Simulado: referência de 5 V ou 0 V.'};
+  return{sim:false,text:'Só visual: ainda não tem modelo elétrico. Ela entra no desenho e nas conexões, mas não reage à simulação.'};
+}
 function renderInspector(){
   const view=$('#propertiesView');
   if(!selectedId){view.innerHTML=`<div class="inspector-empty"><div class="inspector-empty-icon">⌁</div><b>Selecione uma peça</b><p>As propriedades do componente aparecem aqui quando você selecionar uma peça no circuito.</p><button class="text-button" id="openCodeFromEmpty">Editar código Arduino →</button></div>`;$('#openCodeFromEmpty')?.addEventListener('click',()=>showInspectorTab('code'));return}
@@ -152,7 +162,7 @@ function renderInspector(){
   if(def.kind==='switch')controls=`<div class="property-section"><p class="property-label">Estado do contato</p><div class="switch-row"><span>${part.settings?.pressed?(part.type==='switch'?'Fechado':'Pressionado'):'Aberto'}</span><button id="toggleButtonPart" class="toggle ${part.settings?.pressed?'on':''}" aria-label="Alternar botão"></button></div></div>`;
   if(part.type==='resistor')controls+=`<div class="property-section"><p class="property-label">Valor</p><input id="partValue" class="property-input" value="${safeText(part.settings?.value||'220 Ω')}" /></div>`;
   if(part.type==='led')controls+=`<div class="property-section"><p class="property-label">Cor</p><div class="property-row"><span>Cor do LED</span><input id="ledColor" type="color" value="${safeText(part.settings?.color||'#e56d5c')}" style="width:30px;height:24px;border:0;background:transparent;cursor:pointer" /></div><div class="property-row"><span>Estado</span><b>${part.settings?.lit?'Ligado':'Desligado'}</b></div></div>`;
-  view.innerHTML=`<div class="property-header"><div class="property-type">${safeText(def.category)} · ${safeText(def.tag||'COMPONENTE')}</div><h2>${safeText(part.name||def.name)}</h2></div><div class="property-section"><p class="property-label">Identificação</p><label class="property-row"><span>Nome</span><input id="partName" class="property-input" style="width:130px" value="${safeText(part.name||def.name)}" /></label>${def.voltage?`<div class="property-row"><span>Tensão nominal</span><b>${safeText(def.voltage)}</b></div>`:''}</div>${controls}<div class="property-section"><p class="property-label">Terminais</p>${pins}</div><div class="property-section"><p class="property-label">Sobre</p><p style="font-size:9px;line-height:1.55;color:#77827a;margin:0">${safeText(def.description||'Componente personalizado do seu projeto.')}</p></div><div class="property-section"><button id="deleteSelectedPart" class="text-button delete-part">Remover componente</button></div>`;
+  view.innerHTML=`<div class="property-header"><div class="property-type">${safeText(def.category)} · ${safeText(def.tag||'COMPONENTE')}</div><h2>${safeText(part.name||def.name)}</h2></div><div class="property-section"><p class="property-label">Identificação</p><label class="property-row"><span>Nome</span><input id="partName" class="property-input" style="width:130px" value="${safeText(part.name||def.name)}" /></label>${def.voltage?`<div class="property-row"><span>Tensão nominal</span><b>${safeText(def.voltage)}</b></div>`:''}</div>${controls}<div class="property-section"><p class="property-label">Terminais</p>${pins}</div><div class="property-section"><p class="property-label">Sobre</p><p style="font-size:9px;line-height:1.55;color:#77827a;margin:0">${safeText(def.description||'Componente personalizado do seu projeto.')}</p>${(()=>{const st=modelStatus(def);return st?`<p class="model-status ${st.sim?'sim':'visual'}">${st.sim?'●':'◇'} ${safeText(st.text)}</p>`:''})()}</div><div class="property-section"><button id="deleteSelectedPart" class="text-button delete-part">Remover componente</button></div>`;
   $('#partName')?.addEventListener('change',event=>{part.name=event.target.value.trim()||def.name;markChanged();renderParts();renderInspector()});
   $('#partValue')?.addEventListener('change',event=>{part.settings.value=event.target.value;markChanged()});
   $('#ledColor')?.addEventListener('input',event=>{part.settings.color=event.target.value;markChanged()});
@@ -185,16 +195,25 @@ function updateSimulation(){
   for(const part of project.parts){if(part.type==='led'){const anode=find(node(part.id,'A')),cathode=find(node(part.id,'K'));const lit=Array.from(highs).some(h=>h===anode)&&Array.from(lows).some(l=>l===cathode);part.settings.lit=lit;lights.push(lit)}if(part.type==='buzzer'){const pos=find(node(part.id,'+')),neg=find(node(part.id,'−'));part.settings.lit=Array.from(highs).some(h=>h===pos)&&Array.from(lows).some(l=>l===neg)}}
   renderParts();if(selectedId)renderInspector();
 }
-function parseSketch(code){
-  const lines=[...code.matchAll(/digitalWrite\s*\(\s*(\d+)\s*,\s*(HIGH|LOW|1|0)\s*\)\s*;?\s*(?:delay\s*\(\s*(\d+)\s*\)\s*;?)?/gi)];
-  return lines.map(match=>({pin:`D${Number(match[1])}`,state:/^(HIGH|1)$/i.test(match[2])?1:0,duration:Math.max(90,Math.min(5000,Number(match[3]||300)))}));
-}
-function applySimulationStep(){const boards=project.parts.filter(p=>p.type==='uno');for(const board of boards)board.settings.outputs={...(board.settings.outputs||{}),[simulationSteps[simulationStep]?.pin]:simulationSteps[simulationStep]?.state};updateSimulation();}
+function applyWrites(writes){const boards=project.parts.filter(p=>p.type==='uno');for(const board of boards){const outputs={...(board.settings.outputs||{})};for(const w of writes)outputs[`D${w.pin}`]=w.level;board.settings.outputs=outputs}updateSimulation()}
 function runSimulation(){
   if(simulationTimer){stopSimulation();return}
-  const sketch=$('#codeEditor').value;simulationSteps=parseSketch(sketch);if(!simulationSteps.length){toast('Não encontrei digitalWrite() com nível HIGH ou LOW no sketch');showInspectorTab('code');$('#codeStatus').textContent='Sem instruções reconhecidas';return}
-  project.code=sketch;simulationStep=0;const step=()=>{if(!simulationTimer)return;applySimulationStep();const duration=simulationSteps[simulationStep]?.duration||300;simulationStep=(simulationStep+1)%simulationSteps.length;simulationTimer=setTimeout(step,duration)};
-  simulationTimer=setTimeout(step,0);$('#codeStatus').textContent=`${simulationSteps.length} instruções digitais reconhecidas`;renderAll();markChanged();
+  const sketch=$('#codeEditor').value;const parsed=window.Sketch.parse(sketch);
+  if(!parsed.writes){toast('O sketch não tem digitalWrite() reconhecido em setup() ou loop()');showInspectorTab('code');$('#codeStatus').textContent=parsed.warnings[0]||'Sem instruções reconhecidas';return}
+  project.code=sketch;
+  const setupSteps=window.Sketch.timeline(parsed.setup),loopSteps=window.Sketch.timeline(parsed.loop);
+  if(parsed.loop.length&&parsed.loopDelay===0)loopSteps[loopSteps.length-1].ms=250;
+  let phase='setup',index=0;
+  const step=()=>{if(!simulationTimer)return;
+    let list=phase==='setup'?setupSteps:loopSteps;
+    if(index>=list.length){if(phase==='setup'&&loopSteps.length){phase='loop';index=0;list=loopSteps}else if(phase==='loop'){index=0}else{simulationTimer=setTimeout(()=>{},2147483647);return}}
+    const current=list[index++];applyWrites(current.writes);
+    simulationTimer=setTimeout(step,Math.max(0,Math.min(10000,current.ms)))};
+  simulationTimer=setTimeout(step,0);
+  const notes=parsed.warnings.length?` · ${parsed.warnings.length} aviso(s): ${parsed.warnings.slice(0,2).join('; ')}`:'';
+  $('#codeStatus').textContent=`${parsed.writes} escrita(s) digital(is) reconhecida(s)${notes}`;$('#codeStatus').title=parsed.warnings.join('\n');
+  if(parsed.warnings.length)toast(parsed.warnings[0]);
+  renderAll();markChanged();
 }
 function stopSimulation(){if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}for(const part of project.parts)if(part.type==='uno')part.settings.outputs={};updateSimulation();renderAll()}
 function loadExample(id){stopSimulation();snapshot();if(id==='empty'){project={version:1,title:'Circuito sem título',parts:[],wires:[],code:STARTER_CODE}}
@@ -223,79 +242,15 @@ function normalizeCustomDefinitions(definitions){
     return{type:d.type.slice(0,48),name:d.name.slice(0,30),category:categories.some(c=>c[0]===d.category)?d.category:'Customizados',tag:String(d.tag||'CUSTOM').slice(0,8),width:layout.width,height:layout.height,icon:'custom',description:String(d.description||'Componente importado com pinos personalizados.').slice(0,120),kind,pins:layout.pins};
   });
 }
-function convertWokwiDiagram(diagram){
-  const connections=Array.isArray(diagram.connections)?diagram.connections:[];
-  const references=new Map();
-  const endpoint=(address)=>{if(typeof address!=='string')return null;const split=address.indexOf(':');if(split<1)return null;return{id:address.slice(0,split),pin:address.slice(split+1)}};
-  for(const connection of connections){if(!Array.isArray(connection))continue;for(const address of connection.slice(0,2)){const point=endpoint(address);if(!point)continue;if(!references.has(point.id))references.set(point.id,new Set());references.get(point.id).add(point.pin)}}
-  const typeMap={'wokwi-arduino-uno':'uno','wokwi-arduino-nano':'uno','wokwi-led':'led','wokwi-resistor':'resistor','wokwi-pushbutton':'button','wokwi-pushbutton-6mm':'button','wokwi-slide-switch':'switch','wokwi-buzzer':'buzzer','wokwi-potentiometer':'pot','wokwi-lcd1602':'display','wokwi-lcd2004':'display','wokwi-hc-sr04':'ultrasonic','wokwi-servo':'servo','wokwi-neopixel':'neopixel','wokwi-rgb-led':'rgb','wokwi-7segment':'segment','wokwi-photoresistor-sensor':'ldr','wokwi-relay-module':'relay','wokwi-vcc':'vcc','wokwi-gnd':'gnd'};
-  const pinMap=(sourceType,raw)=>{
-    const p=String(raw).trim();
-    if(['wokwi-arduino-uno','wokwi-arduino-nano'].includes(sourceType)){
-      if(/^\d+$/.test(p))return`D${p}`;
-      if(/^D\d+$/.test(p))return p;
-      if(/^GND(?:\.\d+)?$/i.test(p))return'GND';
-      if(/^5V(?:\.\d+)?$/i.test(p))return'5V';
-      if(/^A[0-5]$/i.test(p))return p.toUpperCase();
-    }
-    if(['wokwi-led','wokwi-rgb-led'].includes(sourceType)&&['C','K'].includes(p.toUpperCase()))return'K';
-    if(sourceType==='wokwi-buzzer')return({'1':'+','2':'−','+':'+','-':'−','−':'−'})[p]||p;
-    if(['wokwi-pushbutton','wokwi-pushbutton-6mm'].includes(sourceType)){
-      if(/^1(?:\.|$)/.test(p))return'1';if(/^2(?:\.|$)/.test(p))return'2';
-    }
-    if(sourceType==='wokwi-servo')return({'PWM':'SIG','V+':'VCC','GND':'GND'})[p]||p;
-    if(sourceType==='wokwi-vcc')return'VCC';if(sourceType==='wokwi-gnd')return'GND';
-    return p;
-  };
-  const sourceParts=Array.isArray(diagram.parts)?diagram.parts:[];
-  const xValues=sourceParts.map(part=>Number(part.left??part.x??0)).filter(Number.isFinite),yValues=sourceParts.map(part=>Number(part.top??part.y??0)).filter(Number.isFinite);
-  const minX=xValues.length?Math.min(...xValues):0,minY=yValues.length?Math.min(...yValues):0;
-  const importedCustom=[],partTypes=new Map(),partPinMaps=new Map(),parts=[];
-  for(let index=0;index<sourceParts.length&&index<250;index++){
-    const source=sourceParts[index]||{},id=String(source.id||`part-${index}`).slice(0,60),sourceType=String(source.type||'unknown');
-    const connected=[...(references.get(id)||[])];let targetType=typeMap[sourceType]||null;
-    let mappedPins=targetType?connected.map(pin=>[pin,pinMap(sourceType,pin)]):[];
-    if(targetType){const def=defFor(targetType);if(!def||mappedPins.some(([,mapped])=>!pinDef({type:targetType},mapped)))targetType=null}
-    let definition=targetType?defFor(targetType):null;
-    if(!definition){
-      const names=connected.length?connected:['P1','P2'];const rawNames=[...new Set(names)].slice(0,40);
-      const customType=`custom-wokwi-${id.toLowerCase().replace(/[^a-z0-9-]/g,'-').slice(0,24)}-${index}`;
-      const layout=makePinLayout(rawNames,148,false);const boardLike=/arduino|esp|pico|stm|attiny|board|microcontroller/i.test(sourceType);
-      definition={type:customType,name:String(sourceType.replace(/^wokwi-/,'').replace(/[-_]/g,' ')).slice(0,30),category:boardLike?'Placas':'Customizados',tag:boardLike?'BOARD':'WOKWI',width:layout.width,height:layout.height,icon:'custom',description:`Peça importada do Wokwi (${sourceType}); modelo elétrico ainda não cadastrado.`,kind:'custom',pins:layout.pins};
-      importedCustom.push(definition);targetType=customType;mappedPins=rawNames.map(pin=>[pin,pin]);
-    }
-    const attrs=source.attrs&&typeof source.attrs==='object'?source.attrs:{};
-    const rawName=attrs.label||attrs.name||id;
-    const colorMap={red:'#e56d5c',green:'#64c77d',blue:'#63a8e7',yellow:'#edc65a',white:'#f2f3e8',orange:'#ee9457',purple:'#ae82df'};
-    let color=typeof attrs.color==='string'?(colorMap[attrs.color.toLowerCase()]||(/^#[\da-f]{6}$/i.test(attrs.color)?attrs.color:null)):null;
-    const value=attrs.resistance!==undefined?`${attrs.resistance} Ω`:undefined;
-    const x=Number(source.left??source.x??150)-minX+100,y=Number(source.top??source.y??100)-minY+90;
-    parts.push({id,type:targetType,name:String(rawName).slice(0,40),x:Math.max(10,Math.min(1650,Number.isFinite(x)?x:100+index*18)),y:Math.max(10,Math.min(1050,Number.isFinite(y)?y:100+index*18)),settings:{...(color?{color}:{}),...(value?{value}:{})}});
-    partTypes.set(id,{type:targetType,sourceType});partPinMaps.set(id,new Map(mappedPins));
-  }
-  const wires=[];let skipped=0;
-  for(let index=0;index<connections.length&&index<1000;index++){
-    const connection=connections[index];if(!Array.isArray(connection)||connection.length<2){skipped++;continue}
-    const from=endpoint(connection[0]),to=endpoint(connection[1]);if(!from||!to){skipped++;continue}
-    const fromInfo=partTypes.get(from.id),toInfo=partTypes.get(to.id);if(!fromInfo||!toInfo){skipped++;continue}
-    const mapFor=(point,info)=>partPinMaps.get(point.id)?.get(point.pin)||pinMap(info.sourceType,point.pin);
-    const aPin=mapFor(from,fromInfo),bPin=mapFor(to,toInfo),aPart=parts.find(part=>part.id===from.id),bPart=parts.find(part=>part.id===to.id);
-    if(!aPart||!bPart||!pinDef(aPart,aPin)||!pinDef(bPart,bPin)){skipped++;continue}
-    const colors={red:'#d86c62',green:'#54a873',blue:'#648fc6',yellow:'#c6a14c',purple:'#9874b4',orange:'#ca8550',black:'#68746c','':''};
-    const color=colors[String(connection[2]||'').toLowerCase()]||'';
-    wires.push({id:`w${index+1}`,a:{part:from.id,pin:aPin},b:{part:to.id,pin:bPin},...(color?{color}:{})});
-  }
-  return{project:{version:1,title:'Circuito importado do Wokwi',parts,wires,code:STARTER_CODE},customComponents:importedCustom,skipped,originalParts:sourceParts.length};
-}
 function importProject(file){
   const reader=new FileReader();
   reader.onload=()=>{
     try{
-      const source=JSON.parse(reader.result);let value=source,extraCustom=[],skipped=0,isWokwi=Array.isArray(source.connections);
-      if(isWokwi){const converted=convertWokwiDiagram(source);value=converted.project;extraCustom=converted.customComponents;skipped=converted.skipped}
+      const value=JSON.parse(reader.result);
+      if(Array.isArray(value.connections)&&!Array.isArray(value.wires)){toast('Esse arquivo é de outra ferramenta. Importe um projeto exportado pelo Hardware Studio (.json).');return}
       if(!Array.isArray(value.parts)||!Array.isArray(value.wires))throw new Error('invalid');
       snapshot();
-      const definitions=normalizeCustomDefinitions([...(Array.isArray(value.customComponents)?value.customComponents:[]),...extraCustom]);
+      const definitions=normalizeCustomDefinitions(Array.isArray(value.customComponents)?value.customComponents:[]);
       customParts=[...customParts.filter(def=>!definitions.some(next=>next.type===def.type)),...definitions];localStorage.setItem(CUSTOM_KEY,JSON.stringify(customParts));
       const safeParts=value.parts.slice(0,250).map((part,index)=>{
         const def=defFor(part.type);if(!def)return null;
@@ -308,8 +263,7 @@ function importProject(file){
       const safeWires=value.wires.slice(0,1000).filter(wire=>wire&&ids.has(wire.a?.part)&&ids.has(wire.b?.part)&&pinDef(safeParts.find(part=>part.id===wire.a.part),String(wire.a.pin))&&pinDef(safeParts.find(part=>part.id===wire.b.part),String(wire.b.pin))).map((wire,index)=>({id:String(wire.id||`wire-${index}`).slice(0,60),a:{part:String(wire.a.part),pin:String(wire.a.pin)},b:{part:String(wire.b.part),pin:String(wire.b.pin)},...(typeof wire.color==='string'&&/^#[\da-f]{6}$/i.test(wire.color)?{color:wire.color}:{})}));
       project={version:1,title:String(value.title||'Projeto importado').slice(0,80),parts:safeParts,wires:safeWires,code:String(value.code||STARTER_CODE).slice(0,20000)};
       $('#codeEditor').value=project.code;selectedId=null;selectedWire=null;pendingPin=null;renderAll();markChanged();
-      if(isWokwi)toast(`Importado: ${safeParts.length} peças, ${safeWires.length} fios${skipped?` · ${skipped} conexão(ões) não reconhecida(s)`:''}. O código vem em arquivo separado no Wokwi.`);
-      else toast('Projeto importado com sucesso');
+      toast('Projeto importado com sucesso');
     }catch{toast('JSON inválido ou formato de circuito desconhecido')}
   };
   reader.readAsText(file);

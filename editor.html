@@ -69,10 +69,10 @@
         <div id="propertiesView" class="inspector-view"></div>
         <div id="codeView" class="inspector-view code-view" hidden>
           <div class="code-heading"><div><p class="eyebrow">FIRMWARE</p><h2>Arduino sketch</h2></div><span class="language-pill">C++</span></div>
-          <p class="code-description">Escreva o comportamento das saídas digitais. A simulação atual interpreta <code>digitalWrite()</code> e <code>delay()</code>.</p>
+          <p class="code-description">Escreva o comportamento das saídas digitais. O <code>setup()</code> roda uma vez e o <code>loop()</code> se repete. Entende <code>digitalWrite</code>, <code>delay</code>, constantes, <code>for</code> e <code>if</code>.</p>
           <textarea id="codeEditor" spellcheck="false" aria-label="Código Arduino"></textarea>
           <div class="code-actions"><button id="resetCode" class="text-button">Restaurar exemplo</button><span id="codeStatus">Pronto</span></div>
-          <div class="code-note"><b>Intérprete inicial</b><br />Esta versão reconhece instruções simples de nível lógico. Compilação Arduino real e mais APIs entram nas próximas etapas.</div>
+          <details class="code-note peek-lite"><summary><b>O que ainda não roda?</b></summary>Não compila C++. <code>while</code>, funções próprias, <code>digitalRead</code>, <code>analogRead</code>, <code>Serial</code> e bibliotecas são ignorados e aparecem como aviso. <code>analogWrite</code> vira liga/desliga. Só D0–D13 do Uno.</details>
         </div>
         <div class="inspector-bottom"><span class="kbd-hint"><kbd>Del</kbd> remover peça selecionada</span><button id="clearButton" class="text-button danger-text">Limpar circuito</button></div>
       </aside>
@@ -98,7 +98,7 @@
       <p class="code-note">A simulação é local e está em fase inicial: LEDs e buzzer reagem às conexões, botões e saídas digitais simuladas.</p>
     </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <link rel="stylesheet" href="./src/editor/parts.css"><script src="./src/editor/parts-art.js"></script><script src="./src/app.js" defer></script>
+    <link rel="stylesheet" href="./src/editor/parts.css"><script src="./src/editor/parts-art.js"></script><script src="./src/editor/sketch.js"></script><script src="./src/editor/mobile.js" defer></script><script src="./src/app.js" defer></script>
   </body>
 </html>
 
