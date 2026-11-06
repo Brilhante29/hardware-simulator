@@ -1,0 +1,15 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Bancada SN74HC595</title>
+<style>body{font:16px system-ui;background:#101822;color:#ebf1fa;max-width:850px;margin:5vh auto;padding:24px}button,input{font:inherit;padding:12px;border-radius:8px;border:1px solid #506078;background:#203045;color:inherit}button{cursor:pointer}#leds{display:flex;gap:14px;margin:28px 0}.led{padding:18px;border-radius:12px;background:#243244}.on{background:#29cba0;color:#09251e}li{margin:12px 0}a{color:#65dcc1}</style>
+<h1>Bancada SN74HC595</h1><p>Modelo digital ideal · comparação funcional com TI SCLS041J, seções 8.1 e 8.4.</p>
+<label>Byte (0–255) <input id="value" type="number" min="0" max="255" value="165"></label> <button id="send">Enviar 8 bits</button> <button id="latch">Latch</button> <button id="clear">Limpar shift</button><p><label><input type="checkbox" id="oe"> Desabilitar saídas (OE)</label></p><div id="leds"></div><p id="state"></p><button id="test">Executar comparação</button><ul id="results"></ul><p>Sem modelo de corrente, tensão, atrasos, setup/hold ou firmware. X = desconhecido; Z = alta impedância.</p><a href="https://www.ti.com/lit/ds/symlink/sn74hc595.pdf">Datasheet oficial</a>
+<script type="module">
+import {SN74HC595} from '../src/models/sn74hc595.mjs';
+import {runConformance} from '../tests/sn74hc595.mjs';
+const m=new SN74HC595();m.drive({OE:0});const $=id=>document.getElementById(id);
+function render(){ $('leds').replaceChildren(...Array.from({length:8},(_,i)=>{const d=document.createElement('div');const v=m.output(i);d.className='led'+(v===1?' on':'');d.textContent='Q'+String.fromCharCode(65+i)+': '+v;return d;}));$('state').textContent='Serial QH′: '+m.serial; }
+$('send').onclick=()=>{const v=Number($('value').value);if(!Number.isInteger(v)||v<0||v>255)return;for(let i=7;i>=0;i--){m.drive({SER:(v>>i)&1,SRCLK:0});m.drive({SRCLK:1});}render();};
+$('latch').onclick=()=>{m.drive({RCLK:0});m.drive({RCLK:1});render();};
+$('clear').onclick=()=>{m.drive({SRCLR:0});m.drive({SRCLR:1});render();};
+$('oe').onchange=()=>{m.drive({OE:Number($('oe').checked)});render();};
+$('test').onclick=()=>{$('results').replaceChildren(...runConformance().map(r=>{const li=document.createElement('li');li.textContent=(r.pass?'✓ ':'✗ ')+r.name+(r.error?' — '+r.error:'');return li;}));};render();
+</script></html>

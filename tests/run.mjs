@@ -1,0 +1,11 @@
+import {runConformance} from './sn74hc595.mjs';
+import {SN74HC595} from '../src/models/sn74hc595.mjs';
+const results=runConformance();
+console.log(JSON.stringify(results,null,2));
+if(results.some(r=>!r.pass)) process.exit(1);
+const m=new SN74HC595();
+for(let i=0;i<100000;i++) m.drive({SRCLK:i&1,SER:i&1});
+const start=performance.now();
+for(let i=0;i<1000000;i++) m.drive({SRCLK:i&1,SER:i&1});
+const ms=performance.now()-start;
+console.log(JSON.stringify({events:1000000,ms,eventsPerSecond:Math.round(1e9/ms),runtime:process.version,note:'Single local measurement; excludes UI, analog and firmware.'}));

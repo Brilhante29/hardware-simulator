@@ -50,3 +50,7 @@ src/style.css    Tema e layout responsivo
 ## Licença
 
 MIT. Consulte [LICENSE](LICENSE).
+
+## Primeira bancada verificada
+
+[SN74HC595: modelo, testes e resultados](docs/FIRST_VALIDATION.md). Execute `node tests/run.mjs` ou abra `lab/sn74hc595.html` por servidor HTTP. Modelo independente; ainda não integrado ao editor principal.
