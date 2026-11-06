@@ -487,6 +487,546 @@
       "officialSource": "https://www.world-semi.com/",
       "documentTypes": "manufacturer product documentation",
       "simulationTarget": "protocol"
+    },
+    {
+      "id": "arduino-mega-2560",
+      "vendor": "Arduino",
+      "kind": "Board",
+      "name": "Mega 2560 / ATmega2560",
+      "officialSource": "https://docs.arduino.cc/hardware/mega-2560",
+      "documentTypes": "board docs; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "arduino-leonardo",
+      "vendor": "Arduino",
+      "kind": "Board",
+      "name": "Leonardo / ATmega32U4",
+      "officialSource": "https://docs.arduino.cc/hardware/leonardo",
+      "documentTypes": "board docs; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "arduino-nano-every",
+      "vendor": "Arduino",
+      "kind": "Board",
+      "name": "Nano Every / ATmega4809",
+      "officialSource": "https://docs.arduino.cc/hardware/nano-every",
+      "documentTypes": "board docs; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "arduino-due",
+      "vendor": "Arduino",
+      "kind": "Board",
+      "name": "Due / SAM3X8E",
+      "officialSource": "https://docs.arduino.cc/hardware/due",
+      "documentTypes": "board docs; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "arduino-mkr-wifi-1010",
+      "vendor": "Arduino",
+      "kind": "Board",
+      "name": "MKR WiFi 1010",
+      "officialSource": "https://docs.arduino.cc/hardware/mkr-wifi-1010",
+      "documentTypes": "board docs; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "arduino-giga-r1",
+      "vendor": "Arduino",
+      "kind": "Board",
+      "name": "GIGA R1 WiFi",
+      "officialSource": "https://docs.arduino.cc/hardware/giga-r1-wifi",
+      "documentTypes": "board docs; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "arduino-portenta-h7",
+      "vendor": "Arduino",
+      "kind": "Board",
+      "name": "Portenta H7",
+      "officialSource": "https://docs.arduino.cc/hardware/portenta-h7",
+      "documentTypes": "board docs; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "microbit-v2",
+      "vendor": "Micro:bit Educational Foundation",
+      "kind": "Board",
+      "name": "BBC micro:bit V2",
+      "officialSource": "https://tech.microbit.org/hardware/",
+      "documentTypes": "reference design; hardware docs",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "teensy-4-1",
+      "vendor": "PJRC",
+      "kind": "Board",
+      "name": "Teensy 4.1",
+      "officialSource": "https://www.pjrc.com/store/teensy41.html",
+      "documentTypes": "board specifications; pinout",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "beaglebone-black",
+      "vendor": "BeagleBoard.org",
+      "kind": "SBC",
+      "name": "BeagleBone Black",
+      "officialSource": "https://docs.beagleboard.org/boards/beaglebone/black/",
+      "documentTypes": "board docs; schematics",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "raspberry-pi-5",
+      "vendor": "Raspberry Pi",
+      "kind": "SBC",
+      "name": "Raspberry Pi 5",
+      "officialSource": "https://www.raspberrypi.com/products/raspberry-pi-5/",
+      "documentTypes": "product brief; board docs",
+      "simulationTarget": "visual"
+    },
+    {
+      "id": "nucleo-f446re",
+      "vendor": "ST",
+      "kind": "Board",
+      "name": "NUCLEO-F446RE",
+      "officialSource": "https://www.st.com/en/evaluation-tools/nucleo-f446re.html",
+      "documentTypes": "board manual; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "nucleo-h753zi",
+      "vendor": "ST",
+      "kind": "Board",
+      "name": "NUCLEO-H753ZI",
+      "officialSource": "https://www.st.com/en/evaluation-tools/nucleo-h753zi.html",
+      "documentTypes": "board manual; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "nrf52840-dk",
+      "vendor": "Nordic",
+      "kind": "Board",
+      "name": "nRF52840 DK",
+      "officialSource": "https://www.nordicsemi.com/Products/Development-hardware/nRF52840-DK",
+      "documentTypes": "board docs; schematics",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "lp-mspm0g3507",
+      "vendor": "TI",
+      "kind": "Board",
+      "name": "LP-MSPM0G3507 LaunchPad",
+      "officialSource": "https://www.ti.com/tool/LP-MSPM0G3507",
+      "documentTypes": "user guide; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "bmp390",
+      "vendor": "Bosch Sensortec",
+      "kind": "Sensor",
+      "name": "BMP390 pressure sensor",
+      "officialSource": "https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "bme688",
+      "vendor": "Bosch Sensortec",
+      "kind": "Sensor",
+      "name": "BME688 gas/environment sensor",
+      "officialSource": "https://www.bosch-sensortec.com/en/products/environmental-sensors/gas-sensors/bme688",
+      "documentTypes": "datasheet; software tools",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "bme280",
+      "vendor": "Bosch Sensortec",
+      "kind": "Sensor",
+      "name": "BME280 environmental sensor",
+      "officialSource": "https://www.bosch-sensortec.com/en/products/environmental-sensors/humidity-sensors-bme280",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "bmm150",
+      "vendor": "Bosch Sensortec",
+      "kind": "Sensor",
+      "name": "BMM150 magnetometer",
+      "officialSource": "https://www.bosch-sensortec.com/en/products/motion-sensors/magnetometers/bmm150",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "lis2dw12",
+      "vendor": "ST",
+      "kind": "Sensor",
+      "name": "LIS2DW12 accelerometer",
+      "officialSource": "https://www.st.com/en/mems-and-sensors/lis2dw12.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "lsm6dsv16x",
+      "vendor": "ST",
+      "kind": "Sensor",
+      "name": "LSM6DSV16X IMU",
+      "officialSource": "https://www.st.com/en/mems-and-sensors/lsm6dsv16x.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "lsm303agr",
+      "vendor": "ST",
+      "kind": "Sensor",
+      "name": "LSM303AGR accelerometer/magnetometer",
+      "officialSource": "https://www.st.com/en/mems-and-sensors/lsm303agr.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "lis3dh",
+      "vendor": "ST",
+      "kind": "Sensor",
+      "name": "LIS3DH accelerometer",
+      "officialSource": "https://www.st.com/en/mems-and-sensors/lis3dh.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "iis2iclx",
+      "vendor": "ST",
+      "kind": "Sensor",
+      "name": "IIS2ICLX inclinometer",
+      "officialSource": "https://www.st.com/en/mems-and-sensors/iis2iclx.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max30101",
+      "vendor": "Analog Devices",
+      "kind": "Sensor",
+      "name": "MAX30101 optical sensor",
+      "officialSource": "https://www.analog.com/en/products/max30101.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max30112",
+      "vendor": "Analog Devices",
+      "kind": "Sensor",
+      "name": "MAX30112 optical PPG AFE",
+      "officialSource": "https://www.analog.com/en/products/max30112.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max86150",
+      "vendor": "Analog Devices",
+      "kind": "Sensor",
+      "name": "MAX86150 ECG/optical PPG sensor",
+      "officialSource": "https://www.analog.com/en/products/max86150.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max30003",
+      "vendor": "Analog Devices",
+      "kind": "Analog front end",
+      "name": "MAX30003 ECG AFE",
+      "officialSource": "https://www.analog.com/en/products/max30003.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max32664",
+      "vendor": "Analog Devices",
+      "kind": "Sensor hub",
+      "name": "MAX32664 biometric sensor hub",
+      "officialSource": "https://www.analog.com/en/products/max32664.html",
+      "documentTypes": "datasheet; evaluation docs",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "sht31",
+      "vendor": "Sensirion",
+      "kind": "Sensor",
+      "name": "SHT31 humidity/temperature",
+      "officialSource": "https://sensirion.com/products/catalog/SHT31",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "shtc3",
+      "vendor": "Sensirion",
+      "kind": "Sensor",
+      "name": "SHTC3 humidity/temperature",
+      "officialSource": "https://sensirion.com/products/catalog/SHTC3",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "tmp102",
+      "vendor": "TI",
+      "kind": "Sensor",
+      "name": "TMP102 digital temperature",
+      "officialSource": "https://www.ti.com/product/TMP102",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "ds18b20",
+      "vendor": "Analog Devices",
+      "kind": "Sensor",
+      "name": "DS18B20 1-Wire temperature",
+      "officialSource": "https://www.analog.com/en/products/DS18B20.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max31855",
+      "vendor": "Analog Devices",
+      "kind": "ADC",
+      "name": "MAX31855 thermocouple converter",
+      "officialSource": "https://www.analog.com/en/products/max31855.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "ina226",
+      "vendor": "TI",
+      "kind": "Power monitor",
+      "name": "INA226 current/voltage/power monitor",
+      "officialSource": "https://www.ti.com/product/INA226",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "ltc2942",
+      "vendor": "Analog Devices",
+      "kind": "Power monitor",
+      "name": "LTC2942 battery gas gauge",
+      "officialSource": "https://www.analog.com/en/products/ltc2942.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max17055",
+      "vendor": "Analog Devices",
+      "kind": "Power monitor",
+      "name": "MAX17055 fuel gauge",
+      "officialSource": "https://www.analog.com/en/products/max17055.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "bq25895",
+      "vendor": "TI",
+      "kind": "Power",
+      "name": "BQ25895 battery charger",
+      "officialSource": "https://www.ti.com/product/BQ25895",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; analog"
+    },
+    {
+      "id": "tps63020",
+      "vendor": "TI",
+      "kind": "Power",
+      "name": "TPS63020 buck-boost converter",
+      "officialSource": "https://www.ti.com/product/TPS63020",
+      "documentTypes": "datasheet",
+      "simulationTarget": "analog"
+    },
+    {
+      "id": "tps61023",
+      "vendor": "TI",
+      "kind": "Power",
+      "name": "TPS61023 boost converter",
+      "officialSource": "https://www.ti.com/product/TPS61023",
+      "documentTypes": "datasheet",
+      "simulationTarget": "analog"
+    },
+    {
+      "id": "ads1015",
+      "vendor": "TI",
+      "kind": "ADC",
+      "name": "ADS1015 12-bit ADC",
+      "officialSource": "https://www.ti.com/product/ADS1015",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "mcp3008",
+      "vendor": "Microchip",
+      "kind": "ADC",
+      "name": "MCP3008 8-channel ADC",
+      "officialSource": "https://www.microchip.com/en-us/product/MCP3008",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "mcp23s17",
+      "vendor": "Microchip",
+      "kind": "Interface",
+      "name": "MCP23S17 SPI I/O expander",
+      "officialSource": "https://www.microchip.com/en-us/product/MCP23S17",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "mcp2515",
+      "vendor": "Microchip",
+      "kind": "Interface",
+      "name": "MCP2515 CAN controller",
+      "officialSource": "https://www.microchip.com/en-us/product/MCP2515",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "sn74hc165",
+      "vendor": "TI",
+      "kind": "Logic",
+      "name": "SN74HC165 shift register",
+      "officialSource": "https://www.ti.com/product/SN74HC165",
+      "documentTypes": "datasheet",
+      "simulationTarget": "pin; protocol"
+    },
+    {
+      "id": "pca9685",
+      "vendor": "NXP",
+      "kind": "PWM controller",
+      "name": "PCA9685 16-channel PWM controller",
+      "officialSource": "https://www.nxp.com/products/PCA9685",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "pcf8574",
+      "vendor": "NXP",
+      "kind": "Interface",
+      "name": "PCF8574 I/O expander",
+      "officialSource": "https://www.nxp.com/products/PCF8574",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "mcp4725",
+      "vendor": "Microchip",
+      "kind": "DAC",
+      "name": "MCP4725 12-bit DAC",
+      "officialSource": "https://www.microchip.com/en-us/product/MCP4725",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; analog"
+    },
+    {
+      "id": "dac8562",
+      "vendor": "TI",
+      "kind": "DAC",
+      "name": "DAC8562 dual 16-bit DAC",
+      "officialSource": "https://www.ti.com/product/DAC8562",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; analog"
+    },
+    {
+      "id": "mcp2562",
+      "vendor": "Microchip",
+      "kind": "Interface",
+      "name": "MCP2562 CAN transceiver",
+      "officialSource": "https://www.microchip.com/en-us/product/MCP2562",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; analog"
+    },
+    {
+      "id": "tlc5940",
+      "vendor": "TI",
+      "kind": "LED driver",
+      "name": "TLC5940 16-channel PWM LED driver",
+      "officialSource": "https://www.ti.com/product/TLC5940",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "drv8871",
+      "vendor": "TI",
+      "kind": "Motor driver",
+      "name": "DRV8871 brushed DC motor driver",
+      "officialSource": "https://www.ti.com/product/DRV8871",
+      "documentTypes": "datasheet",
+      "simulationTarget": "pin; analog"
+    },
+    {
+      "id": "max4466",
+      "vendor": "Analog Devices",
+      "kind": "Audio",
+      "name": "MAX4466 microphone preamplifier",
+      "officialSource": "https://www.analog.com/en/products/max4466.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "analog; signal"
+    },
+    {
+      "id": "max98357a",
+      "vendor": "Analog Devices",
+      "kind": "Audio",
+      "name": "MAX98357A I2S class-D amplifier",
+      "officialSource": "https://www.analog.com/en/products/max98357a.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max7219",
+      "vendor": "Analog Devices",
+      "kind": "Display",
+      "name": "MAX7219 LED display driver",
+      "officialSource": "https://www.analog.com/en/products/max7219.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "ssd1327",
+      "vendor": "Solomon Systech",
+      "kind": "Display",
+      "name": "SSD1327 OLED controller",
+      "officialSource": "https://www.solomon-systech.com/product/ssd1327/",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "w25q64jv",
+      "vendor": "Winbond",
+      "kind": "Memory",
+      "name": "W25Q64JV SPI NOR flash",
+      "officialSource": "https://www.winbond.com/hq/product/code-storage-flash/qspi-nor/w25q-jv/",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "w25q256jv",
+      "vendor": "Winbond",
+      "kind": "Memory",
+      "name": "W25Q256JV SPI NOR flash",
+      "officialSource": "https://www.winbond.com/hq/product/code-storage-flash/qspi-nor/w25q-jv/",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "mcp23008",
+      "vendor": "Microchip",
+      "kind": "Interface",
+      "name": "MCP23008 I2C I/O expander",
+      "officialSource": "https://www.microchip.com/en-us/product/MCP23008",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "tca9534",
+      "vendor": "TI",
+      "kind": "Interface",
+      "name": "TCA9534 I2C GPIO expander",
+      "officialSource": "https://www.ti.com/product/TCA9534",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
     }
   ],
   "simulationLevels": {

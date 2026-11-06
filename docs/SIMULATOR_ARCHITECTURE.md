@@ -54,3 +54,6 @@ A primeira versão do Hardware Simulator é um editor local leve, com circuito d
 - PCB: [KiCad documentation](https://docs.kicad.org/)
 
 Os links de fabricante/mantenedor apontam para documentação vigente; versões e suporte variam. O simulador deve registrar a versão exata usada em cada experimento.
+
+
+Contrato detalhado para Arduino IDE, PlatformIO e outras toolchains: [TOOLCHAIN_ADAPTERS.md](TOOLCHAIN_ADAPTERS.md).
