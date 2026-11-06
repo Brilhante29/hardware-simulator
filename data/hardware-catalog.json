@@ -1,0 +1,500 @@
+{
+  "schemaVersion": "1.0.0",
+  "updated": "2026-11-06",
+  "records": [
+    {
+      "id": "arduino-uno-r3",
+      "vendor": "Arduino",
+      "kind": "Board",
+      "name": "UNO R3",
+      "officialSource": "https://docs.arduino.cc/hardware/uno-rev3/",
+      "documentTypes": "board manual; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "uno-r4-minima",
+      "vendor": "Arduino/Renesas",
+      "kind": "Board",
+      "name": "UNO R4 Minima / RA4M1",
+      "officialSource": "https://docs.arduino.cc/hardware/uno-r4-minima",
+      "documentTypes": "datasheet; schematic; pinout",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "uno-r4-wifi",
+      "vendor": "Arduino/Espressif/Renesas",
+      "kind": "Board",
+      "name": "UNO R4 WiFi",
+      "officialSource": "https://docs.arduino.cc/hardware/uno-r4-wifi",
+      "documentTypes": "datasheet; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "nano-33-ble",
+      "vendor": "Arduino/Nordic",
+      "kind": "Board",
+      "name": "Nano 33 BLE / nRF52840",
+      "officialSource": "https://docs.arduino.cc/hardware/nano-33-ble",
+      "documentTypes": "board docs; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "pico-2",
+      "vendor": "Raspberry Pi",
+      "kind": "Board/SoC",
+      "name": "Pico 2 / RP2350",
+      "officialSource": "https://www.raspberrypi.com/documentation/microcontrollers/",
+      "documentTypes": "datasheet; design files",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "pico-w",
+      "vendor": "Raspberry Pi",
+      "kind": "Board/SoC",
+      "name": "Pico W / RP2040",
+      "officialSource": "https://www.raspberrypi.com/documentation/microcontrollers/",
+      "documentTypes": "datasheet; design files",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "esp32-s3",
+      "vendor": "Espressif",
+      "kind": "SoC",
+      "name": "ESP32-S3",
+      "officialSource": "https://www.espressif.com/en/products/socs/esp32-s3",
+      "documentTypes": "datasheet; hardware guide",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "esp32-c3",
+      "vendor": "Espressif",
+      "kind": "SoC",
+      "name": "ESP32-C3",
+      "officialSource": "https://www.espressif.com/en/products/socs/esp32-c3",
+      "documentTypes": "datasheet; hardware guide",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "esp32-c6",
+      "vendor": "Espressif",
+      "kind": "SoC",
+      "name": "ESP32-C6",
+      "officialSource": "https://www.espressif.com/en/products/socs/esp32-c6",
+      "documentTypes": "datasheet; hardware guide",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "stm32u5",
+      "vendor": "ST",
+      "kind": "MCU",
+      "name": "STM32U5",
+      "officialSource": "https://www.st.com/en/microcontrollers-microprocessors/stm32u5-series/documentation.html",
+      "documentTypes": "datasheet; reference manual",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "nucleo-u575zi-q",
+      "vendor": "ST",
+      "kind": "Board",
+      "name": "NUCLEO-U575ZI-Q",
+      "officialSource": "https://www.st.com/en/evaluation-tools/nucleo-u575zi-q.html",
+      "documentTypes": "board manual; schematic",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "stm32f4",
+      "vendor": "ST",
+      "kind": "MCU",
+      "name": "STM32F4 family",
+      "officialSource": "https://www.st.com/en/microcontrollers-microprocessors/stm32f4-series/documentation.html",
+      "documentTypes": "datasheet; reference manual",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "stm32h7",
+      "vendor": "ST",
+      "kind": "MCU",
+      "name": "STM32H7 family",
+      "officialSource": "https://www.st.com/en/microcontrollers-microprocessors/stm32h7-series/documentation.html",
+      "documentTypes": "datasheet; reference manual",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "nrf52840",
+      "vendor": "Nordic",
+      "kind": "SoC",
+      "name": "nRF52840",
+      "officialSource": "https://docs.nordicsemi.com/bundle/ps_nrf52840/page/keyfeatures_html5.html",
+      "documentTypes": "product specification",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "nrf5340",
+      "vendor": "Nordic",
+      "kind": "SoC",
+      "name": "nRF5340",
+      "officialSource": "https://www.nordicsemi.com/Products/nRF5340",
+      "documentTypes": "product specification; DK docs",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "nrf54l15",
+      "vendor": "Nordic",
+      "kind": "SoC",
+      "name": "nRF54L15",
+      "officialSource": "https://www.nordicsemi.com/Products/nRF54L15",
+      "documentTypes": "product specification",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "frdm-mcxn947",
+      "vendor": "NXP",
+      "kind": "Board/MCU",
+      "name": "FRDM-MCXN947",
+      "officialSource": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN947",
+      "documentTypes": "board manual; SDK",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "imx-rt1060",
+      "vendor": "NXP",
+      "kind": "MCU",
+      "name": "i.MX RT1060",
+      "officialSource": "https://www.nxp.com/products/i.MX-RT1060",
+      "documentTypes": "datasheet; reference manual",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "atsamd21",
+      "vendor": "Microchip",
+      "kind": "MCU",
+      "name": "ATSAMD21",
+      "officialSource": "https://www.microchip.com/en-us/product/atsamd21g18",
+      "documentTypes": "datasheet",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "atmega328p",
+      "vendor": "Microchip",
+      "kind": "MCU",
+      "name": "ATmega328P",
+      "officialSource": "https://www.microchip.com/en-us/product/ATmega328P",
+      "documentTypes": "datasheet",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "mspm0g3507",
+      "vendor": "TI",
+      "kind": "MCU",
+      "name": "MSPM0G3507",
+      "officialSource": "https://www.ti.com/product/MSPM0G3507",
+      "documentTypes": "datasheet; LaunchPad guide",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "msp430fr2355",
+      "vendor": "TI",
+      "kind": "MCU",
+      "name": "MSP430FR2355",
+      "officialSource": "https://www.ti.com/product/MSP430FR2355",
+      "documentTypes": "datasheet; LaunchPad docs",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "efr32bg24",
+      "vendor": "Silicon Labs",
+      "kind": "SoC",
+      "name": "EFR32BG24",
+      "officialSource": "https://www.silabs.com/wireless/bluetooth/efr32bg24-series-2-socs",
+      "documentTypes": "datasheet; reference manual",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "cc2340r5",
+      "vendor": "TI",
+      "kind": "SoC",
+      "name": "CC2340R5",
+      "officialSource": "https://www.ti.com/product/CC2340R5",
+      "documentTypes": "datasheet; LaunchPad docs",
+      "simulationTarget": "pin"
+    },
+    {
+      "id": "bmi270",
+      "vendor": "Bosch Sensortec",
+      "kind": "Sensor",
+      "name": "BMI270 6-axis IMU",
+      "officialSource": "https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi270/",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "icm-42688-p",
+      "vendor": "TDK InvenSense",
+      "kind": "Sensor",
+      "name": "ICM-42688-P IMU",
+      "officialSource": "https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "lsm6dsox",
+      "vendor": "ST",
+      "kind": "Sensor",
+      "name": "LSM6DSOX IMU",
+      "officialSource": "https://www.st.com/en/mems-and-sensors/lsm6dsox.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "max86141",
+      "vendor": "Analog Devices",
+      "kind": "Sensor",
+      "name": "MAX86141 optical PPG AFE",
+      "officialSource": "https://www.analog.com/en/products/max86141.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max30102",
+      "vendor": "Analog Devices",
+      "kind": "Sensor",
+      "name": "MAX30102 pulse oximeter / heart-rate",
+      "officialSource": "https://www.analog.com/en/products/max30102.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "ads1292r",
+      "vendor": "TI",
+      "kind": "Analog front end",
+      "name": "ADS1292R ECG/respiration AFE",
+      "officialSource": "https://www.ti.com/product/ADS1292R",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal; analog"
+    },
+    {
+      "id": "ad8232",
+      "vendor": "Analog Devices",
+      "kind": "Analog front end",
+      "name": "AD8232 ECG AFE",
+      "officialSource": "https://www.analog.com/en/products/ad8232.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "analog; signal"
+    },
+    {
+      "id": "tmp117",
+      "vendor": "TI",
+      "kind": "Sensor",
+      "name": "TMP117 temperature",
+      "officialSource": "https://www.ti.com/product/TMP117",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max30205",
+      "vendor": "Analog Devices",
+      "kind": "Sensor",
+      "name": "MAX30205 body temperature",
+      "officialSource": "https://www.analog.com/en/products/max30205.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "max17048",
+      "vendor": "Analog Devices",
+      "kind": "Power",
+      "name": "MAX17048 Li-ion fuel gauge",
+      "officialSource": "https://www.analog.com/en/products/max17048.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "bq24074",
+      "vendor": "TI",
+      "kind": "Power",
+      "name": "BQ24074 charger/power path",
+      "officialSource": "https://www.ti.com/product/BQ24074",
+      "documentTypes": "datasheet",
+      "simulationTarget": "analog; signal"
+    },
+    {
+      "id": "bq25120a",
+      "vendor": "TI",
+      "kind": "Power",
+      "name": "BQ25120A wearable PMIC",
+      "officialSource": "https://www.ti.com/product/BQ25120A",
+      "documentTypes": "datasheet",
+      "simulationTarget": "analog; signal"
+    },
+    {
+      "id": "drv2605l",
+      "vendor": "TI",
+      "kind": "Actuator",
+      "name": "DRV2605L haptic driver",
+      "officialSource": "https://www.ti.com/product/DRV2605L",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "ssd1306",
+      "vendor": "Solomon Systech",
+      "kind": "Display",
+      "name": "SSD1306 OLED controller",
+      "officialSource": "https://www.solomon-systech.com/product/ssd1306/",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "st7789",
+      "vendor": "Sitronix",
+      "kind": "Display",
+      "name": "ST7789",
+      "officialSource": "https://www.sitronix.com.tw/en/products/Display-Driver-ICs/ST7789V.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "w25q128jv",
+      "vendor": "Winbond",
+      "kind": "Memory",
+      "name": "W25Q128JV SPI NOR",
+      "officialSource": "https://www.winbond.com/hq/product/code-storage-flash/qspi-nor/w25q-jv/",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "24aa256",
+      "vendor": "Microchip",
+      "kind": "Memory",
+      "name": "24AA256 I2C EEPROM",
+      "officialSource": "https://www.microchip.com/en-us/product/24AA256",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "ina219",
+      "vendor": "TI",
+      "kind": "Power monitor",
+      "name": "INA219",
+      "officialSource": "https://www.ti.com/product/INA219",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "ina228",
+      "vendor": "TI",
+      "kind": "Power monitor",
+      "name": "INA228",
+      "officialSource": "https://www.ti.com/product/INA228",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "tca9548a",
+      "vendor": "TI",
+      "kind": "Interface",
+      "name": "TCA9548A I2C mux",
+      "officialSource": "https://www.ti.com/product/TCA9548A",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "sn74hc595",
+      "vendor": "TI",
+      "kind": "Logic",
+      "name": "SN74HC595 shift register",
+      "officialSource": "https://www.ti.com/product/SN74HC595",
+      "documentTypes": "datasheet",
+      "simulationTarget": "pin; protocol"
+    },
+    {
+      "id": "mcp23017",
+      "vendor": "Microchip",
+      "kind": "Interface",
+      "name": "MCP23017 I/O expander",
+      "officialSource": "https://www.microchip.com/en-us/product/MCP23017",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol"
+    },
+    {
+      "id": "max9814",
+      "vendor": "Analog Devices",
+      "kind": "Audio",
+      "name": "MAX9814 microphone amp",
+      "officialSource": "https://www.analog.com/en/products/max9814.html",
+      "documentTypes": "datasheet",
+      "simulationTarget": "analog; signal"
+    },
+    {
+      "id": "ads1115",
+      "vendor": "TI",
+      "kind": "ADC",
+      "name": "ADS1115 16-bit ADC",
+      "officialSource": "https://www.ti.com/product/ADS1115",
+      "documentTypes": "datasheet",
+      "simulationTarget": "protocol; signal"
+    },
+    {
+      "id": "ina333",
+      "vendor": "TI",
+      "kind": "Analog front end",
+      "name": "INA333 instrumentation amp",
+      "officialSource": "https://www.ti.com/product/INA333",
+      "documentTypes": "datasheet",
+      "simulationTarget": "analog"
+    },
+    {
+      "id": "ncp1117",
+      "vendor": "onsemi",
+      "kind": "Power",
+      "name": "NCP1117 LDO",
+      "officialSource": "https://www.onsemi.com/products/power-management/linear-regulators-ldo/ncp1117",
+      "documentTypes": "datasheet",
+      "simulationTarget": "analog"
+    },
+    {
+      "id": "drv8833",
+      "vendor": "TI",
+      "kind": "Motor driver",
+      "name": "DRV8833 dual H-bridge",
+      "officialSource": "https://www.ti.com/product/DRV8833",
+      "documentTypes": "datasheet",
+      "simulationTarget": "pin; analog"
+    },
+    {
+      "id": "hc-sr04",
+      "vendor": "SparkFun",
+      "kind": "Module",
+      "name": "HC-SR04 ultrasonic ranger",
+      "officialSource": "https://learn.sparkfun.com/tutorials/ultrasonic-distance-sensor-hc-sr04-hookup-guide/all",
+      "documentTypes": "vendor guide; OEM revisions vary",
+      "simulationTarget": "signal"
+    },
+    {
+      "id": "dht22",
+      "vendor": "Adafruit",
+      "kind": "Module",
+      "name": "DHT22/AM2302",
+      "officialSource": "https://learn.adafruit.com/dht",
+      "documentTypes": "vendor guide; OEM revisions vary",
+      "simulationTarget": "signal"
+    },
+    {
+      "id": "ws2812b",
+      "vendor": "Worldsemi",
+      "kind": "LED",
+      "name": "WS2812B RGB LED",
+      "officialSource": "https://www.world-semi.com/",
+      "documentTypes": "manufacturer product documentation",
+      "simulationTarget": "protocol"
+    }
+  ],
+  "simulationLevels": {
+    "visual": "Símbolo, pinos e ligações; sem comportamento próprio",
+    "pin": "GPIO e temporização digital simplificados",
+    "protocol": "Protocolo e registradores (I2C/SPI/UART)",
+    "signal": "Fonte de dados sintética/reproduzível",
+    "analog": "Tensões/correntes aproximadas; SPICE ainda não existe",
+    "firmware": "Firmware real sobre emulação de MCU; ainda não existe"
+  }
+}

@@ -29,6 +29,10 @@ Esta é a primeira fatia funcional, não uma emulação completa de hardware. O 
 4. Acrescentar importação/exportação documentada, biblioteca comunitária e testes de compatibilidade.
 5. Evoluir para simulação analógica SPICE sem deixar o editor pesado para projetos simples.
 
+## Catálogo oficial de hardware
+
+Índice inicial com 54 placas, SoCs e periféricos, mais plano de simulação do wearable: [catálogo JSON](data/hardware-catalog.json) · [guia do catálogo e wearable](docs/HARDWARE_CATALOG.md). O catálogo é uma base de fontes oficiais; nem todo item possui modelo funcional ainda.
+
 ## Estrutura
 
 ```text
