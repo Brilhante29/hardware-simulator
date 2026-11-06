@@ -19,7 +19,7 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 
 ## Tour em vídeo
 
-[docs/media/hardware-studio-apresentacao.mp4](docs/media/hardware-studio-apresentacao.mp4) (6,5 min, 1080p) percorre a oficina, a bancada, a biblioteca, o editor, três projetos que combinam placas e a validação. O roteiro em [tools/demo-video](tools/demo-video/README.md) regrava o vídeo.
+[docs/media/hardware-studio-tour.mp4](docs/media/hardware-studio-tour.mp4) (1min48, 1080p, com trilha chiptune original) mostra as animações da oficina, a bancada, o editor com três projetos que combinam placas, o registrador e os testes. O roteiro em [tools/demo-video](tools/demo-video/README.md) regrava o vídeo.
 
 ## Aparência
 
@@ -31,7 +31,11 @@ Use **Claro** ou **Escuro** para mudar a oficina e as telas de simulação. A es
 
 A oficina também tem uma pista óptica clicável experimental. Ela não é uma placa de Ishihara calibrada, não identifica daltonismo e não garante que apenas pessoas daltônicas a enxerguem. O acesso equivalente por botão e teclado permanece disponível. Não é necessário declarar nenhuma condição. Só a preferência de aparência é salva localmente.
 
-O tema escuro traz lua, estrelas e iluminação noturna; o claro traz sol e uma paleta azul/lilás. Clique no robô para ele acenar. As animações respeitam a pausa e movimento reduzido.
+O tema escuro traz lua, estrelas e iluminação noturna; o claro traz sol e uma paleta azul/lilás. Clique no robô para ele acenar.
+
+A entrada é animada: o título sobe palavra por palavra, a bancada liga como um monitor CRT e cada clique solta pixels. A barra **Descobertas** marca cinco achados (carga, sobretensão, ruptura, troca de peça e o robô) e celebra quando completa. Os cartuchos inclinam com o mouse e “encaixam” ao abrir. Nada disso é salvo, e tudo desliga com **Pausar movimento** ou com movimento reduzido do sistema.
+
+Textos complementares ficam em abinhas (ⓘ) que abrem e recolhem; os limites dos modelos continuam lá dentro.
 
 ## O que funciona
 

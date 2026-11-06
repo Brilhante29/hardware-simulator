@@ -1,25 +1,25 @@
 # Tour em vídeo
 
-Grava uma apresentação do Hardware Studio (1920×1080, 30 fps) navegando pelo site com Playwright.
-Legendas, capítulos, cursor e destaques são uma camada injetada na página durante a gravação; o app não é alterado.
+Grava `docs/media/hardware-studio-tour.mp4` (1920×1080, 30 fps, ~1min50) navegando pelo site com Playwright.
+A camada de gravação, injetada só durante a captura, adiciona transições em blocos de pixel, zoom de câmera,
+legendas curtas e cursor. O site em si não é alterado. A trilha chiptune e os efeitos são sintetizados por
+`synth.py` (numpy), sincronizados com os eventos registrados: cliques, moedas das descobertas, rupturas e transições.
 
 ```sh
-tools/demo-video/run.sh          # todos os capítulos -> docs/media/hardware-studio-apresentacao.mp4
-tools/demo-video/run.sh 06       # só um capítulo (clipe em tools/demo-video/out/)
+tools/demo-video/run.sh            # grava os 5 capítulos e monta o vídeo
+tools/demo-video/run.sh 3          # regrava só o capítulo 3; depois rode build.sh
 ```
+
+Requer node, ffmpeg, python3 com numpy e o pacote `playwright` com Chromium.
 
 | Capítulo | Conteúdo |
 | --- | --- |
-| 01 Oficina | Canvas RC, 12 V / 32 V / 100×, robô, temas, cores acessíveis, cartuchos |
-| 02 Bancada | Simulação RC, esquema, slider, 100× com falha em curto e aberta, cadeia causal |
-| 03 LED | 330 Ω, sobrecarga 12 V / 100 Ω, limite da fonte, polaridade reversa, SFR25 a 70 °C |
-| 04 Biblioteca | Busca ESP32/STM32/sensor, filtros, validação no navegador, export Arduino/PlatformIO |
-| 05 Editor | Blink, edição do sketch, circuito do zero com fios, peça personalizada, desfazer/refazer |
-| 06 Combinações | Semáforo com travessia sonora, dois Unos em sincronia, alarme Uno + ESP32 importado do Wokwi |
-| 07 SN74HC595 | Bytes, latch, OE/Z, clear, comparação com o datasheet |
-| 08 Testes | Saída real de `tests/all.mjs` e `tests/display-contrast.mjs` |
-| 09 Encerramento | Tema escuro e créditos |
+| 1 Oficina | Entrada animada, 32 V, 100× com ruptura, troca, robô, descobertas completas, tema escuro, cartuchos |
+| 2 Bancada | 1.600 V com falha em curto, cadeia causal, LED sobrecarregado, biblioteca e 24/24 testes |
+| 3 Editor | Semáforo com travessia, dois Unos em sincronia, alarme Uno + ESP32 importado do Wokwi |
+| 4 Lógica e testes | SN74HC595 com bytes e OE; saída real de `tests/all.mjs` e `tests/display-contrast.mjs` |
+| 5 Final | Créditos |
 
-Os projetos do capítulo 06 estão em `projects/` e podem ser importados no editor.
+Os projetos do capítulo 3 estão em `projects/` e podem ser importados no editor.
 O ESP32 do `diagram.json` entra sem fios porque o conversor Wokwi descarta conexões de peças
 desconhecidas; o vídeo liga o serial à mão.

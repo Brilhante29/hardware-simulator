@@ -21,7 +21,7 @@ aside h1{font:700 54px/1.05 Px,monospace;margin:10px 0 24px}aside h1 b{color:#d6
 <div class="stat" id="s3"><b id="n3">0</b><span>pares de cor texto/fundo acima de 4,5:1</span></div>
 <div class="stat" id="s4"><b id="n4">0/24</b><span>grupos de testes passando</span></div></aside>
 <script>
-const out=document.getElementById('out');const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const out=document.getElementById('out');const FAST=/fast/.test(location.search)?.4:1;const sleep=ms=>new Promise(r=>setTimeout(r,ms*FAST));
 const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function count(id,to,ms,suffix=''){const el=document.getElementById(id);const t0=performance.now();const f=t=>{const p=Math.min(1,(t-t0)/ms);el.textContent=Math.round(to*p)+suffix;if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
 (async()=>{const txt=await (await fetch('./tests.txt')).text();let passes=0;await sleep(600);
