@@ -1,0 +1,248 @@
+{
+ "version": 1,
+ "author": "Hardware Studio demo",
+ "editor": "wokwi",
+ "parts": [
+  {
+   "type": "wokwi-esp32-devkit-v1",
+   "id": "esp",
+   "top": 120,
+   "left": -330,
+   "attrs": {
+    "label": "ESP32 · alerta Wi-Fi"
+   }
+  },
+  {
+   "type": "wokwi-arduino-uno",
+   "id": "uno",
+   "top": 110,
+   "left": 0,
+   "attrs": {
+    "label": "Arduino Uno · cérebro"
+   }
+  },
+  {
+   "type": "wokwi-hc-sr04",
+   "id": "sonar",
+   "top": -60,
+   "left": 330,
+   "attrs": {
+    "label": "Sonar HC-SR04"
+   }
+  },
+  {
+   "type": "wokwi-resistor",
+   "id": "r1",
+   "top": 170,
+   "left": 330,
+   "attrs": {
+    "resistance": "220"
+   }
+  },
+  {
+   "type": "wokwi-resistor",
+   "id": "r2",
+   "top": 260,
+   "left": 330,
+   "attrs": {
+    "resistance": "220"
+   }
+  },
+  {
+   "type": "wokwi-led",
+   "id": "led1",
+   "top": 166,
+   "left": 520,
+   "attrs": {
+    "color": "red",
+    "label": "Estrobo vermelho"
+   }
+  },
+  {
+   "type": "wokwi-led",
+   "id": "led2",
+   "top": 256,
+   "left": 520,
+   "attrs": {
+    "color": "blue",
+    "label": "Estrobo azul"
+   }
+  },
+  {
+   "type": "wokwi-buzzer",
+   "id": "bz",
+   "top": 350,
+   "left": 520,
+   "attrs": {
+    "label": "Sirene"
+   }
+  },
+  {
+   "type": "wokwi-servo",
+   "id": "cam",
+   "top": 440,
+   "left": 330,
+   "attrs": {
+    "label": "Servo · câmera"
+   }
+  },
+  {
+   "type": "wokwi-relay-module",
+   "id": "rel",
+   "top": 430,
+   "left": 540,
+   "attrs": {
+    "label": "Relé · holofote"
+   }
+  },
+  {
+   "type": "wokwi-gnd",
+   "id": "gnd",
+   "top": 250,
+   "left": 720,
+   "attrs": {
+    "label": "GND"
+   }
+  }
+ ],
+ "connections": [
+  [
+   "esp:GND.1",
+   "uno:GND.1",
+   "black",
+   []
+  ],
+  [
+   "esp:VIN",
+   "uno:5V",
+   "red",
+   []
+  ],
+  [
+   "esp:TX0",
+   "uno:0",
+   "green",
+   []
+  ],
+  [
+   "esp:RX0",
+   "uno:1",
+   "yellow",
+   []
+  ],
+  [
+   "sonar:VCC",
+   "uno:5V",
+   "red",
+   []
+  ],
+  [
+   "sonar:TRIG",
+   "uno:7",
+   "purple",
+   []
+  ],
+  [
+   "sonar:ECHO",
+   "uno:6",
+   "blue",
+   []
+  ],
+  [
+   "sonar:GND",
+   "gnd:GND",
+   "black",
+   []
+  ],
+  [
+   "uno:13",
+   "r1:1",
+   "blue",
+   []
+  ],
+  [
+   "r1:2",
+   "led1:A",
+   "orange",
+   []
+  ],
+  [
+   "led1:C",
+   "gnd:GND",
+   "black",
+   []
+  ],
+  [
+   "uno:12",
+   "r2:1",
+   "blue",
+   []
+  ],
+  [
+   "r2:2",
+   "led2:A",
+   "orange",
+   []
+  ],
+  [
+   "led2:C",
+   "gnd:GND",
+   "black",
+   []
+  ],
+  [
+   "uno:8",
+   "bz:1",
+   "purple",
+   []
+  ],
+  [
+   "bz:2",
+   "gnd:GND",
+   "black",
+   []
+  ],
+  [
+   "uno:9",
+   "cam:PWM",
+   "orange",
+   []
+  ],
+  [
+   "cam:V+",
+   "uno:5V",
+   "red",
+   []
+  ],
+  [
+   "cam:GND",
+   "uno:GND.2",
+   "black",
+   []
+  ],
+  [
+   "uno:4",
+   "rel:IN",
+   "green",
+   []
+  ],
+  [
+   "rel:VCC",
+   "uno:5V",
+   "red",
+   []
+  ],
+  [
+   "rel:GND",
+   "uno:GND.3",
+   "black",
+   []
+  ],
+  [
+   "uno:GND.4",
+   "gnd:GND",
+   "black",
+   []
+  ]
+ ]
+}

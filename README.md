@@ -17,6 +17,10 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 - `editor.html`: editor livre original, fios, peças e importação Wokwi.
 - `lab/sn74hc595.html`: registrador digital interativo.
 
+## Tour em vídeo
+
+[docs/media/hardware-studio-apresentacao.mp4](docs/media/hardware-studio-apresentacao.mp4) (6,5 min, 1080p) percorre a oficina, a bancada, a biblioteca, o editor, três projetos que combinam placas e a validação. O roteiro em [tools/demo-video](tools/demo-video/README.md) regrava o vídeo.
+
 ## Aparência
 
 Use **Claro** ou **Escuro** para mudar a oficina e as telas de simulação. A escolha inicial acompanha o sistema. O ajuste **Cores** é independente do tema:

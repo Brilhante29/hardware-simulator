@@ -1,0 +1,497 @@
+{
+ "version": 1,
+ "title": "Duas placas em sincronia",
+ "parts": [
+  {
+   "id": "ua",
+   "type": "uno",
+   "name": "Uno A · mestre",
+   "x": 150,
+   "y": 260,
+   "settings": {}
+  },
+  {
+   "id": "ual13",
+   "type": "led",
+   "name": "D13",
+   "x": 610,
+   "y": 150,
+   "settings": {
+    "color": "#e56d5c"
+   }
+  },
+  {
+   "id": "uar13",
+   "type": "resistor",
+   "name": "220 Ω",
+   "x": 440,
+   "y": 154,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "ual12",
+   "type": "led",
+   "name": "D12",
+   "x": 610,
+   "y": 245,
+   "settings": {
+    "color": "#ee9457"
+   }
+  },
+  {
+   "id": "uar12",
+   "type": "resistor",
+   "name": "220 Ω",
+   "x": 440,
+   "y": 249,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "ual11",
+   "type": "led",
+   "name": "D11",
+   "x": 610,
+   "y": 340,
+   "settings": {
+    "color": "#edc65a"
+   }
+  },
+  {
+   "id": "uar11",
+   "type": "resistor",
+   "name": "220 Ω",
+   "x": 440,
+   "y": 344,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "ual10",
+   "type": "led",
+   "name": "D10",
+   "x": 610,
+   "y": 435,
+   "settings": {
+    "color": "#64c77d"
+   }
+  },
+  {
+   "id": "uar10",
+   "type": "resistor",
+   "name": "220 Ω",
+   "x": 440,
+   "y": 439,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "ub",
+   "type": "uno",
+   "name": "Uno B · espelho",
+   "x": 860,
+   "y": 260,
+   "settings": {}
+  },
+  {
+   "id": "ubl13",
+   "type": "led",
+   "name": "D13",
+   "x": 1320,
+   "y": 150,
+   "settings": {
+    "color": "#63a8e7"
+   }
+  },
+  {
+   "id": "ubr13",
+   "type": "resistor",
+   "name": "220 Ω",
+   "x": 1150,
+   "y": 154,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "ubl12",
+   "type": "led",
+   "name": "D12",
+   "x": 1320,
+   "y": 245,
+   "settings": {
+    "color": "#ae82df"
+   }
+  },
+  {
+   "id": "ubr12",
+   "type": "resistor",
+   "name": "220 Ω",
+   "x": 1150,
+   "y": 249,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "ubl11",
+   "type": "led",
+   "name": "D11",
+   "x": 1320,
+   "y": 340,
+   "settings": {
+    "color": "#e56d5c"
+   }
+  },
+  {
+   "id": "ubr11",
+   "type": "resistor",
+   "name": "220 Ω",
+   "x": 1150,
+   "y": 344,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "ubl10",
+   "type": "led",
+   "name": "D10",
+   "x": 1320,
+   "y": 435,
+   "settings": {
+    "color": "#64c77d"
+   }
+  },
+  {
+   "id": "ubr10",
+   "type": "resistor",
+   "name": "220 Ω",
+   "x": 1150,
+   "y": 439,
+   "settings": {
+    "value": "220 Ω"
+   }
+  }
+ ],
+ "wires": [
+  {
+   "id": "ual13w1",
+   "a": {
+    "part": "ua",
+    "pin": "D13"
+   },
+   "b": {
+    "part": "uar13",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "ual13w2",
+   "a": {
+    "part": "uar13",
+    "pin": "2"
+   },
+   "b": {
+    "part": "ual13",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "ual13w3",
+   "a": {
+    "part": "ual13",
+    "pin": "K"
+   },
+   "b": {
+    "part": "ua",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "ual12w1",
+   "a": {
+    "part": "ua",
+    "pin": "D12"
+   },
+   "b": {
+    "part": "uar12",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "ual12w2",
+   "a": {
+    "part": "uar12",
+    "pin": "2"
+   },
+   "b": {
+    "part": "ual12",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "ual12w3",
+   "a": {
+    "part": "ual12",
+    "pin": "K"
+   },
+   "b": {
+    "part": "ua",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "ual11w1",
+   "a": {
+    "part": "ua",
+    "pin": "D11"
+   },
+   "b": {
+    "part": "uar11",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "ual11w2",
+   "a": {
+    "part": "uar11",
+    "pin": "2"
+   },
+   "b": {
+    "part": "ual11",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "ual11w3",
+   "a": {
+    "part": "ual11",
+    "pin": "K"
+   },
+   "b": {
+    "part": "ua",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "ual10w1",
+   "a": {
+    "part": "ua",
+    "pin": "D10"
+   },
+   "b": {
+    "part": "uar10",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "ual10w2",
+   "a": {
+    "part": "uar10",
+    "pin": "2"
+   },
+   "b": {
+    "part": "ual10",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "ual10w3",
+   "a": {
+    "part": "ual10",
+    "pin": "K"
+   },
+   "b": {
+    "part": "ua",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "ubl13w1",
+   "a": {
+    "part": "ub",
+    "pin": "D13"
+   },
+   "b": {
+    "part": "ubr13",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "ubl13w2",
+   "a": {
+    "part": "ubr13",
+    "pin": "2"
+   },
+   "b": {
+    "part": "ubl13",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "ubl13w3",
+   "a": {
+    "part": "ubl13",
+    "pin": "K"
+   },
+   "b": {
+    "part": "ub",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "ubl12w1",
+   "a": {
+    "part": "ub",
+    "pin": "D12"
+   },
+   "b": {
+    "part": "ubr12",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "ubl12w2",
+   "a": {
+    "part": "ubr12",
+    "pin": "2"
+   },
+   "b": {
+    "part": "ubl12",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "ubl12w3",
+   "a": {
+    "part": "ubl12",
+    "pin": "K"
+   },
+   "b": {
+    "part": "ub",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "ubl11w1",
+   "a": {
+    "part": "ub",
+    "pin": "D11"
+   },
+   "b": {
+    "part": "ubr11",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "ubl11w2",
+   "a": {
+    "part": "ubr11",
+    "pin": "2"
+   },
+   "b": {
+    "part": "ubl11",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "ubl11w3",
+   "a": {
+    "part": "ubl11",
+    "pin": "K"
+   },
+   "b": {
+    "part": "ub",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "ubl10w1",
+   "a": {
+    "part": "ub",
+    "pin": "D10"
+   },
+   "b": {
+    "part": "ubr10",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "ubl10w2",
+   "a": {
+    "part": "ubr10",
+    "pin": "2"
+   },
+   "b": {
+    "part": "ubl10",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "ubl10w3",
+   "a": {
+    "part": "ubl10",
+    "pin": "K"
+   },
+   "b": {
+    "part": "ub",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "tx",
+   "a": {
+    "part": "ua",
+    "pin": "D1"
+   },
+   "b": {
+    "part": "ub",
+    "pin": "D0"
+   },
+   "color": "#d86c62"
+  },
+  {
+   "id": "gg",
+   "a": {
+    "part": "ua",
+    "pin": "5V"
+   },
+   "b": {
+    "part": "ub",
+    "pin": "5V"
+   },
+   "color": "#c6a14c"
+  }
+ ],
+ "code": "// Duas placas, um sketch: varredura em sincronia\n// TX do Uno A -> RX do Uno B; o mesmo firmware roda nas duas\nvoid loop() {\n  digitalWrite(13, HIGH); delay(140);\n  digitalWrite(13, LOW);  delay(0);\n  digitalWrite(12, HIGH); delay(140);\n  digitalWrite(12, LOW);  delay(0);\n  digitalWrite(11, HIGH); delay(140);\n  digitalWrite(11, LOW);  delay(0);\n  digitalWrite(10, HIGH); delay(140);\n  digitalWrite(10, LOW);  delay(0);\n  digitalWrite(11, HIGH); delay(140);\n  digitalWrite(11, LOW);  delay(0);\n  digitalWrite(12, HIGH); delay(140);\n  digitalWrite(12, LOW);  delay(0);\n}"
+}

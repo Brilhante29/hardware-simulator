@@ -1,0 +1,41 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Testes</title><style>
+@font-face{font-family:Px;src:url('./pixelify-sans.woff') format('woff')}
+body{margin:0;height:100vh;background:#141a3a;color:#e9ecff;font-family:system-ui;display:grid;grid-template-columns:1fr 430px;gap:40px;padding:60px 70px;box-sizing:border-box;background-image:linear-gradient(rgba(214,237,131,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(214,237,131,.05) 1px,transparent 1px);background-size:40px 40px;overflow:hidden}
+.win{background:#0b0f24;border:2px solid #2e3768;box-shadow:10px 10px 0 #7a3fd0;display:flex;flex-direction:column;min-height:0}
+.bar{display:flex;gap:8px;align-items:center;padding:12px 16px;border-bottom:2px solid #2e3768;font:13px ui-monospace,monospace;color:#9aa3d6}
+.bar i{width:12px;height:12px;display:inline-block}.bar i:nth-child(1){background:#ff6b6b}.bar i:nth-child(2){background:#f6c85f}.bar i:nth-child(3){background:#6fd08c}
+.bar span{margin-left:10px}
+pre{margin:0;padding:18px 22px;font:15.5px/1.62 ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow:hidden;flex:1}
+.ok{color:#9be564}.cmd{color:#d6ed83}.sum{color:#141a3a;background:#d6ed83;padding:0 6px;font-weight:700}.dim{color:#8b93c4}
+.cursor{display:inline-block;width:10px;height:18px;background:#d6ed83;vertical-align:-3px;animation:b 1s steps(2) infinite}@keyframes b{50%{opacity:0}}
+aside h1{font:700 54px/1.05 Px,monospace;margin:10px 0 24px}aside h1 b{color:#d6ed83;font-weight:700}
+.k{font:600 13px ui-monospace,monospace;letter-spacing:.25em;color:#d6ed83}
+.stat{border:2px solid #2e3768;padding:16px 20px;margin:14px 0;background:#10163a;opacity:.25;transition:all .5s;transform:translateX(30px)}
+.stat.on{opacity:1;transform:none;border-color:#7a3fd0}
+.stat b{font:700 44px Px,monospace;color:#d6ed83;display:block}.stat span{color:#c4cbf0;font-size:15px}
+</style></head><body>
+<div class="win"><div class="bar"><i></i><i></i><i></i><span>hardware-simulator — zsh — 24 grupos de validação</span></div><pre id="out"></pre></div>
+<aside><div class="k">VALIDAÇÃO AUTOMATIZADA</div><h1>Não é só<br>bonito.<br><b>É testado.</b></h1>
+<div class="stat" id="s1"><b id="n1">0</b><span>bytes do SN74HC595 conferidos contra o datasheet</span></div>
+<div class="stat" id="s2"><b id="n2">0</b><span>configurações de LED com balanço de potência</span></div>
+<div class="stat" id="s3"><b id="n3">0</b><span>pares de cor texto/fundo acima de 4,5:1</span></div>
+<div class="stat" id="s4"><b id="n4">0/24</b><span>grupos de testes passando</span></div></aside>
+<script>
+const out=document.getElementById('out');const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function count(id,to,ms,suffix=''){const el=document.getElementById(id);const t0=performance.now();const f=t=>{const p=Math.min(1,(t-t0)/ms);el.textContent=Math.round(to*p)+suffix;if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
+(async()=>{const txt=await (await fetch('./tests.txt')).text();let passes=0;await sleep(600);
+for(const line of txt.split('\n')){
+ if(line.startsWith('$')){out.innerHTML+='<span class="cmd">$ </span>';for(const ch of line.slice(2)){out.innerHTML+=esc(ch);await sleep(38)}out.innerHTML+='\n';await sleep(350);continue}
+ let h=esc(line);
+ if(line.startsWith('PASS')){h='<span class="ok">✔ PASS</span>'+esc(line.slice(4));passes++;document.getElementById('n4').textContent=passes+'/24';document.getElementById('s4').classList.add('on')}
+ else if(line.startsWith('✓')) h='<span class="ok">'+h+'</span>';
+ else if(/grupos passaram/.test(line)) h='<span class="sum"> '+h+' </span>';
+ out.innerHTML+=h+'\n';out.scrollTop=out.scrollHeight;
+ if(/256 bytes/.test(line)){document.getElementById('s1').classList.add('on');count('n1',256,900)}
+ if(/500 configura/.test(line)){document.getElementById('s2').classList.add('on');count('n2',500,900)}
+ if(/80 text/.test(line)){document.getElementById('s3').classList.add('on');count('n3',80,900)}
+ await sleep(line.trim()?150:250);
+}
+out.innerHTML+='<span class="cmd">$ </span><span class="cursor"></span>';window.__done=true})();
+</script></body></html>

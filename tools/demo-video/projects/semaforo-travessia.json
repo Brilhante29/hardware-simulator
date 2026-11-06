@@ -1,0 +1,349 @@
+{
+ "version": 1,
+ "title": "Semáforo com travessia sonora",
+ "parts": [
+  {
+   "id": "uno",
+   "type": "uno",
+   "name": "Arduino Uno · controlador",
+   "x": 250,
+   "y": 250,
+   "settings": {}
+  },
+  {
+   "id": "rrv",
+   "type": "resistor",
+   "name": "R1 · 220 Ω",
+   "x": 600,
+   "y": 124,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "lrv",
+   "type": "led",
+   "name": "Carro · vermelho",
+   "x": 800,
+   "y": 120,
+   "settings": {
+    "color": "#e56d5c"
+   }
+  },
+  {
+   "id": "rra",
+   "type": "resistor",
+   "name": "R2 · 220 Ω",
+   "x": 600,
+   "y": 214,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "lra",
+   "type": "led",
+   "name": "Carro · amarelo",
+   "x": 800,
+   "y": 210,
+   "settings": {
+    "color": "#edc65a"
+   }
+  },
+  {
+   "id": "rrg",
+   "type": "resistor",
+   "name": "R3 · 220 Ω",
+   "x": 600,
+   "y": 304,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "lrg",
+   "type": "led",
+   "name": "Carro · verde",
+   "x": 800,
+   "y": 300,
+   "settings": {
+    "color": "#64c77d"
+   }
+  },
+  {
+   "id": "rpv",
+   "type": "resistor",
+   "name": "R4 · 220 Ω",
+   "x": 600,
+   "y": 434,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "lpv",
+   "type": "led",
+   "name": "Pedestre · pare",
+   "x": 800,
+   "y": 430,
+   "settings": {
+    "color": "#e56d5c"
+   }
+  },
+  {
+   "id": "rpg",
+   "type": "resistor",
+   "name": "R5 · 220 Ω",
+   "x": 600,
+   "y": 524,
+   "settings": {
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "lpg",
+   "type": "led",
+   "name": "Pedestre · siga",
+   "x": 800,
+   "y": 520,
+   "settings": {
+    "color": "#64c77d"
+   }
+  },
+  {
+   "id": "bz",
+   "type": "buzzer",
+   "name": "Bipe de travessia",
+   "x": 800,
+   "y": 633,
+   "settings": {}
+  },
+  {
+   "id": "gnd",
+   "type": "gnd",
+   "name": "Terra comum",
+   "x": 1040,
+   "y": 380,
+   "settings": {}
+  }
+ ],
+ "wires": [
+  {
+   "id": "wrv1",
+   "a": {
+    "part": "uno",
+    "pin": "D13"
+   },
+   "b": {
+    "part": "rrv",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "wrv2",
+   "a": {
+    "part": "rrv",
+    "pin": "2"
+   },
+   "b": {
+    "part": "lrv",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "wrv3",
+   "a": {
+    "part": "lrv",
+    "pin": "K"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "wra1",
+   "a": {
+    "part": "uno",
+    "pin": "D12"
+   },
+   "b": {
+    "part": "rra",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "wra2",
+   "a": {
+    "part": "rra",
+    "pin": "2"
+   },
+   "b": {
+    "part": "lra",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "wra3",
+   "a": {
+    "part": "lra",
+    "pin": "K"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "wrg1",
+   "a": {
+    "part": "uno",
+    "pin": "D11"
+   },
+   "b": {
+    "part": "rrg",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "wrg2",
+   "a": {
+    "part": "rrg",
+    "pin": "2"
+   },
+   "b": {
+    "part": "lrg",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "wrg3",
+   "a": {
+    "part": "lrg",
+    "pin": "K"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "wpv1",
+   "a": {
+    "part": "uno",
+    "pin": "D9"
+   },
+   "b": {
+    "part": "rpv",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "wpv2",
+   "a": {
+    "part": "rpv",
+    "pin": "2"
+   },
+   "b": {
+    "part": "lpv",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "wpv3",
+   "a": {
+    "part": "lpv",
+    "pin": "K"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "wpg1",
+   "a": {
+    "part": "uno",
+    "pin": "D10"
+   },
+   "b": {
+    "part": "rpg",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "wpg2",
+   "a": {
+    "part": "rpg",
+    "pin": "2"
+   },
+   "b": {
+    "part": "lpg",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "wpg3",
+   "a": {
+    "part": "lpg",
+    "pin": "K"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "wbz1",
+   "a": {
+    "part": "uno",
+    "pin": "D8"
+   },
+   "b": {
+    "part": "bz",
+    "pin": "+"
+   },
+   "color": "#9874b4"
+  },
+  {
+   "id": "wbz2",
+   "a": {
+    "part": "bz",
+    "pin": "−"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "wg",
+   "a": {
+    "part": "uno",
+    "pin": "GND"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  }
+ ],
+ "code": "// Semáforo com travessia sonora\n// D13/D12/D11 = carros · D9/D10 = pedestres · D8 = bipe\nvoid setup() {\n  for (int p = 8; p <= 13; p++) pinMode(p, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(9, HIGH);  delay(100);   // pedestre: pare\n  digitalWrite(11, HIGH); delay(1600);  // carros: verde\n  digitalWrite(11, LOW);  delay(0);\n  digitalWrite(12, HIGH); delay(900);   // carros: amarelo\n  digitalWrite(12, LOW);  delay(0);\n  digitalWrite(13, HIGH); delay(250);   // carros: vermelho\n  digitalWrite(9, LOW);   delay(0);\n  digitalWrite(10, HIGH); delay(200);   // pedestre: siga\n  digitalWrite(8, HIGH);  delay(180);   // bipe, bipe, bipe\n  digitalWrite(8, LOW);   delay(180);\n  digitalWrite(8, HIGH);  delay(180);\n  digitalWrite(8, LOW);   delay(180);\n  digitalWrite(8, HIGH);  delay(180);\n  digitalWrite(8, LOW);   delay(400);\n  digitalWrite(10, LOW);  delay(0);\n  digitalWrite(13, LOW);  delay(0);\n}"
+}
