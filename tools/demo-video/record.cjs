@@ -102,13 +102,10 @@ const SEGMENTS = {
     await D.wait(3000);
     await D.camReset(600); await D.hide();
     await D.click('#runButton', 100);
-    await importProject(D, 'diagram.json');
-    await D.caption('Wokwi', 'Uno + <b>ESP32</b>', 'canvas');
-    await D.click('#wireTool', 150);
-    const esp = '#partLayer .part[data-part=esp]', uno = '#partLayer .part[data-part=uno]';
-    for (const [a, b] of [[`${esp} .pin[data-pin=TX0]`, `${uno} .pin[data-pin=D0]`], [`${esp} .pin[data-pin=RX0]`, `${uno} .pin[data-pin=D1]`]]) { await D.click(a, 120); await D.click(b, 200); }
-    await D.click('#selectTool', 100);
-    await p.evaluate(c => { const t = document.querySelector('#codeEditor'); t.value = c; t.dispatchEvent(new Event('input')); }, '// Alarme: sonar detectou movimento\nvoid loop() {\n  digitalWrite(13, HIGH); delay(150);\n  digitalWrite(8, HIGH);  delay(150);\n  digitalWrite(13, LOW);  delay(0);\n  digitalWrite(12, HIGH); delay(150);\n  digitalWrite(8, LOW);   delay(150);\n  digitalWrite(12, LOW);  delay(0);\n}');
+    await importProject(D, 'alarme-esp32.json');
+    await D.caption('', 'Uno + <b>ESP32</b>', 'canvas');
+    await D.cam('#partLayer .part[data-part=esp]', 1.6, 700, 1.3, .4); await D.wait(1100);
+    await D.camReset(500);
     await D.hide();
     await D.click('[data-theme-choice=dark]', 300);
     await D.caption('', 'Alarme <b>disparado</b>', 'canvas');

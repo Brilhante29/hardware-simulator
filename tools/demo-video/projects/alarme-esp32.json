@@ -1,0 +1,415 @@
+{
+ "version": 1,
+ "title": "Alarme anti-intruso: Uno + ESP32",
+ "parts": [
+  {
+   "id": "esp",
+   "type": "custom-esp32-devkit",
+   "name": "ESP32 · alerta Wi-Fi",
+   "x": 100,
+   "y": 270,
+   "settings": {
+    "pressed": false
+   }
+  },
+  {
+   "id": "uno",
+   "type": "uno",
+   "name": "Arduino Uno · cérebro",
+   "x": 430,
+   "y": 260,
+   "settings": {
+    "pressed": false
+   }
+  },
+  {
+   "id": "sonar",
+   "type": "ultrasonic",
+   "name": "Sonar HC-SR04",
+   "x": 760,
+   "y": 90,
+   "settings": {
+    "pressed": false
+   }
+  },
+  {
+   "id": "r1",
+   "type": "resistor",
+   "name": "r1",
+   "x": 760,
+   "y": 320,
+   "settings": {
+    "pressed": false,
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "r2",
+   "type": "resistor",
+   "name": "r2",
+   "x": 760,
+   "y": 410,
+   "settings": {
+    "pressed": false,
+    "value": "220 Ω"
+   }
+  },
+  {
+   "id": "led1",
+   "type": "led",
+   "name": "Estrobo vermelho",
+   "x": 950,
+   "y": 316,
+   "settings": {
+    "pressed": false,
+    "color": "#e56d5c"
+   }
+  },
+  {
+   "id": "led2",
+   "type": "led",
+   "name": "Estrobo azul",
+   "x": 950,
+   "y": 406,
+   "settings": {
+    "pressed": false,
+    "color": "#63a8e7"
+   }
+  },
+  {
+   "id": "bz",
+   "type": "buzzer",
+   "name": "Sirene",
+   "x": 950,
+   "y": 500,
+   "settings": {
+    "pressed": false
+   }
+  },
+  {
+   "id": "cam",
+   "type": "servo",
+   "name": "Servo · câmera",
+   "x": 760,
+   "y": 590,
+   "settings": {
+    "pressed": false
+   }
+  },
+  {
+   "id": "rel",
+   "type": "relay",
+   "name": "Relé · holofote",
+   "x": 970,
+   "y": 580,
+   "settings": {
+    "pressed": false
+   }
+  },
+  {
+   "id": "gnd",
+   "type": "gnd",
+   "name": "GND",
+   "x": 1150,
+   "y": 400,
+   "settings": {
+    "pressed": false
+   }
+  }
+ ],
+ "wires": [
+  {
+   "id": "w5",
+   "a": {
+    "part": "sonar",
+    "pin": "VCC"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "5V"
+   },
+   "color": "#d86c62"
+  },
+  {
+   "id": "w6",
+   "a": {
+    "part": "sonar",
+    "pin": "TRIG"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "D7"
+   },
+   "color": "#9874b4"
+  },
+  {
+   "id": "w7",
+   "a": {
+    "part": "sonar",
+    "pin": "ECHO"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "D6"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "w8",
+   "a": {
+    "part": "sonar",
+    "pin": "GND"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "w9",
+   "a": {
+    "part": "uno",
+    "pin": "D13"
+   },
+   "b": {
+    "part": "r1",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "w10",
+   "a": {
+    "part": "r1",
+    "pin": "2"
+   },
+   "b": {
+    "part": "led1",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "w11",
+   "a": {
+    "part": "led1",
+    "pin": "K"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "w12",
+   "a": {
+    "part": "uno",
+    "pin": "D12"
+   },
+   "b": {
+    "part": "r2",
+    "pin": "1"
+   },
+   "color": "#648fc6"
+  },
+  {
+   "id": "w13",
+   "a": {
+    "part": "r2",
+    "pin": "2"
+   },
+   "b": {
+    "part": "led2",
+    "pin": "A"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "w14",
+   "a": {
+    "part": "led2",
+    "pin": "K"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "w15",
+   "a": {
+    "part": "uno",
+    "pin": "D8"
+   },
+   "b": {
+    "part": "bz",
+    "pin": "+"
+   },
+   "color": "#9874b4"
+  },
+  {
+   "id": "w16",
+   "a": {
+    "part": "bz",
+    "pin": "−"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "w17",
+   "a": {
+    "part": "uno",
+    "pin": "D9"
+   },
+   "b": {
+    "part": "cam",
+    "pin": "SIG"
+   },
+   "color": "#ca8550"
+  },
+  {
+   "id": "w18",
+   "a": {
+    "part": "cam",
+    "pin": "VCC"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "5V"
+   },
+   "color": "#d86c62"
+  },
+  {
+   "id": "w19",
+   "a": {
+    "part": "cam",
+    "pin": "GND"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "w20",
+   "a": {
+    "part": "uno",
+    "pin": "D4"
+   },
+   "b": {
+    "part": "rel",
+    "pin": "IN"
+   },
+   "color": "#54a873"
+  },
+  {
+   "id": "w21",
+   "a": {
+    "part": "rel",
+    "pin": "VCC"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "5V"
+   },
+   "color": "#d86c62"
+  },
+  {
+   "id": "w22",
+   "a": {
+    "part": "rel",
+    "pin": "GND"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "w23",
+   "a": {
+    "part": "uno",
+    "pin": "GND"
+   },
+   "b": {
+    "part": "gnd",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "tx",
+   "a": {
+    "part": "esp",
+    "pin": "TX0"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "D0"
+   },
+   "color": "#54a873"
+  },
+  {
+   "id": "rx",
+   "a": {
+    "part": "esp",
+    "pin": "RX0"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "D1"
+   },
+   "color": "#c6a14c"
+  },
+  {
+   "id": "eg",
+   "a": {
+    "part": "esp",
+    "pin": "GND.1"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "GND"
+   },
+   "color": "#68746c"
+  },
+  {
+   "id": "ev",
+   "a": {
+    "part": "esp",
+    "pin": "VIN"
+   },
+   "b": {
+    "part": "uno",
+    "pin": "5V"
+   },
+   "color": "#d86c62"
+  }
+ ],
+ "code": "// Alarme: sonar detectou movimento\nvoid loop() {\n  digitalWrite(13, HIGH); delay(150);\n  digitalWrite(8, HIGH);  delay(150);\n  digitalWrite(13, LOW);  delay(0);\n  digitalWrite(12, HIGH); delay(150);\n  digitalWrite(8, LOW);   delay(150);\n  digitalWrite(12, LOW);  delay(0);\n}",
+ "customComponents": [
+  {
+   "type": "custom-esp32-devkit",
+   "name": "ESP32 DevKit",
+   "category": "Placas",
+   "tag": "ESP32",
+   "kind": "custom",
+   "description": "Placa ESP32 de referência; modelo elétrico ainda não cadastrado.",
+   "pins": [
+    "GND.1",
+    "VIN",
+    "TX0",
+    "RX0"
+   ]
+  }
+ ]
+}

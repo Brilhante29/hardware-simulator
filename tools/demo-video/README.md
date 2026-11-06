@@ -16,10 +16,8 @@ Requer node, ffmpeg, python3 com numpy e o pacote `playwright` com Chromium.
 | --- | --- |
 | 1 Oficina | Entrada animada, 32 V, 100× com ruptura, troca, robô, descobertas completas, tema escuro, cartuchos |
 | 2 Bancada | 1.600 V com falha em curto, cadeia causal, LED sobrecarregado, biblioteca e 24/24 testes |
-| 3 Editor | Semáforo com travessia, dois Unos em sincronia, alarme Uno + ESP32 importado do Wokwi |
+| 3 Editor | Semáforo com travessia, dois Unos em sincronia, alarme Uno + ESP32 com a placa como peça personalizada |
 | 4 Lógica e testes | SN74HC595 com bytes e OE; saída real de `tests/all.mjs` e `tests/display-contrast.mjs` |
 | 5 Final | Créditos |
 
-Os projetos do capítulo 3 estão em `projects/` e podem ser importados no editor.
-O ESP32 do `diagram.json` entra sem fios porque o conversor Wokwi descarta conexões de peças
-desconhecidas; o vídeo liga o serial à mão.
+Os projetos do capítulo 3 estão em `projects/` e podem ser importados no editor como JSON nativo.
