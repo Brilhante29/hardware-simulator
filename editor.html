@@ -51,7 +51,7 @@
           <div class="canvas-hint" id="canvasHint">arraste o fundo para mover · clique nos pinos para conectar</div>
           <div class="run-group"><span id="runStatus" class="run-status"><span></span>Pronto para simular</span><button id="runButton" class="button button-run"><span id="runIcon">▶</span><span id="runLabel">Simular</span><kbd>⌘ ↵</kbd></button></div>
         </div>
-        <div id="serialPanel" class="serial-panel" hidden><header><b>Monitor serial</b><button id="serialClose" class="text-button" aria-label="Fechar monitor">×</button></header><pre id="serialOut" aria-live="polite"></pre><form id="serialSend"><input id="serialSendText" placeholder="Enviar para o Uno…" autocomplete="off"></form></div>
+        <div id="serialPanel" class="serial-panel" hidden><header><b>Monitor serial</b><span id="powerInfo" class="power-info" title="Consumo estimado do ATmega328P (datasheet, 5 V)"></span><button id="serialClose" class="text-button" aria-label="Fechar monitor">×</button></header><pre id="serialOut" aria-live="polite"></pre><form id="serialSend"><input id="serialSendText" placeholder="Enviar para o Uno…" autocomplete="off"></form></div>
           <section id="viewport" class="viewport" aria-label="Área de montagem do circuito">
           <div id="canvas" class="canvas">
             <svg id="wireLayer" class="wire-layer" viewBox="0 0 1800 1200" preserveAspectRatio="none" aria-label="Fios do circuito"></svg>

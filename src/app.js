@@ -272,7 +272,7 @@ function watchFirmware(part,handle){
   const check=async()=>{try{const f=await handle.getFile();if(f.lastModified!==stamp){const first=!stamp;stamp=f.lastModified;setFirmware(part,await f.text(),f.name);if(!first)toast('Firmware novo: reboot')}}catch{}};
   check();part._watch=setInterval(check,800);
 }
-function serialLog(text){const el=$('#serialOut');if(!el)return;el.textContent=(el.textContent+text).slice(-12000);el.scrollTop=el.scrollHeight}
+function serialLog(text,unit){const el=$('#serialOut');if(!el)return;if(unit&&fw&&fw.units.length>1){let out='';for(const ch of text){if(unit.lineStart!==false&&ch!=='\n'&&ch!=='\r'){out+='['+unit.board.name+'] ';unit.lineStart=false}out+=ch;if(ch==='\n')unit.lineStart=true}text=out}el.textContent=(el.textContent+text).slice(-12000);el.scrollTop=el.scrollHeight}
 function i2cTargets(board,find,node){
   // Displays com SDA no A4 e SCL no A5 deste Uno entram no barramento I²C.
   const sda=find(node(board.id,'A4')),scl=find(node(board.id,'A5'));
@@ -285,15 +285,17 @@ async function startFirmware(){
   const units=[];
   for(const board of boards){
     let mcu;try{mcu=new mod.ATmega328P(board.settings.firmware)}catch(e){toast(`${board.name}: ${e.message}`);continue}
-    const dec=new TextDecoder();mcu.onSerial=b=>serialLog(dec.decode(new Uint8Array([b]),{stream:true}));
+    const dec=new TextDecoder(),unit={board,mcu,devices:null,clock:mod.CLOCK,links:[]};mcu.onSerial=b=>{serialLog(dec.decode(new Uint8Array([b]),{stream:true}),unit);for(const t of unit.links)t.serialByte(b)};
     const devices=[];
     for(const p of i2cTargets(board,lastNet.find,lastNet.node)){const spec=defFor(p.type).i2c,d=new dev[spec.cls]({address:spec.addr,...(spec.cls==='Ds3231'?{start:Date.now()}:{})});mcu.attachI2C(d.address,d);p._device=d;applySensor(p);devices.push([p,d])}
     for(const p of project.parts){const ow=defFor(p.type)?.onewire;if(!ow)continue;const net=lastNet.find(lastNet.node(p.id,ow.pin));const pin=UNO_OUT_PINS.find(l=>lastNet.find(lastNet.node(board.id,l))===net);if(!pin)continue;const d=new dev[ow.cls]({type:ow.type});mcu.attachPinDevice(pin,d);p._device=d;applySensor(p);devices.push([p,d])}
     try{const saved=localStorage.getItem('hs-eeprom-'+board.id);if(saved)mcu.eeprom.set(saved.match(/../g).map(h=>parseInt(h,16)))}catch{}
     mcu.onEeprom=()=>{clearTimeout(mcu._eeSave);mcu._eeSave=setTimeout(()=>{try{localStorage.setItem('hs-eeprom-'+board.id,Array.from(mcu.eeprom,b=>b.toString(16).padStart(2,'0')).join(''))}catch{}},300)};
-    units.push({board,mcu,devices,clock:mod.CLOCK});
+    unit.devices=devices;units.push(unit);
   }
   if(!units.length)return;
+  // Serial entre placas: TX (D1) de uma ligado ao RX (D0) de outra.
+  for(const a of units)for(const b of units)if(a!==b&&lastNet.find(lastNet.node(a.board.id,'D1'))===lastNet.find(lastNet.node(b.board.id,'D0'))){a.links.push(b.mcu);serialLog(`── ${a.board.name} TX → ${b.board.name} RX ──\n`)}
   const other=project.parts.filter(p=>p.type==='uno'&&!p.settings?.firmware).length;
   serialLog(`\n── boot: ${units.map(u=>u.board.settings.firmwareName).join(', ')} ──\n`);
   if(other)toast(`${other} Uno sem firmware ficará parado`);
@@ -311,7 +313,7 @@ function firmwareFrame(now){
     u.board.settings.outputs=out;u.board.settings.duty=duty;u.board.settings.tone=tone;
     for(const[p,d]of u.devices){if(p.type==='display'){p.settings.lines=d.lines();p.settings.backlight=d.backlight}else p._oled=d}
   }
-  if(now-fw.paint>45){fw.paint=now;servoAngles();neopixels();updateSimulation({quiet:true});paintOleds();buzzerAudio()}
+  if(now-fw.paint>45){fw.paint=now;const pw=$('#powerInfo');if(pw)pw.textContent=fw.units.map(u=>`≈ ${u.mcu.powerUsage().averageMa.toFixed(1).replace('.',',')} mA`).join(' · ');servoAngles();neopixels();updateSimulation({quiet:true});paintOleds();buzzerAudio()}
   fw.raf=requestAnimationFrame(firmwareFrame);
 }
 function applySensor(p){

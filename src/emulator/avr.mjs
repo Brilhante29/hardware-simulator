@@ -48,6 +48,7 @@ export class ATmega328P {
     this.onSerial = null; this.onPinChange = null;
     this.inputs = { B: new Array(8).fill(null), C: new Array(8).fill(null), D: new Array(8).fill(null) };
     this.analog = new Array(8).fill(0); // volts nas entradas A0..A7
+    this.analogPins = {}; // volts em AIN0 (D6) / AIN1 (D7) para o comparador
     this.eeprom = new Uint8Array(1024).fill(0xff); // sobrevive a reset, como a EEPROM real
     this.i2c = new Map(); this.spiDevice = null; this.onReset = null; this.pinDevices = new Map();
     this.cycles = 0; this.reset('power');
@@ -72,7 +73,7 @@ export class ATmega328P {
     this.wdt = { last: this.cycles, ceUntil: -1 };
     this.spi = { doneAt: -1, rx: 0xff, flagSeen: false };
     this.twi = { doneAt: -1, apply: null, phase: 'idle', device: null, read: false };
-    this.sleeping = false; this.pulses = {}; this.events = []; this.nextEventAt = Infinity; this.driveKeys = {};
+    this.sleeping = false; this.pulses = {}; this.acPrev = null; this.energy = { active: 0, idle: 0, deep: 0, wdt: 0, mark: this.cycles }; this.events = []; this.nextEventAt = Infinity; this.driveKeys = {};
     this.sp = 0x8ff; this.interruptDelay = 0; this.irqCheckAt = 0;
     this.t0 = { acc: 0, flags: 0 }; this.t1 = { acc: 0, dir: 1 }; this.t2 = { acc: 0, dir: 1 };
     this.uart = { busyUntil: 0, pending: null, txc: false, rx: [], rxNextAt: 0, rxData: 0, rxReady: false };
@@ -104,6 +105,7 @@ export class ATmega328P {
       case 0x4e: this.syncSpi(); if (this.spi.flagSeen) { this.data[0x4d] &= ~0x80; this.spi.flagSeen = false; } return this.data[0x4e];
       case 0xb9: case 0xbb: case 0xbc: this.syncTwi(); return this.data[addr];
       case 0x60: this.syncWdt(); return this.data[0x60];
+      case 0x50: this.syncComparator(); return this.data[0x50];
     }
     return this.data[addr];
   }
@@ -126,6 +128,7 @@ export class ATmega328P {
       case 0x3c: case 0x3b: this.data[addr] &= ~v; return; // EIFR/PCIFR: escrever 1 limpa
       case 0x69: case 0x3d: case 0x68: case 0x6b: case 0x6c: case 0x6d: this.data[addr] = v; return;
       case 0x3f: this.eepromControl(v); return;
+      case 0x50: this.syncComparator(); this.data[0x50] = (v & 0xcf) | (this.data[0x50] & 0x20) | (this.data[0x50] & 0x10 & ~(v & 0x10)); this.acPrev = null; this.syncComparator(); return;
       case 0x4e: this.spiWrite(v); return;
       case 0xbc: this.twiControl(v); return;
       case 0x60: this.wdtWrite(v); return;
@@ -157,6 +160,25 @@ export class ATmega328P {
   }
   // Cores do último quadro WS2812 (NeoPixel, ordem GRB no fio) enviado pelo pino: [[r,g,b], ...].
   neopixel(pin) { const p = this.pulses[pin]; if (!p) return null; if (p.bits.length && this.cycles - p.fall > 800) this.wsFlush(p); return p.frame; }
+  // ---------- comparador analógico ----------
+  pinVolts(pin) { if (this.analogPins[pin] !== undefined) return this.analogPins[pin]; const [port, bit] = UNO_PINS[pin]; return ((this.readPin(PORTS[port].pin) >> bit) & 1) * 5; }
+  setAnalogPin(pin, volts) { this.analogPins[pin] = volts; this.syncComparator(); this.irqCheckAt = 0; }
+  syncComparator() {
+    const a = this.data[0x50]; if (a & 0x80) return; // ACD: desligado
+    const pos = (a & 0x40) ? 1.1 : this.pinVolts('D6');
+    const muxed = (this.data[0x7b] & 0x40) && !(this.data[0x7a] & 0x80);
+    const neg = muxed ? (this.analog[this.data[0x7c] & 7] ?? 0) : this.pinVolts('D7');
+    const aco = pos > neg ? 1 : 0;
+    if (this.acPrev !== null && aco !== this.acPrev) { const mode = a & 3; if (mode === 0 || (mode === 2 && !aco) || (mode === 3 && aco)) this.data[0x50] |= 0x10; }
+    this.acPrev = aco; this.data[0x50] = (this.data[0x50] & ~0x20) | (aco << 5);
+  }
+  // ---------- consumo (Tabela 32-4 do datasheet; 16 MHz extrapolado de 8 MHz) ----------
+  powerUsage() {
+    const e = this.energy, s = c => c / CLOCK, wdtOn = (this.data[0x60] & 0x48) ? 1 : 0;
+    const mA = { active: 10.4, idle: 2.4, deep: wdtOn ? 0.0042 : 0.0001 };
+    const total = s(e.active) * mA.active + s(e.idle) * mA.idle + s(e.deep) * mA.deep, time = s(e.active + e.idle + e.deep);
+    return { averageMa: time ? total / time : 0, mAh: total / 3600, activeShare: time ? s(e.active) / time : 1, source: 'ATmega328P DS40002061 Tabela 32-4 (5 V; ativo/idle de 8 MHz × 2)' };
+  }
   // Frequência e largura de pulso medidas no pino (para servo, tone e PWM por software).
   pulseInfo(pin) { const p = this.pulses[pin]; if (!p || p.last === undefined || this.cycles - p.last > CLOCK / 4) return null; return { highUs: p.high / 16, periodUs: p.period / 16, hz: p.period ? CLOCK / p.period : 0 }; }
 
@@ -200,6 +222,11 @@ export class ATmega328P {
         }
         p.edges++; p.last = t;
       }
+      if (port === 'B' && (diff & 1)) { // ICP1 (D8): captura de entrada do Timer1
+        const rising = now.B & 1, ices = this.data[0x81] & 0x40;
+        if ((rising && ices) || (!rising && !ices)) { this.syncTimers(); this.data[0x86] = this.data[0x84]; this.data[0x87] = this.data[0x85]; this.data[0x36] |= 0x20; }
+      }
+      if (port === 'D' && (diff & 0xc0)) this.syncComparator();
       if (port === 'D') for (const [bit, flag, shift] of [[2, 1, 0], [3, 2, 2]]) {
         if (!(diff & (1 << bit))) continue;
         const isc = (d[0x69] >> shift) & 3, level = (now.D >> bit) & 1;
@@ -282,6 +309,7 @@ export class ATmega328P {
     if (u.pending === null && u.busyUntil > 0 && this.cycles >= u.busyUntil && !u.txcLatched) { u.txc = true; u.txcLatched = true; }
     if (!u.rxReady && u.rx.length && this.cycles >= u.rxNextAt && (this.data[0xc1] & 0x10)) { u.rxData = u.rx.shift(); u.rxReady = true; u.rxNextAt = this.cycles + this.frameCycles(); }
   }
+  serialByte(b) { this.uart.rx.push(b & 0xff); this.irqCheckAt = 0; }
   serialInput(text) { for (const ch of new TextEncoder().encode(String(text))) this.uart.rx.push(ch); }
 
   // ---------- ADC ----------
@@ -289,7 +317,7 @@ export class ATmega328P {
   syncAdc() {
     if (this.adc.doneAt < 0 || this.cycles < this.adc.doneAt) return;
     this.adc.doneAt = -1;
-    const mux = this.data[0x7c] & 0x0f, vref = 5, volts = mux < 8 ? this.analog[mux] : mux === 0x0e ? 1.1 : 0;
+    const mux = this.data[0x7c] & 0x0f, refs = (this.data[0x7c] >> 6) & 3, vref = refs === 3 ? 1.1 : refs === 0 ? (this.analogPins.AREF ?? 5) : 5, volts = mux < 8 ? this.analog[mux] : mux === 0x0e ? 1.1 : 0;
     let value = Math.max(0, Math.min(1023, Math.round(volts / vref * 1023)));
     if (this.data[0x7c] & 0x20) { this.data[0x79] = value >> 2; this.data[0x78] = (value & 3) << 6; } else { this.data[0x78] = value & 0xff; this.data[0x79] = value >> 8; }
     this.data[0x7a] = (this.data[0x7a] & ~0x40) | 0x10;
@@ -306,6 +334,7 @@ export class ATmega328P {
     if ((d[0x60] & 0xc0) === 0xc0) return [VEC.WDT, 0x60, 0x80];
     const t0 = d[0x35] & d[0x6e], t1 = d[0x36] & d[0x6f], t2 = d[0x37] & d[0x70];
     if (t2 & 2) return [VEC.TIMER2_COMPA, 0x37, 2]; if (t2 & 4) return [VEC.TIMER2_COMPB, 0x37, 4]; if (t2 & 1) return [VEC.TIMER2_OVF, 0x37, 1];
+    if (t1 & 0x20) return [VEC.TIMER1_CAPT, 0x36, 0x20];
     if (t1 & 2) return [VEC.TIMER1_COMPA, 0x36, 2]; if (t1 & 4) return [VEC.TIMER1_COMPB, 0x36, 4]; if (t1 & 1) return [VEC.TIMER1_OVF, 0x36, 1];
     if (t0 & 2) return [VEC.TIMER0_COMPA, 0x35, 2]; if (t0 & 4) return [VEC.TIMER0_COMPB, 0x35, 4]; if (t0 & 1) return [VEC.TIMER0_OVF, 0x35, 1];
     const b = d[0xc1];
@@ -313,6 +342,7 @@ export class ATmega328P {
     if ((b & 0x20) && this.uart.pending === null) return [VEC.USART_UDRE, 0, 0];
     if ((b & 0x40) && this.uart.txc) return [VEC.USART_TX, -1, 0];
     if ((d[0x7a] & 0x08) && (d[0x7a] & 0x10)) return [VEC.ADC, 0x7a, 0x10];
+    if ((d[0x50] & 0x18) === 0x18 && !(d[0x50] & 0x80)) return [VEC.ANALOG_COMP, 0x50, 0x10];
     if ((d[0x3f] & 0x08) && !(d[0x3f] & 0x02)) return [VEC.EE_READY, 0, 0];
     if ((d[0xbc] & 0x81) === 0x81) return [VEC.TWI, 0, 0]; // TWINT não é limpo pela entrada na ISR
     if ((d[0x4c] & 0x80) && (d[0x4d] & 0x80)) return [VEC.SPI_STC, 0x4d, 0x80];
@@ -336,11 +366,11 @@ export class ATmega328P {
 
   // ---------- execução ----------
   run(cycles) {
-    const end = this.cycles + cycles;
+    const end = this.cycles + cycles, start = this.cycles, sleptBefore = this.energy.idle + this.energy.deep;
     // Interrupções são verificadas a cada 16 ciclos (1 µs) ou logo após escrita em E/S, SEI e RETI.
     while (this.cycles < end && !this.halted) {
       if (this.cycles >= this.nextEventAt) this.runEvents();
-      if (this.sleeping) { this.sleepUntil(Math.min(end, this.nextEventAt)); continue; }
+      if (this.sleeping) { const c0 = this.cycles, deep = this.sleeping !== 'idle' && this.sleeping !== 'adc'; this.sleepUntil(Math.min(end, this.nextEventAt)); this.energy[deep ? 'deep' : 'idle'] += this.cycles - c0; continue; }
       if (this.cycles >= this.irqCheckAt) {
         this.irqCheckAt = this.cycles + 16;
         if ((this.data[SREG] & 0x80) && !this.interruptDelay && this.serviceInterrupt()) continue;
@@ -349,6 +379,7 @@ export class ATmega328P {
       this.step();
     }
     this.syncTimers(); this.syncUart(); this.syncAdc(); this.syncWdt();
+    this.energy.active += Math.max(0, (this.cycles - start) - (this.energy.idle + this.energy.deep - sleptBefore));
   }
   runSeconds(s) { this.run(Math.round(s * CLOCK)); }
   get time() { return this.cycles / CLOCK; }

@@ -87,3 +87,4 @@
 [data-surface=editor] .sensor-row{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:12px;margin:6px 0}
 [data-surface=editor] .sensor-row input{grid-column:1/-1;width:100%}
 .px-art .strip{fill:#f2f4f7}
+.serial-panel .power-info{margin-left:auto;margin-right:8px;font:11px ui-monospace,monospace;color:var(--muted,#4c5b7a)}

@@ -55,7 +55,7 @@ function paint() {
   }
   document.querySelector('#boardWrap .ledL')?.classList.toggle('on', pins.D13.mode === 'output' && pins.D13.level === 1);
   for (const b of document.querySelectorAll('[data-in]')) { const p = pins[b.dataset.in]; b.disabled = p.mode === 'output'; b.classList.toggle('on', pressed.has(b.dataset.in)); b.title = p.mode === 'output' ? 'Saída' : p.mode === 'input_pullup' ? 'Entrada com pull-up' : 'Entrada'; }
-  $('clock').textContent = `t = ${fmt(mcu.time)} s · ${running ? fmt(perf, 1) + '× folga' : 'pausado'}`;
+  $('clock').textContent = `t = ${fmt(mcu.time)} s · ≈ ${fmt(mcu.powerUsage().averageMa, 1)} mA · ${running ? fmt(perf, 1) + '× folga' : 'pausado'}`;
   if (lcd) $('lcdView').textContent = lcd.lines().join('\n'), $('lcdView').classList.toggle('dark', !lcd.backlight);
   if (oled) { const ctx = $('oledView').getContext('2d'), img = ctx.createImageData(128, 64); for (let y = 0; y < 64; y++) for (let x = 0; x < 128; x++) { const on = oled.on && oled.pixel(x, y), i = (y * 128 + x) * 4; img.data[i] = on ? 140 : 6; img.data[i + 1] = on ? 220 : 12; img.data[i + 2] = on ? 255 : 28; img.data[i + 3] = 255; } ctx.putImageData(img, 0, 0); }
   const items = []; let toneHz = 0;

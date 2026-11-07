@@ -57,6 +57,14 @@ export function runAvrTests() {
   });
   test('DHT22 (Adafruit): −3,7 °C e 48,3 % pelo protocolo de um fio', 'AM2302: pulsos de 26/70 µs', () => { const m = boot('dht22'); const d = m.attachPinDevice('D4', new Dht({ type: 22, temperature: -3.7, humidity: 48.3 })); m.runSeconds(2.3); eq(m.out, '-3.7 48.3\r\n'); d.temperature = 31.2; m.runSeconds(2.2); ok(m.out.endsWith('31.2 48.3\r\n'), m.out); });
   test('DHT11 (Adafruit): 26 °C e 61 %', 'DHT11: start de 18 ms', () => { const m = boot('dht11'); m.attachPinDevice('D4', new Dht({ type: 11, temperature: 26, humidity: 61 })); m.runSeconds(2.3); eq(m.out, '26.0 61.0\r\n'); });
+  test('Comparador analógico: ACO e interrupção a cada cruzamento', 'ACSR, AIN0/AIN1', () => { const m = boot('comparator'); m.setAnalogPin('D6', 2.5); m.setAnalogPin('D7', 1); m.runSeconds(0.15); m.setAnalogPin('D7', 3); m.runSeconds(0.1); m.setAnalogPin('D7', 1); m.runSeconds(0.1); eq(m.out, '1,0\r\n0,1\r\n1,2\r\n'); });
+  test('Captura de entrada do Timer1 mede 1 kHz como 1000 µs', 'ICP1/ICR1/ICF1', () => { const m = boot('capture'); const half = 8000; let lvl = 0; const tick = () => { lvl ^= 1; m.setInput('D8', lvl); m.schedule(m.cycles + half, tick); }; m.schedule(half, tick); m.runSeconds(0.12); eq(m.out.trim().split('\r\n').at(-1), '1000 us'); });
+  test('Serial entre dois Unos: A envia, B recebe e responde', 'USART TX → RX', () => { const a = boot('uartlink'), b = boot('echo'); a.onSerial = x => b.serialByte(x); for (let i = 0; i < 10; i++) { a.runSeconds(0.05); b.runSeconds(0.05); } eq(b.out, 'pronto\r\nPING 0\r\nPING 1\r\nPING 2\r\n'); });
+  test('analogReference(INTERNAL): 0,55 V lê 512 na referência de 1,1 V', 'ADMUX REFS', () => { const m = boot('aref'); m.analog[0] = 0.55; m.runSeconds(0.1); eq(m.out, '512\r\n113\r\n'); });
+  test('Consumo: ~10,4 mA ativo e cai para µA no power-down', 'DS40002061 Tabela 32-4', () => {
+    const a = boot('blink'); a.runSeconds(0.5); ok(Math.abs(a.powerUsage().averageMa - 10.4) < 0.01);
+    const w = boot('watchdog'); w.runSeconds(0.5); const e = w.energy; ok(e.deep > 0, 'sem sleep'); ok(w.powerUsage().averageMa < 10.4);
+  });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;
 }
