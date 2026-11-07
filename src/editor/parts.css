@@ -86,3 +86,4 @@
 .px-art .mod{fill:#5b3a9e}
 [data-surface=editor] .sensor-row{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:12px;margin:6px 0}
 [data-surface=editor] .sensor-row input{grid-column:1/-1;width:100%}
+.px-art .strip{fill:#f2f4f7}

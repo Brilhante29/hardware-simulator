@@ -143,10 +143,19 @@
       const seg = [[34, 16, 26, 4], [60, 20, 4, 22], [60, 46, 4, 22], [34, 68, 26, 4], [30, 46, 4, 22], [30, 20, 4, 22], [34, 42, 26, 4]];
       return s + seg.map(([x, y, w, h]) => R(x, y, w, h, 'sg')).join('') + R(68, 70, 4, 4, 'sg');
     },
-    neopixel() {
+    neopixel(def, part) {
+      const c = part?.settings?.colors?.[0];
       let s = leadL(18, 12) + leadL(56, 12) + leadR(28, 80, 92) + leadR(52, 80, 92) + R(10, 4, 72, 68, 'k') + R(12, 6, 68, 64, 'bd');
       s += R(26, 18, 40, 40, 'mt2') + R(28, 20, 36, 36, 'c') + disc(46, 38, 12, 'p');
+      if (c && c !== '#000000') return s + `<g style="filter:drop-shadow(0 0 8px ${c})">${disc(46, 38, 13, '', c)}</g>` + R(40, 32, 4, 4, 'hl');
       return s + F(40, 34, 4, 4, '#e25a4f') + F(46, 34, 4, 4, '#4fd06b') + F(43, 40, 4, 4, '#4a8cf0');
+    },
+    neostrip(def, part) {
+      const cols = part?.settings?.colors || [];
+      let s = leadL(10, 10) + leadL(22, 10) + leadL(34, 10) + leadR(22, 190, 200) + R(8, 4, 184, 36, 'k') + R(10, 6, 180, 32, 'strip');
+      for (let i = 0; i < 8; i++) { const x = 16 + i * 22, c = cols[i]; s += R(x, 12, 16, 16, 'c') + R(x + 1, 13, 14, 14, 'mt');
+        s += c && c !== '#000000' ? `<g style="filter:drop-shadow(0 0 6px ${c})">${F(x + 3, 15, 10, 10, c)}</g>` : R(x + 4, 16, 8, 8, 'p'); }
+      return s;
     },
   };
 

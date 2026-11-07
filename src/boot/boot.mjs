@@ -61,6 +61,8 @@ function paint() {
   for (const name of Object.keys(pins)) { const p = mcu.pulseInfo(name); if (!p || !p.periodUs) continue;
     if (p.periodUs > 15000 && p.periodUs < 25000 && p.highUs > 400 && p.highUs < 2600) items.push(`${name} · servo ${Math.round((p.highUs - 544) / (2400 - 544) * 180)}° (${Math.round(p.highUs)} µs)`);
     else { items.push(`${name} · ${fmt(p.hz, 1)} Hz · ${Math.round(p.highUs / p.periodUs * 100)}%`); if (!toneHz && p.hz > 20 && p.hz < 20000) toneHz = p.hz; } }
+  const neo = Object.keys(pins).map(n => [n, mcu.neopixel(n)]).filter(([, f]) => f);
+  $('neoView').innerHTML = neo.map(([n, f]) => `<div><small>${n} · WS2812 ×${f.length}</small>${f.map(c => `<i style="background:rgb(${c.join(',')});box-shadow:0 0 8px rgb(${c.join(',')})"></i>`).join('')}</div>`).join('');
   $('pulseView').innerHTML = items.length ? items.map(t => `<li>${t}</li>`).join('') : '<li>—</li>';
   sound(running && $('soundOn').checked ? toneHz : 0);
 }

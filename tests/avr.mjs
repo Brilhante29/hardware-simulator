@@ -51,6 +51,10 @@ export function runAvrTests() {
   test('MPU6050 (Adafruit): 0,5 g → 4,90 m/s² e 45 °/s → 0,786 rad/s', 'MPU-6000 registradores 0x3B–0x48', () => { const m = boot('mpu6050'); m.attachI2C(0x68, new Mpu6050({ accel: [0.5, -0.25, 1], gyro: [0, 0, 45], temperature: 28 })); m.runSeconds(0.5); eq(m.out.split('\r\n')[0], '4.90 -2.45 9.81 0.786 28.0'); });
   test('DS3231 (RTClib): ajuste, segundos correndo e virada do dia', 'DS3231 registradores BCD', () => { const m = boot('ds3231'); m.attachI2C(0x68, new Ds3231()); m.runSeconds(3.2); ok(m.out.startsWith('ajustado\r\n2026-11-07 23:59:58 25.00'), m.out); ok(m.out.includes('2026-11-08 00:00:00'), m.out); });
   test('BH1750: 432,5 lux', 'BH1750FVI modo H-res', () => { const m = boot('bh1750'); m.attachI2C(0x23, new Bh1750({ lux: 432.5 })); m.runSeconds(0.5); eq(m.out.split('\r\n')[0], '432.5'); });
+  test('Adafruit NeoPixel: cores WS2812 decodificadas dos pulsos em D6', 'WS2812B: 0,4/0,8 µs, reset > 50 µs', () => {
+    const m = boot('neopixel'); m.runSeconds(0.05); eq(JSON.stringify(m.neopixel('D6')), '[[255,0,0],[0,255,0],[0,0,255],[18,52,86],[0,0,0],[0,0,0],[0,0,0],[255,255,255]]');
+    m.runSeconds(0.2); eq(JSON.stringify(m.neopixel('D6')[7]), '[210,100,45]');
+  });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;
 }

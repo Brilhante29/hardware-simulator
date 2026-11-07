@@ -141,6 +141,12 @@ export class ATmega328P {
     return value;
   }
   setInput(pinName, level) { const [port, bit] = UNO_PINS[pinName]; const v = level === null || level === undefined ? null : level ? 1 : 0; if (this.inputs[port][bit] === v) return; this.inputs[port][bit] = v; this.pinsChanged(); }
+  wsFlush(p) {
+    if (p.bits.length >= 24) { const bytes = []; for (let i = 0; i + 8 <= p.bits.length; i += 8) bytes.push(p.bits.slice(i, i + 8).reduce((a, b) => (a << 1) | b, 0)); const px = []; for (let i = 0; i + 3 <= bytes.length; i += 3) px.push([bytes[i + 1], bytes[i], bytes[i + 2]]); p.frame = px; p.frames = (p.frames || 0) + 1; }
+    p.bits = [];
+  }
+  // Cores do último quadro WS2812 (NeoPixel, ordem GRB no fio) enviado pelo pino: [[r,g,b], ...].
+  neopixel(pin) { const p = this.pulses[pin]; if (!p) return null; if (p.bits.length && this.cycles - p.fall > 800) this.wsFlush(p); return p.frame; }
   // Frequência e largura de pulso medidas no pino (para servo, tone e PWM por software).
   pulseInfo(pin) { const p = this.pulses[pin]; if (!p || p.last === undefined || this.cycles - p.last > CLOCK / 4) return null; return { highUs: p.high / 16, periodUs: p.period / 16, hz: p.period ? CLOCK / p.period : 0 }; }
 
@@ -173,8 +179,15 @@ export class ATmega328P {
       for (let b = 0; b < 8; b++) {
         if (!(diff & (1 << b))) continue;
         const name = port === 'B' ? `D${b + 8}` : port === 'C' ? `A${b}` : `D${b}`, level = (now[port] >> b) & 1, t = this.cycles;
-        const p = this.pulses[name] || (this.pulses[name] = { rise: -1, high: 0, period: 0, edges: 0 });
-        if (level) { if (p.rise >= 0) p.period = t - p.rise; p.rise = t; } else if (p.rise >= 0) p.high = t - p.rise;
+        const p = this.pulses[name] || (this.pulses[name] = { rise: -1, high: 0, period: 0, edges: 0, fall: -1, bits: [], frame: null });
+        if (level) {
+          if (p.fall >= 0 && t - p.fall > 800) this.wsFlush(p); // > 50 µs em nível baixo = reset do WS2812
+          if (p.rise >= 0) p.period = t - p.rise; p.rise = t;
+        } else if (p.rise >= 0) {
+          p.high = t - p.rise; p.fall = t;
+          // WS2812 a 800 kHz: bit 1 ≈ 0,8 µs alto (≥ 10 ciclos), bit 0 ≈ 0,4 µs; pulsos longos não são do protocolo.
+          if (p.high < 32) p.bits.push(p.high >= 10 ? 1 : 0); else p.bits.length = 0;
+        }
         p.edges++; p.last = t;
       }
       if (port === 'D') for (const [bit, flag, shift] of [[2, 1, 0], [3, 2, 2]]) {

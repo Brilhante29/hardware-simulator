@@ -31,7 +31,8 @@ const catalog = [
   {type:'ds3231',name:'Relógio RTC DS3231',category:'Sensores',tag:'DS3231',width:104,height:72,icon:'custom',pins:[['VCC',0,18],['GND',0,52],['SCL',104,24],['SDA',104,48]],description:'Relógio de tempo real com temperatura no I²C 0x68.',kind:'sensor',module:true,i2c:{cls:'Ds3231',addr:0x68},controls:[['temperature','Temperatura','°C',-20,60,0.25,25]]},
   {type:'bh1750',name:'Luz BH1750',category:'Sensores',tag:'BH1750',width:104,height:72,icon:'custom',pins:[['VCC',0,18],['GND',0,52],['SCL',104,24],['SDA',104,48]],description:'Sensor de luminosidade em lux no I²C 0x23.',kind:'sensor',module:true,i2c:{cls:'Bh1750',addr:0x23},controls:[['lux','Luz','lx',0,5000,1,320]]},
   {type:'oled',name:'Display OLED 128×64',category:'Displays',tag:'OLED',width:112,height:84,icon:'custom',pins:[['GND',0,18],['VCC',0,40],['SCL',112,28],['SDA',112,52]],description:'SSD1306 I²C (0x3C). Funciona com firmware real (Adafruit SSD1306).',kind:'display',i2c:{cls:'Ssd1306',addr:0x3c}},
-  {type:'neopixel',name:'NeoPixel RGB',category:'Displays',tag:'LED',width:92,height:76,icon:'custom',pins:[['VCC',0,18],['GND',0,56],['DIN',92,28],['DOUT',92,52]],description:'LED RGB endereçável. Protocolo de dados ainda não é simulado.',kind:'display'},
+  {type:'neostrip',name:'Fita NeoPixel 8',category:'Displays',tag:'WS2812',width:200,height:44,icon:'custom',pins:[['GND',0,10],['VCC',0,22],['DIN',0,34],['DOUT',200,22]],description:'8 LEDs WS2812B endereçáveis. Funciona com firmware real (Adafruit NeoPixel, FastLED).',kind:'display'},
+  {type:'neopixel',name:'NeoPixel RGB',category:'Displays',tag:'LED',width:92,height:76,icon:'custom',pins:[['VCC',0,18],['GND',0,56],['DIN',92,28],['DOUT',92,52]],description:'LED WS2812B endereçável. Com firmware real, a cor vem do protocolo no DIN; DOUT encadeia o próximo.',kind:'display'},
 ];
 const categories = [
   ['Todos','◈'],['Placas','▦'],['Básicos','◉'],['Sensores','⌁'],['Displays','▤'],['Saídas','◖'],['Energia','ϟ'],['Lógica','⋈'],['Customizados','✳']
@@ -171,6 +172,7 @@ function modelStatus(def){
   if(k==='switch')return{sim:true,text:'Simulado: abre e fecha o contato.'};
   if(k==='source'||k==='highRail'||k==='lowRail')return{sim:true,text:'Simulado: referência de 5 V ou 0 V.'};
   if(def.i2c&&def.kind==='sensor')return{sim:true,text:`Simulado com firmware: ${def.tag} no I²C 0x${def.i2c.addr.toString(16).toUpperCase()} (SDA→A4, SCL→A5). Ajuste as leituras abaixo.`};
+  if(t==='neopixel'||t==='neostrip')return{sim:true,text:'Simulado com firmware: as cores são decodificadas do sinal WS2812 no DIN (DOUT segue para o próximo).'};
   if(t==='pot')return{sim:true,text:'Simulado com firmware: a posição vira tensão no pino analógico ligado ao SIG (analogRead).'};
   if(t==='servo')return{sim:true,text:'Simulado com firmware: o ângulo vem da largura do pulso no SIG (biblioteca Servo).'};
   if(t==='display')return{sim:true,text:'Simulado com firmware: LCD HD44780 com PCF8574 no I²C 0x27 (SDA→A4, SCL→A5).'};
@@ -254,7 +256,7 @@ function runSimulation(){
   if(parsed.warnings.length)toast(parsed.warnings[0]);
   renderAll();markChanged();
 }
-function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.angle}for(const part of project.parts)if(part.type==='uno')part.settings.outputs={};updateSimulation();renderAll()}
+function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.angle;delete part.settings.colors}for(const part of project.parts)if(part.type==='uno')part.settings.outputs={};updateSimulation();renderAll()}
 // ---------- Firmware real (ATmega328P emulado) ----------
 let fw=null;
 function setFirmware(part,text,name){
@@ -305,7 +307,7 @@ function firmwareFrame(now){
     u.board.settings.outputs=out;u.board.settings.duty=duty;u.board.settings.tone=tone;
     for(const[p,d]of u.devices){if(p.type==='display'){p.settings.lines=d.lines();p.settings.backlight=d.backlight}else p._oled=d}
   }
-  if(now-fw.paint>45){fw.paint=now;servoAngles();updateSimulation({quiet:true});paintOleds();buzzerAudio()}
+  if(now-fw.paint>45){fw.paint=now;servoAngles();neopixels();updateSimulation({quiet:true});paintOleds();buzzerAudio()}
   fw.raf=requestAnimationFrame(firmwareFrame);
 }
 function applySensor(p){
@@ -326,6 +328,15 @@ function servoAngles(){
   if(!fw||!lastNet)return;const{find,node}=lastNet;
   for(const s of project.parts.filter(p=>p.type==='servo')){const sig=find(node(s.id,'SIG'));
     for(const u of fw.units)for(const label of UNO_OUT_PINS)if(find(node(u.board.id,label))===sig){const p=u.mcu.pulseInfo(label);if(p&&p.highUs>400&&p.highUs<2600){s.settings.angle=Math.round(Math.max(0,Math.min(180,(p.highUs-544)/(2400-544)*180)))}}}
+}
+// NeoPixel: segue a corrente DIN→DOUT a partir do pino do Uno e distribui as cores pela ordem dos LEDs.
+function neopixels(){
+  if(!fw||!lastNet)return;const{find,node}=lastNet;const hex=c=>'#'+c.map(v=>v.toString(16).padStart(2,'0')).join('');
+  for(const u of fw.units)for(const label of UNO_OUT_PINS){
+    const frame=u.mcu.neopixel(label);if(!frame)continue;let net=find(node(u.board.id,label)),idx=0,guard=0;
+    while(guard++<64){const next=project.parts.find(p=>(p.type==='neopixel'||p.type==='neostrip')&&find(node(p.id,'DIN'))===net);if(!next)break;
+      const n=next.type==='neostrip'?8:1,cols=[];for(let i=0;i<n;i++)cols.push(hex(frame[idx+i]||[0,0,0]));idx+=n;next.settings.colors=cols;net=find(node(next.id,'DOUT'))}
+  }
 }
 function paintOleds(){
   for(const p of project.parts.filter(p=>p.type==='oled'&&p._oled)){const c=document.querySelector(`[data-part="${p.id}"] canvas`);if(!c)continue;const ctx=c.getContext('2d'),img=ctx.createImageData(128,64),d=p._oled;

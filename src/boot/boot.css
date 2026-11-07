@@ -52,3 +52,5 @@ code{font:12px ui-monospace,monospace;background:var(--panel);padding:1px 5px}
 .sensors label{display:block;font-size:12px;margin:6px 0}
 .sensors input[type=number]{width:58px;font:12px ui-monospace,monospace;padding:2px 4px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
 .devices{grid-template-columns:repeat(2,1fr)}
+.neo-view div{margin-top:8px}.neo-view small{display:block;font:11px ui-monospace,monospace;color:var(--muted)}
+.neo-view i{display:inline-block;width:16px;height:16px;margin:4px 4px 0 0;border:1px solid var(--line)}
