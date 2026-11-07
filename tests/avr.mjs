@@ -1,6 +1,7 @@
 // Firmware real (compilado pelo PlatformIO) rodando no emulador ATmega328P.
 import { readFileSync } from 'node:fs';
 import { ATmega328P, parseHex } from '../src/emulator/avr.mjs';
+import { LcdI2C, Ssd1306 } from '../src/emulator/devices.mjs';
 const hex = n => readFileSync(new URL(`./fixtures/avr/${n}.hex`, import.meta.url), 'utf8');
 function boot(name) { const m = new ATmega328P(hex(name)); m.out = ''; m.onSerial = b => { m.out += String.fromCharCode(b); }; return m; }
 
@@ -25,6 +26,24 @@ export function runAvrTests() {
   });
   test('analogRead: 2,5 V → 512; 5 V → 1023; 0 V → 0', 'ADC 10 bits', () => { const m = boot('adc'); m.analog[0] = 2.5; m.runSeconds(0.15); m.analog[0] = 5; m.runSeconds(0.1); m.analog[0] = 0; m.runSeconds(0.1); eq(m.out, '512\r\n512\r\n1023\r\n0\r\n'); });
   test('Serial RX: o Uno recebe e devolve em maiúsculas', 'USART0 RX + interrupção', () => { const m = boot('echo'); m.runSeconds(0.05); m.serialInput('ola, uno!\n'); m.runSeconds(0.1); eq(m.out, 'pronto\r\nOLA, UNO!\n'); });
+  test('attachInterrupt (INT0) conta 3 bordas; PCINT0 conta 2 mudanças', 'EICRA/EIMSK e PCICR/PCMSK0', () => {
+    const m = boot('interrupts'); m.runSeconds(0.05);
+    for (let i = 0; i < 3; i++) { m.setInput('D2', 0); m.runSeconds(0.01); m.setInput('D2', null); m.runSeconds(0.01); }
+    m.setInput('D8', 0); m.runSeconds(0.01); m.setInput('D8', null); m.runSeconds(0.2); ok(m.out.trim().endsWith('3,2'), m.out);
+  });
+  test('EEPROM.put/get e update sobrevivem ao reset', 'EECR/EEDR/EEAR', () => { const m = boot('eeprom'); m.runSeconds(0.2); eq(m.out, '1 1.50 uno 42\r\n'); m.out = ''; m.reset(); m.runSeconds(0.2); eq(m.out, '2 1.50 uno 42\r\n'); });
+  test('Watchdog reinicia o chip e acorda do power-down', 'WDTCSR, MCUSR e SLEEP', () => { const m = boot('watchdog'); let resets = 0; m.onReset = () => resets++; m.runSeconds(0.5); eq(m.out, 'boot normal\r\nreset pelo watchdog\r\nacordou 5\r\n'); eq(resets, 1); });
+  test('SPI mestre troca bytes com o dispositivo', 'SPCR/SPSR/SPDR', () => { const m = boot('spi'); m.spiDevice = b => b ^ 0xff; m.runSeconds(0.05); eq(m.out, '5A C3\r\n'); });
+  test('Servo.write(90) gera 1.472 µs a 50 Hz; tone(440) gera 440 Hz', 'Timer1/Timer2 + ISR', () => {
+    const m = boot('servo'); m.runSeconds(0.3); const s = m.pulseInfo('D9'), t = m.pulseInfo('D8');
+    ok(Math.abs(s.highUs - 1472) < 8 && Math.abs(s.periodUs - 20000) < 50, JSON.stringify(s)); ok(Math.abs(t.hz - 440) < 2, JSON.stringify(t));
+  });
+  test('Scanner I²C encontra o LCD (0x27) e o OLED (0x3C)', 'TWI mestre (Wire)', () => { const m = boot('scan'); m.attachI2C(0x27, new LcdI2C()); m.attachI2C(0x3c, new Ssd1306()); m.runSeconds(0.3); eq(m.out, '0x27\r\n0x3C\r\nfim\r\n'); });
+  test('LiquidCrystal_I2C escreve nas duas linhas do LCD', 'PCF8574 + HD44780 4 bits', () => { const m = boot('lcd'); const lcd = m.attachI2C(0x27, new LcdI2C()); m.runSeconds(1.2); eq(lcd.lines()[0], 'Hardware Studio '); ok(lcd.lines()[1].startsWith('Uno no I2C :) ')); ok(lcd.backlight); });
+  test('Adafruit SSD1306 desenha texto, retângulo e círculo', 'SSD1306 endereçamento horizontal', () => {
+    const m = boot('oled'); const o = m.attachI2C(0x3c, new Ssd1306()); m.runSeconds(1); eq(m.out, 'oled ok\r\n'); ok(o.on);
+    ok(o.pixel(0, 40) && o.pixel(127, 40) && o.pixel(0, 63), 'retângulo'); ok(o.pixel(64, 52), 'círculo'); ok(!o.pixel(64, 30), 'fundo');
+  });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;
 }
