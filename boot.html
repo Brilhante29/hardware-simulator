@@ -42,7 +42,7 @@
   <div class="serial-head"><span class="label">Monitor serial</span><button id="clearSerial" class="link">limpar</button></div>
   <pre id="serial" class="serial" aria-live="polite"></pre>
   <form id="serialForm" class="serial-input"><input id="serialText" placeholder="Enviar para o Uno…" autocomplete="off"><button>Enviar</button></form>
-  <details class="peek-lite"><summary>Como funciona?</summary><p>Quem compila é o PlatformIO (<code>pio run</code>). Esta página só carrega o <code>firmware.hex</code> e executa cada instrução do ATmega328P: timers, PWM, serial, ADC, interrupções, EEPROM (salva neste navegador), watchdog, sleep, SPI e I²C com LCD 0x27 e OLED 0x3C. No terminal: <code>pio run -t simulate</code>. Ainda não emula comparador analógico, captura de entrada do Timer1 nem consumo elétrico.</p></details>
+  <details class="peek-lite"><summary>Como funciona?</summary><p>Quem compila é o PlatformIO (<code>pio run</code>). Esta página só carrega o <code>firmware.hex</code> e executa cada instrução do ATmega328P: timers, PWM, serial, ADC, interrupções, EEPROM (salva neste navegador), watchdog, sleep, SPI e I²C com LCD 0x27 e OLED 0x3C. No terminal: <code>pio run -t simulate</code>. Também: sensores I²C, DHT, NeoPixel, comparador, captura do Timer1 e consumo estimado.</p></details>
 </section>
 </main>
 <input id="fileInput" type="file" accept=".hex" hidden>

@@ -295,14 +295,15 @@ export class ATmega328P {
   }
 
   // ---------- USART0 ----------
-  frameCycles() { const ubrr = this.data[0xc4] | ((this.data[0xc5] & 0x0f) << 8); const div = (this.data[0xc0] & 2) ? 8 : 16; return Math.max(1, 10 * div * (ubrr + 1)); }
+  usartMode() { return (this.data[0xc2] >> 6) & 3; } // 0 assíncrono, 1 síncrono, 3 SPI mestre (MSPIM)
+  frameCycles() { const ubrr = this.data[0xc4] | ((this.data[0xc5] & 0x0f) << 8), mode = this.usartMode(); if (mode === 3) return Math.max(1, 8 * 2 * (ubrr + 1)); if (mode === 1) return Math.max(1, 10 * 2 * (ubrr + 1)); const div = (this.data[0xc0] & 2) ? 8 : 16; return Math.max(1, 10 * div * (ubrr + 1)); }
   uartWrite(v) {
     this.syncUart(); const u = this.uart;
     if (this.cycles >= u.busyUntil && u.pending === null) { this.emit(v); u.busyUntil = this.cycles + this.frameCycles(); }
     else u.pending = v;
     u.txc = false; u.txcLatched = false;
   }
-  emit(v) { this.onSerial?.(v); }
+  emit(v) { if (this.usartMode() === 3) { const r = (this.mspimDevice ? this.mspimDevice(v) : 0xff) & 0xff; this.uart.rx.push(r); this.uart.rxNextAt = this.cycles + this.frameCycles(); return; } this.onSerial?.(v); }
   syncUart() {
     const u = this.uart;
     if (u.pending !== null && this.cycles >= u.busyUntil) { this.emit(u.pending); u.busyUntil += this.frameCycles(); u.pending = null; }
@@ -443,32 +444,66 @@ export class ATmega328P {
     this.syncTwi(); const t = this.twi, d = this.data;
     const keepInt = (d[0xbc] & 0x80) && !(v & 0x80); // escrever 1 em TWINT limpa a flag
     d[0xbc] = (v & 0x7f) | (keepInt ? 0x80 : 0);
-    if (!(v & 0x04)) { t.phase = 'idle'; t.device = null; t.doneAt = -1; d[0xb9] = (d[0xb9] & 3) | 0xf8; return; }
+    if (!(v & 0x04)) { t.phase = 'idle'; t.device = null; t.doneAt = -1; t.slave = false; d[0xb9] = (d[0xb9] & 3) | 0xf8; return; }
     if (!(v & 0x80)) return;
-    const status = st => () => { d[0xb9] = (d[0xb9] & 3) | st; d[0xbc] |= 0x80; };
+    if (t.slave && !(v & 0x30)) { if ((d[0xb9] & 0xf8) === 0xa0 || (d[0xb9] & 0xf8) === 0xc0 || (d[0xb9] & 0xf8) === 0xc8) t.slave = false; return; } // escravo: só libera o barramento
+    const status = st => { d[0xb9] = (d[0xb9] & 3) | st; d[0xbc] |= 0x80; };
     if (v & 0x10) { // STOP
-      t.apply = () => { t.device?.stop?.(); t.device = null; t.phase = 'idle'; d[0xbc] &= ~0x10; d[0xb9] = (d[0xb9] & 3) | 0xf8; if (v & 0x20) { t.phase = 'start'; status(0x08)(); } };
+      const dev = t.device;
+      t.op = { run: () => { dev?.stop?.(); t.device = null; t.phase = 'idle'; d[0xbc] &= ~0x10; d[0xb9] = (d[0xb9] & 3) | 0xf8; if (v & 0x20) { t.phase = 'start'; status(0x08); } } };
       t.doneAt = this.cycles + this.twiByteCycles(1); return;
     }
     if (v & 0x20) { // START ou START repetido
-      const repeated = t.phase !== 'idle'; if (repeated) t.device?.stop?.();
-      t.apply = () => { t.phase = 'start'; t.device = null; status(repeated ? 0x10 : 0x08)(); d[0xbc] &= ~0x20; };
+      const repeated = t.phase !== 'idle', dev = t.device;
+      t.op = { run: () => { if (repeated) dev?.stop?.(); t.phase = 'start'; t.device = null; status(repeated ? 0x10 : 0x08); d[0xbc] &= ~0x20; } };
       t.doneAt = this.cycles + this.twiByteCycles(1); return;
     }
-    if (t.phase === 'start') { // endereço + R/W
-      const sla = d[0xbb], dev = this.i2c.get(sla >> 1), read = sla & 1;
-      const ack = !!dev && dev.start?.(!!read) !== false;
-      t.apply = () => { t.device = ack ? dev : null; t.read = !!read; t.phase = ack ? (read ? 'mr' : 'mt') : 'nack'; status(read ? (ack ? 0x40 : 0x48) : (ack ? 0x18 : 0x20))(); };
+    // Endereço, escrita e leitura acontecem ao fim do byte; um escravo lento (outro chip) segura o SCL (clock stretching).
+    if (t.phase === 'start') {
+      const sla = d[0xbb], addr = sla >> 1, read = !!(sla & 1);
+      const dev = this.i2c.get(addr) ?? this.i2cPeers?.find(p => p.matches(addr));
+      t.op = { dev, before: () => { t.ack = !!dev && dev.start?.(read) !== false; }, run: () => { t.device = t.ack ? dev : null; t.read = read; t.phase = t.ack ? (read ? 'mr' : 'mt') : 'nack'; status(read ? (t.ack ? 0x40 : 0x48) : (t.ack ? 0x18 : 0x20)); } };
     } else if (t.phase === 'mt') {
-      const ack = t.device ? t.device.write?.(d[0xbb]) !== false : false;
-      t.apply = status(ack ? 0x28 : 0x30);
+      const dev = t.device, byte = d[0xbb];
+      t.op = { dev, before: () => { t.ack = dev ? dev.write?.(byte) !== false : false; }, run: () => status(t.ack ? 0x28 : 0x30) };
     } else if (t.phase === 'mr') {
-      const byte = t.device?.read?.() ?? 0xff, ackOut = !!(v & 0x40);
-      t.apply = () => { d[0xbb] = byte & 0xff; status(ackOut ? 0x50 : 0x58)(); };
-    } else { t.apply = status(0xf8); }
+      const dev = t.device, ackOut = !!(v & 0x40);
+      t.op = { dev, waitFirst: true, run: () => { d[0xbb] = (dev?.read?.(ackOut) ?? 0xff) & 0xff; status(ackOut ? 0x50 : 0x58); } };
+    } else t.op = { run: () => status(0xf8) };
     t.doneAt = this.cycles + this.twiByteCycles(9);
   }
-  syncTwi() { const t = this.twi; if (t.doneAt >= 0 && this.cycles >= t.doneAt) { t.doneAt = -1; const f = t.apply; t.apply = null; f?.(); this.irqCheckAt = 0; } }
+  syncTwi() {
+    const t = this.twi; if (t.doneAt < 0 || this.cycles < t.doneAt) return;
+    const op = t.op;
+    if (op?.before && !op.started) { op.started = true; op.before(); }
+    if (op?.dev?.busy?.()) { t.doneAt = this.cycles + 16; return; } // escravo ainda processando
+    t.doneAt = -1; t.op = null; op?.run(); this.irqCheckAt = 0;
+  }
+  // Este chip como escravo I²C de outro (Wire.begin(endereço)): adaptador para o barramento do mestre.
+  i2cSlave() {
+    const d = this.data, t = this.twi, me = this;
+    const raise = st => { t.slave = true; d[0xb9] = (d[0xb9] & 3) | st; d[0xbc] |= 0x80; me.irqCheckAt = 0; };
+    return {
+      matches: addr => (d[0xbc] & 0x44) === 0x44 && (d[0xba] >> 1) === addr,
+      busy: () => !!(d[0xbc] & 0x80),
+      mode: null,
+      start(read) { if (this.mode === 'sr') raise(0xa0); this.mode = read ? 'st' : 'sr'; raise(read ? 0xa8 : 0x60); return true; },
+      write(b) { const ack = !!(d[0xbc] & 0x40); d[0xbb] = b; raise(ack ? 0x80 : 0x88); return ack; },
+      read(ack) { const b = d[0xbb]; raise(ack ? 0xb8 : 0xc0); if (!ack) this.mode = null; return b; },
+      // STOP só é visto pelo escravo receptor; depois de um NACK o transmissor já saiu do modo endereçado.
+      stop() { if (this.mode === 'sr') raise(0xa0); this.mode = null; },
+    };
+  }
+  linkI2C(slaveMcu) { (this.i2cPeers ||= []).push(slaveMcu.i2cSlave()); }
+  // Este chip como escravo SPI: o mestre troca um byte por vez com SS (D10) em nível baixo.
+  spiSlaveExchange(byte) {
+    const spcr = this.data[0x4c]; if (!(spcr & 0x40) || (spcr & 0x10) || ((this.readPin(0x23) >> 2) & 1)) return 0xff;
+    const out = this.data[0x4e]; this.data[0x4e] = byte; this.data[0x4d] |= 0x80; this.spi.flagSeen = false; this.irqCheckAt = 0; return out;
+  }
+  // ssPin: pino deste chip ligado ao SS (D10) do escravo; o nível é repassado a cada byte.
+  linkSPI(slaveMcu, ssPin) {
+    this.spiDevice = b => { if (ssPin) { const [port, bit] = UNO_PINS[ssPin]; slaveMcu.setInput('D10', (this.readPin(PORTS[port].pin) >> bit) & 1); } return slaveMcu.spiSlaveExchange(b); };
+  }
 
   flags(mask, values) { this.data[SREG] = (this.data[SREG] & ~mask) | values; }
   step() {

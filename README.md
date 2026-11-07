@@ -36,7 +36,11 @@ Igual ao fluxo que você já usa com PlatformIO: **o PlatformIO compila, o Hardw
 | EEPROM 1 KB | `EEPROM.get/put/update` (guardada entre resets e no navegador) |
 | Watchdog e sleep | `wdt_enable`, reset por watchdog, `sleep_cpu` (idle e power-down) |
 | SPI mestre | `SPI.transfer` com dispositivo plugável |
-| I²C (TWI) mestre | `Wire`, `LiquidCrystal_I2C` (LCD 0x27), `Adafruit_SSD1306` (OLED 0x3C) |
+| I²C (TWI) mestre e escravo | `Wire`, `LiquidCrystal_I2C` (LCD 0x27), `Adafruit_SSD1306` (OLED 0x3C), BME280, MPU6050, DS3231 (RTClib), BH1750; dois Unos com `Wire.onReceive/onRequest` |
+| SPI mestre e escravo; USART em SPI (MSPIM) | `SPI.transfer`, dois Unos com SS no D10 |
+| Um fio e pulsos | DHT11/DHT22 (Adafruit DHT), NeoPixel WS2812 (Adafruit NeoPixel) |
+| Comparador, captura do Timer1, referências do ADC | `ACSR`/AIN0/AIN1, `ICR1` no D8, `analogReference(INTERNAL)` |
+| Consumo | estimativa pelo datasheet: ~10,4 mA ativo, ~2,4 mA idle, µA em power-down |
 
 ```sh
 # no platformio.ini do seu projeto
@@ -50,7 +54,7 @@ node tools/avr-run.mjs .pio/build/uno/firmware.hex --lcd --eeprom eeprom.bin
 - **Navegador (`boot.html`):** solte o `firmware.hex`, use **Vigiar arquivo** (Chrome/Edge) e cada `pio run` reinicia o chip. Monitor serial, botões nos pinos, potenciômetro no A0, LCD, OLED, pulsos medidos (servo em graus, frequência do `tone`) e som do `tone()`.
 - **Editor (`editor.html`):** selecione o Uno → **Carregar .hex** (ou **Vigiar**). O firmware real move o circuito: LEDs (com brilho de PWM), buzzer com som, botões e chaves viram entradas, potenciômetro vira tensão no pino analógico, servo gira, LCD e OLED ligados no A4/A5 mostram a tela. Exemplo pronto: importe `examples/firmware/painel-projeto.json` (fonte em `examples/firmware/painel`).
 
-Ainda não emula: comparador analógico, captura de entrada do Timer1, USART síncrono, I²C/SPI escravo, outras placas (ESP32) e consumo elétrico do chip. `node tests/avr.mjs` roda 17 testes com firmwares reais compilados pelo PlatformIO (`tests/fixtures/avr`).
+No editor, dois Unos se falam por serial (TX→RX), I²C (A4/A5 em comum) ou SPI (D10–D13); os chips ligados rodam em passo de 10 µs. Fica de fora outra arquitetura de CPU (ESP32/ESP-IDF): é outro emulador inteiro. `node tests/avr.mjs` roda os testes com firmwares reais compilados pelo PlatformIO (`tests/fixtures/avr`).
 
 ## Aparência
 

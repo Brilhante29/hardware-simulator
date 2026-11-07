@@ -65,6 +65,15 @@ export function runAvrTests() {
     const a = boot('blink'); a.runSeconds(0.5); ok(Math.abs(a.powerUsage().averageMa - 10.4) < 0.01);
     const w = boot('watchdog'); w.runSeconds(0.5); const e = w.energy; ok(e.deep > 0, 'sem sleep'); ok(w.powerUsage().averageMa < 10.4);
   });
+  test('I²C entre dois Unos: Wire mestre ↔ Wire escravo (onReceive/onRequest)', 'TWI escravo com clock stretching', () => {
+    const M = boot('i2cmaster'), S = boot('i2cslave'); M.linkI2C(S); for (let t = 0; t < 0.25; t += 0.0001) { M.runSeconds(0.0001); S.runSeconds(0.0001); }
+    eq(S.out, 'x is 0\r\nx is 1\r\nx is 2\r\n'); ok(M.out.startsWith('tx=0 rx=hello \r\ntx=0 rx=hello '), M.out);
+  });
+  test('SPI entre dois Unos: escravo responde pela ISR com SS no D10', 'SPI escravo (SPCR sem MSTR)', () => {
+    const M = boot('spimaster'), S = boot('spislave'); M.linkSPI(S, 'D10'); for (let t = 0; t < 0.25; t += 0.00001) { M.runSeconds(0.00001); S.runSeconds(0.00001); }
+    ok(M.out.startsWith('A0 12 23\r\n1 12 23'), M.out); ok(S.out.includes('bytes=6'), S.out);
+  });
+  test('USART0 como SPI mestre (MSPIM) troca 2 bytes', 'UCSR0C UMSEL = 11', () => { const m = boot('mspim'); m.mspimDevice = b => b ^ 0xff; m.runSeconds(0.05); eq(m.out, 'A5 3C\r\n'); });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;
 }

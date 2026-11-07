@@ -208,7 +208,7 @@ function renderInspector(){
   $('#potPos')?.addEventListener('input',e=>{part.settings.position=Number(e.target.value);$('#potVolts').textContent=(part.settings.position*5).toFixed(2)+' V';markChanged()});
 }
 function showInspectorTab(tab){const code=tab==='code';$('#propertiesTab').classList.toggle('active',!code);$('#codeTab').classList.toggle('active',code);$('#propertiesView').hidden=code;$('#codeView').hidden=!code}
-function addPart(type,atCenter=true){const def=defFor(type);if(!def)return;stopSimulation();snapshot();const rect=viewport.getBoundingClientRect();const x=atCenter?Math.max(30,Math.min(1520,(rect.width/2-panX)/zoom-def.width/2)):300;const y=atCenter?Math.max(30,Math.min(1000,(rect.height/2-panY)/zoom-def.height/2)):250;const n=project.parts.length;const part={id:`p${Date.now().toString(36)}${Math.floor(Math.random()*1000)}`,type,name:def.name,x:x+n*7%90,y:y+n*5%70,settings:{}};project.parts.push(part);selectedId=part.id;selectedWire=null;renderAll();markChanged()}
+function addPart(type,atCenter=true){const def=defFor(type);if(!def)return;stopSimulation();snapshot();const rect=viewport.getBoundingClientRect();const x=atCenter?Math.max(30,Math.min(1520,(rect.width/2-panX)/zoom-def.width/2)):300;const y=atCenter?Math.max(30,Math.min(1000,(rect.height/2-panY)/zoom-def.height/2)):250;let px=x,py=y;const overlaps=(ax,ay)=>project.parts.some(o=>{const d=defFor(o.type);return d&&ax<o.x+d.width+24&&ax+def.width+24>o.x&&ay<o.y+d.height+40&&ay+def.height+40>o.y});for(let k=0;k<60&&overlaps(px,py);k++){const ang=k*.9,rad=40+k*14;px=x+Math.cos(ang)*rad;py=y+Math.sin(ang)*rad}const part={id:`p${Date.now().toString(36)}${Math.floor(Math.random()*1000)}`,type,name:def.name,x:Math.max(8,px),y:Math.max(8,py),settings:{}};project.parts.push(part);selectedId=part.id;selectedWire=null;renderAll();markChanged()}
 function connectPin(part,pin){
   if(!pendingPin){pendingPin={part,pin};selectedId=null;selectedWire=null;renderWires();renderParts();renderInspector();return}
   const start=pendingPin;pendingPin=null;
@@ -272,7 +272,7 @@ function watchFirmware(part,handle){
   const check=async()=>{try{const f=await handle.getFile();if(f.lastModified!==stamp){const first=!stamp;stamp=f.lastModified;setFirmware(part,await f.text(),f.name);if(!first)toast('Firmware novo: reboot')}}catch{}};
   check();part._watch=setInterval(check,800);
 }
-function serialLog(text,unit){const el=$('#serialOut');if(!el)return;if(unit&&fw&&fw.units.length>1){let out='';for(const ch of text){if(unit.lineStart!==false&&ch!=='\n'&&ch!=='\r'){out+='['+unit.board.name+'] ';unit.lineStart=false}out+=ch;if(ch==='\n')unit.lineStart=true}text=out}el.textContent=(el.textContent+text).slice(-12000);el.scrollTop=el.scrollHeight}
+function serialLog(text,unit){const el=$('#serialOut');if(!el)return;if(unit&&fw&&fw.units.length>1){unit.buf=(unit.buf||'')+text;const cut=unit.buf.lastIndexOf('\n');if(cut<0)return;text=unit.buf.slice(0,cut+1).split('\n').filter(l=>l.length).map(l=>'['+unit.board.name+'] '+l+'\n').join('');unit.buf=unit.buf.slice(cut+1)}el.textContent=(el.textContent+text).slice(-12000);el.scrollTop=el.scrollHeight}
 function i2cTargets(board,find,node){
   // Displays com SDA no A4 e SCL no A5 deste Uno entram no barramento I²C.
   const sda=find(node(board.id,'A4')),scl=find(node(board.id,'A5'));
@@ -295,18 +295,25 @@ async function startFirmware(){
   }
   if(!units.length)return;
   // Serial entre placas: TX (D1) de uma ligado ao RX (D0) de outra.
-  for(const a of units)for(const b of units)if(a!==b&&lastNet.find(lastNet.node(a.board.id,'D1'))===lastNet.find(lastNet.node(b.board.id,'D0'))){a.links.push(b.mcu);serialLog(`── ${a.board.name} TX → ${b.board.name} RX ──\n`)}
+  const same=(a,b,pa,pb=pa)=>lastNet.find(lastNet.node(a.board.id,pa))===lastNet.find(lastNet.node(b.board.id,pb));
+  let lockstep=false;
+  for(const a of units)for(const b of units){if(a===b)continue;
+    if(same(a,b,'D1','D0')){a.links.push(b.mcu);serialLog(`── ${a.board.name} TX → ${b.board.name} RX ──\n`)}
+    if(same(a,b,'A4')&&same(a,b,'A5')){a.mcu.linkI2C(b.mcu);lockstep=true;if(a.board.id<b.board.id)serialLog(`── I²C: ${a.board.name} ↔ ${b.board.name} ──\n`)}
+    if(same(a,b,'D13')&&same(a,b,'D11')){const ss=UNO_OUT_PINS.find(l=>same(a,b,l,'D10'));a.mcu.linkSPI(b.mcu,ss);lockstep=true;if(a.board.id<b.board.id)serialLog(`── SPI: ${a.board.name} ↔ ${b.board.name} ──\n`)}}
   const other=project.parts.filter(p=>p.type==='uno'&&!p.settings?.firmware).length;
   serialLog(`\n── boot: ${units.map(u=>u.board.settings.firmwareName).join(', ')} ──\n`);
   if(other)toast(`${other} Uno sem firmware ficará parado`);
-  fw={units,raf:0,last:0,paint:0,audio:null};simulationTimer='firmware';showSerial(true);
+  fw={units,raf:0,last:0,paint:0,audio:null,lockstep:typeof lockstep!=='undefined'&&lockstep};simulationTimer='firmware';showSerial(true);
   $('#codeStatus').textContent='Rodando firmware real (ATmega328P a 16 MHz)';
   renderAll();fw.raf=requestAnimationFrame(firmwareFrame);
 }
 function firmwareFrame(now){
   if(!fw)return;const dt=fw.last?Math.min((now-fw.last)/1000,.05):0;fw.last=now;
+  // Placas ligadas por I²C/SPI andam juntas em fatias de 10 µs para uma responder no tempo da outra.
+  if(fw.lockstep&&dt){for(const u of fw.units)feedInputs(u);const total=Math.round(dt*fw.units[0].clock),slice=160;for(let c=0;c<total;c+=slice)for(const u of fw.units)u.mcu.run(Math.min(slice,total-c))}
   for(const u of fw.units){
-    feedInputs(u);if(dt)u.mcu.run(Math.round(dt*u.clock));
+    if(!fw.lockstep){feedInputs(u);if(dt)u.mcu.run(Math.round(dt*u.clock))}
     const pins=u.mcu.pinSnapshot(),out={},duty={},tone={};
     for(const label of UNO_OUT_PINS){const p=pins[label];if(!p||p.mode!=='output')continue;const pulse=u.mcu.pulseInfo(label);
       if(pulse&&pulse.hz>20&&pulse.hz<20000&&(p.duty===null||p.duty===0||p.duty===1)){tone[label]=pulse.hz;out[label]=1}else{out[label]=p.level;if(p.duty!==null&&p.duty>0&&p.duty<1)duty[label]=p.duty}}
