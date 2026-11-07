@@ -13,7 +13,7 @@ const catalog = [
   {type:'gnd',name:'Trilho GND',category:'Energia',tag:'GND',width:72,height:66,icon:'custom',pins:[['GND',72,33]],description:'Referência de terra do circuito.',voltage:'0 V',kind:'lowRail'},
   {type:'buzzer',name:'Buzzer',category:'Saídas',tag:'BZ',width:82,height:68,icon:'buzzer',pins:[['+',0,35],['−',82,35]],description:'Transdutor sonoro que responde a uma saída energizada.',kind:'load'},
   {type:'pot',name:'Potenciômetro',category:'Sensores',tag:'10K',width:104,height:78,icon:'pot',pins:[['VCC',0,17],['GND',0,60],['SIG',104,39]],description:'Divisor resistivo ajustável com saída de sinal.',kind:'sensor'},
-  {type:'display',name:'Display 16×2',category:'Displays',tag:'LCD',width:112,height:72,icon:'display',pins:[['VCC',0,18],['GND',0,54],['SDA',112,25],['SCL',112,48]],description:'Display de caracteres com interface I²C.',kind:'display'},
+  {type:'display',name:'Display 16×2',category:'Displays',tag:'LCD',width:112,height:72,icon:'display',pins:[['VCC',0,18],['GND',0,54],['SDA',112,25],['SCL',112,48]],description:'LCD HD44780 com PCF8574 I²C (0x27). Funciona com firmware real (LiquidCrystal_I2C).',kind:'display'},
   {type:'gate',name:'Porta AND',category:'Lógica',tag:'AND',width:90,height:72,icon:'gate',pins:[['A',0,20],['B',0,52],['Y',90,36]],description:'Saída lógica AND de duas entradas.',kind:'logic'},
   {type:'switch',name:'Chave liga/desliga',category:'Básicos',tag:'SW',width:94,height:66,icon:'button',pins:[['1',0,34],['2',94,34]],description:'Chave mantida. Alterne o contato no painel de propriedades.',kind:'switch'},
   {type:'capacitor',name:'Capacitor',category:'Básicos',tag:'C',width:82,height:66,icon:'custom',pins:[['+',0,34],['−',82,34]],description:'Componente passivo; o modelo transitório será adicionado em uma próxima etapa.',kind:'passive'},
@@ -26,6 +26,7 @@ const catalog = [
   {type:'relay',name:'Módulo relé',category:'Saídas',tag:'1CH',width:118,height:90,icon:'custom',pins:[['VCC',0,18],['GND',0,68],['IN',0,43],['COM',118,18],['NO',118,45],['NC',118,70]],description:'Relé de um canal com entrada de controle e contatos.',kind:'actuator'},
   {type:'rgb',name:'LED RGB',category:'Saídas',tag:'RGB',width:92,height:78,icon:'custom',pins:[['R',0,18],['G',0,38],['B',0,58],['COM',92,38]],description:'LED vermelho, verde e azul de cátodo comum.',kind:'load'},
   {type:'segment',name:'Display 7 segmentos',category:'Displays',tag:'7-SEG',width:96,height:96,icon:'custom',pins:[['A',0,15],['B',96,15],['C',96,34],['D',0,34],['E',0,54],['F',96,54],['G',0,74],['COM',96,74]],description:'Display numérico de sete segmentos.',kind:'display'},
+  {type:'oled',name:'Display OLED 128×64',category:'Displays',tag:'OLED',width:112,height:84,icon:'custom',pins:[['GND',0,18],['VCC',0,40],['SCL',112,28],['SDA',112,52]],description:'SSD1306 I²C (0x3C). Funciona com firmware real (Adafruit SSD1306).',kind:'display'},
   {type:'neopixel',name:'NeoPixel RGB',category:'Displays',tag:'LED',width:92,height:76,icon:'custom',pins:[['VCC',0,18],['GND',0,56],['DIN',92,28],['DOUT',92,52]],description:'LED RGB endereçável. Protocolo de dados ainda não é simulado.',kind:'display'},
 ];
 const categories = [
@@ -104,12 +105,27 @@ function renderWires(){
   if(!pendingPin)$('#wirePreview').innerHTML='';
 }
 let pointerCanvas={x:0,y:0};
+// Só o visual (classes + arte), para atualizar peças sem recriar o elemento durante a simulação.
+function partVisual(part){
+  const def=defFor(part.type);if(!def)return null;
+  const classes=['part',`part-${part.type}`,selectedId===part.id?'selected':'',part.settings?.pressed?'pressed':'',part.settings?.lit?'lit':''].filter(Boolean).join(' ');
+  return{classes,inner:window.PixelParts?window.PixelParts.art(def,part):''};
+}
+function refreshParts(){
+  for(const part of project.parts){
+    const el=partLayer.querySelector(`[data-part="${CSS.escape(part.id)}"]`);if(!el){renderParts();return}
+    const v=partVisual(part);if(!v)continue;
+    if(el.className!==v.classes)el.className=v.classes;
+    if(part.settings?.duty!==undefined)el.style.setProperty('--duty',Number(part.settings.duty).toFixed(3));else el.style.removeProperty('--duty');
+    const card=el.querySelector('.part-card');if(card&&card._art!==v.inner){card.innerHTML=v.inner;card._art=v.inner}
+  }
+}
 function partMarkup(part){
   const def=defFor(part.type);if(!def)return'';
   const classes=['part',`part-${part.type}`,selectedId===part.id?'selected':'',part.settings?.pressed?'pressed':'',part.settings?.lit?'lit':''].filter(Boolean).join(' ');
   const inner=window.PixelParts?window.PixelParts.art(def,part):'';
   const pins=def.pins.map(([name,x,y])=>`<span class="pin ${pendingPin?.part===part.id&&pendingPin?.pin===name?'pending':''}" data-pin="${safeText(name)}" title="${safeText(name)}" style="left:${x}px;top:${y}px"></span><span class="pin-label ${x===0?'left':'right'}" style="left:${x===0?'auto':x+7+'px'};right:${x===0?'calc(100% + 5px)':'auto'};top:${y-4}px">${safeText(name)}</span>`).join('');
-  return `<div class="${classes}" data-part="${safeText(part.id)}" style="left:${part.x}px;top:${part.y}px;width:${def.width}px;height:${def.height+18}px"><div class="part-card" style="width:${def.width}px;height:${def.height}px">${inner}</div><div class="part-title">${safeText(part.name||def.name)}</div>${pins}</div>`;
+  return `<div class="${classes}" data-part="${safeText(part.id)}" style="${part.settings?.duty!==undefined?`--duty:${Number(part.settings.duty).toFixed(3)};`:''}left:${part.x}px;top:${part.y}px;width:${def.width}px;height:${def.height+18}px"><div class="part-card" style="width:${def.width}px;height:${def.height}px">${inner}</div><div class="part-title">${safeText(part.name||def.name)}</div>${pins}</div>`;
 }
 function renderParts(){
   partLayer.innerHTML=project.parts.map(partMarkup).join('');
@@ -146,10 +162,14 @@ function renderAll(){
 function modelStatus(def){
   if(!def)return null;const k=def.kind,t=def.type;
   if(t==='uno')return{sim:true,text:'Simulado: saídas D0–D13 vêm do sketch.'};
-  if(t==='led'||t==='buzzer')return{sim:true,text:'Simulado: liga quando há tensão no sentido certo. Sem corrente nem brilho proporcional.'};
+  if(t==='led'||t==='buzzer')return{sim:true,text:t==='led'?'Simulado: liga quando há tensão no sentido certo. Com firmware, o PWM (analogWrite) controla o brilho.':'Simulado: liga com tensão; com firmware, tone() toca a frequência real no alto-falante.'};
   if(k==='conductor')return{sim:true,text:'Simulado como condutor ideal: liga os dois terminais, sem queda de tensão.'};
   if(k==='switch')return{sim:true,text:'Simulado: abre e fecha o contato.'};
   if(k==='source'||k==='highRail'||k==='lowRail')return{sim:true,text:'Simulado: referência de 5 V ou 0 V.'};
+  if(t==='pot')return{sim:true,text:'Simulado com firmware: a posição vira tensão no pino analógico ligado ao SIG (analogRead).'};
+  if(t==='servo')return{sim:true,text:'Simulado com firmware: o ângulo vem da largura do pulso no SIG (biblioteca Servo).'};
+  if(t==='display')return{sim:true,text:'Simulado com firmware: LCD HD44780 com PCF8574 no I²C 0x27 (SDA→A4, SCL→A5).'};
+  if(t==='oled')return{sim:true,text:'Simulado com firmware: SSD1306 128×64 no I²C 0x3C (SDA→A4, SCL→A5).'};
   return{sim:false,text:'Só visual: ainda não tem modelo elétrico. Ela entra no desenho e nas conexões, mas não reage à simulação.'};
 }
 function renderInspector(){
@@ -160,14 +180,20 @@ function renderInspector(){
   const pins=def.pins.map(pin=>`<div class="property-row"><span>${safeText(pin[0])}</span><b>${project.wires.filter(w=>[w.a,w.b].some(end=>end.part===part.id&&end.pin===pin[0])).length?'Conectado':'Livre'}</b></div>`).join('');
   let controls='';
   if(def.kind==='switch')controls=`<div class="property-section"><p class="property-label">Estado do contato</p><div class="switch-row"><span>${part.settings?.pressed?(part.type==='switch'?'Fechado':'Pressionado'):'Aberto'}</span><button id="toggleButtonPart" class="toggle ${part.settings?.pressed?'on':''}" aria-label="Alternar botão"></button></div></div>`;
+  if(part.type==='uno')controls+=`<div class="property-section"><p class="property-label">Firmware (PlatformIO)</p><div class="property-row"><span>${part.settings?.firmware?safeText(part.settings.firmwareName||'firmware.hex'):'Sketch do editor'}</span><b>${part.settings?.firmware?Math.round(part.settings.firmware.length/1024)+' KB':'—'}</b></div><div class="fw-actions"><button id="fwLoad" class="button button-quiet">Carregar .hex</button>${window.showOpenFilePicker?'<button id="fwWatch" class="button button-quiet" title="Recarrega a cada pio run">Vigiar</button>':''}${part.settings?.firmware?'<button id="fwClear" class="text-button">Remover</button>':''}</div><p class="fw-hint">Arquivo: <code>.pio/build/uno/firmware.hex</code>. Com firmware, o Uno roda o código real; LCD/OLED no A4/A5 funcionam.</p></div>`;
+  if(part.type==='pot')controls+=`<div class="property-section"><p class="property-label">Posição</p><input id="potPos" type="range" min="0" max="1" step="0.01" value="${part.settings?.position??0.5}" style="width:100%"><div class="property-row"><span>Saída</span><b id="potVolts">${((part.settings?.position??0.5)*5).toFixed(2)} V</b></div></div>`;
   if(part.type==='resistor')controls+=`<div class="property-section"><p class="property-label">Valor</p><input id="partValue" class="property-input" value="${safeText(part.settings?.value||'220 Ω')}" /></div>`;
   if(part.type==='led')controls+=`<div class="property-section"><p class="property-label">Cor</p><div class="property-row"><span>Cor do LED</span><input id="ledColor" type="color" value="${safeText(part.settings?.color||'#e56d5c')}" style="width:30px;height:24px;border:0;background:transparent;cursor:pointer" /></div><div class="property-row"><span>Estado</span><b>${part.settings?.lit?'Ligado':'Desligado'}</b></div></div>`;
   view.innerHTML=`<div class="property-header"><div class="property-type">${safeText(def.category)} · ${safeText(def.tag||'COMPONENTE')}</div><h2>${safeText(part.name||def.name)}</h2></div><div class="property-section"><p class="property-label">Identificação</p><label class="property-row"><span>Nome</span><input id="partName" class="property-input" style="width:130px" value="${safeText(part.name||def.name)}" /></label>${def.voltage?`<div class="property-row"><span>Tensão nominal</span><b>${safeText(def.voltage)}</b></div>`:''}</div>${controls}<div class="property-section"><p class="property-label">Terminais</p>${pins}</div><div class="property-section"><p class="property-label">Sobre</p><p style="font-size:9px;line-height:1.55;color:#77827a;margin:0">${safeText(def.description||'Componente personalizado do seu projeto.')}</p>${(()=>{const st=modelStatus(def);return st?`<p class="model-status ${st.sim?'sim':'visual'}">${st.sim?'●':'◇'} ${safeText(st.text)}</p>`:''})()}</div><div class="property-section"><button id="deleteSelectedPart" class="text-button delete-part">Remover componente</button></div>`;
   $('#partName')?.addEventListener('change',event=>{part.name=event.target.value.trim()||def.name;markChanged();renderParts();renderInspector()});
   $('#partValue')?.addEventListener('change',event=>{part.settings.value=event.target.value;markChanged()});
   $('#ledColor')?.addEventListener('input',event=>{part.settings.color=event.target.value;markChanged()});
-  $('#toggleButtonPart')?.addEventListener('click',()=>{part.settings.pressed=!part.settings.pressed;markChanged();renderAll();if(simulationTimer)updateSimulation()});
+  $('#toggleButtonPart')?.addEventListener('click',()=>{part.settings.pressed=!part.settings.pressed;markChanged();if(fw){updateSimulation({quiet:true});renderInspector()}else{renderAll();if(simulationTimer)updateSimulation()}});
   $('#deleteSelectedPart')?.addEventListener('click',deleteSelected);
+  $('#fwLoad')?.addEventListener('click',()=>{const input=document.createElement('input');input.type='file';input.accept='.hex';input.onchange=async()=>{const f=input.files[0];if(f)setFirmware(part,await f.text(),f.name)};input.click()});
+  $('#fwWatch')?.addEventListener('click',async()=>{try{const[h]=await showOpenFilePicker({types:[{description:'Firmware Intel HEX',accept:{'text/plain':['.hex']}}]});watchFirmware(part,h)}catch{}});
+  $('#fwClear')?.addEventListener('click',()=>{stopSimulation();delete part.settings.firmware;delete part.settings.firmwareName;markChanged();renderInspector();toast('Firmware removido: o Uno volta ao sketch do editor')});
+  $('#potPos')?.addEventListener('input',e=>{part.settings.position=Number(e.target.value);$('#potVolts').textContent=(part.settings.position*5).toFixed(2)+' V';markChanged()});
 }
 function showInspectorTab(tab){const code=tab==='code';$('#propertiesTab').classList.toggle('active',!code);$('#codeTab').classList.toggle('active',code);$('#propertiesView').hidden=code;$('#codeView').hidden=!code}
 function addPart(type,atCenter=true){const def=defFor(type);if(!def)return;stopSimulation();snapshot();const rect=viewport.getBoundingClientRect();const x=atCenter?Math.max(30,Math.min(1520,(rect.width/2-panX)/zoom-def.width/2)):300;const y=atCenter?Math.max(30,Math.min(1000,(rect.height/2-panY)/zoom-def.height/2)):250;const n=project.parts.length;const part={id:`p${Date.now().toString(36)}${Math.floor(Math.random()*1000)}`,type,name:def.name,x:x+n*7%90,y:y+n*5%70,settings:{}};project.parts.push(part);selectedId=part.id;selectedWire=null;renderAll();markChanged()}
@@ -185,19 +211,25 @@ function deleteSelected(){
   const id=selectedId;snapshot();project.parts=project.parts.filter(p=>p.id!==id);project.wires=project.wires.filter(w=>w.a.part!==id&&w.b.part!==id);selectedId=null;renderAll();markChanged();if(simulationTimer)updateSimulation()
 }
 function unionFind(nodes,edges){const parent=new Map(nodes.map(n=>[n,n]));const find=x=>{let r=x;while(parent.get(r)!==r)r=parent.get(r);while(parent.get(x)!==x){const next=parent.get(x);parent.set(x,r);x=next}return r};for(const[a,b]of edges){if(!parent.has(a))parent.set(a,a);if(!parent.has(b))parent.set(b,b);parent.set(find(a),find(b))}return find}
-function updateSimulation(){
+const UNO_OUT_PINS=['D0','D1','D2','D3','D4','D5','D6','D7','D8','D9','D10','D11','D12','D13','A0','A1','A2','A3','A4','A5'];
+let lastNet=null;
+function updateSimulation(opts={}){
   const nodes=[],edges=[];const node=(part,pin)=>`${part}:${pin}`;
   for(const part of project.parts){for(const[pin]of defFor(part.type)?.pins||[])nodes.push(node(part.id,pin));if(part.type==='resistor'||defFor(part.type)?.kind==='conductor')edges.push([node(part.id,defFor(part.type).pins[0][0]),node(part.id,defFor(part.type).pins[1][0])]);if((['button','switch'].includes(part.type)||defFor(part.type)?.kind==='switch')&&part.settings?.pressed)edges.push([node(part.id,defFor(part.type).pins[0][0]),node(part.id,defFor(part.type).pins[1][0])]);}
   for(const wire of project.wires)edges.push([node(wire.a.part,wire.a.pin),node(wire.b.part,wire.b.pin)]);
   const find=unionFind(nodes,edges);const highs=new Set(),lows=new Set();
-  for(const part of project.parts){const definition=defFor(part.type);if(part.type==='source'||definition?.kind==='source'){const pins=definition.pins;highs.add(find(node(part.id,part.type==='source'?'+':pins[0][0])));lows.add(find(node(part.id,part.type==='source'?'−':pins[1][0])))}if(definition?.kind==='highRail')highs.add(find(node(part.id,definition.pins[0][0])));if(definition?.kind==='lowRail')lows.add(find(node(part.id,definition.pins[0][0])));if(part.type==='uno'){highs.add(find(node(part.id,'5V')));lows.add(find(node(part.id,'GND')));for(let pin=0;pin<14;pin++){const label=`D${pin}`;if(!pinDef(part,label))continue;const level=part.settings?.outputs?.[label];if(level===1)highs.add(find(node(part.id,label)));if(level===0)lows.add(find(node(part.id,label)))} }}
-  const lights=[];
-  for(const part of project.parts){if(part.type==='led'){const anode=find(node(part.id,'A')),cathode=find(node(part.id,'K'));const lit=Array.from(highs).some(h=>h===anode)&&Array.from(lows).some(l=>l===cathode);part.settings.lit=lit;lights.push(lit)}if(part.type==='buzzer'){const pos=find(node(part.id,'+')),neg=find(node(part.id,'−'));part.settings.lit=Array.from(highs).some(h=>h===pos)&&Array.from(lows).some(l=>l===neg)}}
-  renderParts();if(selectedId)renderInspector();
+  for(const part of project.parts){const definition=defFor(part.type);if(part.type==='source'||definition?.kind==='source'){const pins=definition.pins;highs.add(find(node(part.id,part.type==='source'?'+':pins[0][0])));lows.add(find(node(part.id,part.type==='source'?'−':pins[1][0])))}if(definition?.kind==='highRail')highs.add(find(node(part.id,definition.pins[0][0])));if(definition?.kind==='lowRail')lows.add(find(node(part.id,definition.pins[0][0])));if(part.type==='uno'){highs.add(find(node(part.id,'5V')));lows.add(find(node(part.id,'GND')));for(const label of UNO_OUT_PINS){if(!pinDef(part,label))continue;const level=part.settings?.outputs?.[label];if(level===1)highs.add(find(node(part.id,label)));if(level===0)lows.add(find(node(part.id,label)))} }}
+  const lights=[];lastNet={find,node,highs,lows};
+  // PWM e tone vindos do firmware: brilho proporcional e buzzer apitando.
+  const netDuty=new Map(),netTone=new Map();
+  for(const b of project.parts)if(b.type==='uno'){for(const[l,d]of Object.entries(b.settings?.duty||{}))netDuty.set(find(node(b.id,l)),d);for(const[l,f]of Object.entries(b.settings?.tone||{}))netTone.set(find(node(b.id,l)),f)}
+  for(const part of project.parts){if(part.type==='led'){const anode=find(node(part.id,'A')),cathode=find(node(part.id,'K'));const lit=Array.from(highs).some(h=>h===anode)&&Array.from(lows).some(l=>l===cathode);part.settings.lit=lit;part.settings.duty=lit&&netDuty.has(anode)?netDuty.get(anode):undefined;lights.push(lit)}if(part.type==='buzzer'){const pos=find(node(part.id,'+')),neg=find(node(part.id,'−'));const toneHz=netTone.get(pos);part.settings.tone=toneHz&&lows.has(neg)?toneHz:undefined;part.settings.lit=!!part.settings.tone||(highs.has(pos)&&lows.has(neg))}}
+  if(opts.quiet)refreshParts();else renderParts();if(selectedId&&!opts.quiet)renderInspector();
 }
 function applyWrites(writes){const boards=project.parts.filter(p=>p.type==='uno');for(const board of boards){const outputs={...(board.settings.outputs||{})};for(const w of writes)outputs[`D${w.pin}`]=w.level;board.settings.outputs=outputs}updateSimulation()}
 function runSimulation(){
   if(simulationTimer){stopSimulation();return}
+  if(project.parts.some(p=>p.type==='uno'&&p.settings?.firmware)){startFirmware();return}
   const sketch=$('#codeEditor').value;const parsed=window.Sketch.parse(sketch);
   if(!parsed.writes){toast('O sketch não tem digitalWrite() reconhecido em setup() ou loop()');showInspectorTab('code');$('#codeStatus').textContent=parsed.warnings[0]||'Sem instruções reconhecidas';return}
   project.code=sketch;
@@ -215,7 +247,85 @@ function runSimulation(){
   if(parsed.warnings.length)toast(parsed.warnings[0]);
   renderAll();markChanged();
 }
-function stopSimulation(){if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}for(const part of project.parts)if(part.type==='uno')part.settings.outputs={};updateSimulation();renderAll()}
+function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.angle}for(const part of project.parts)if(part.type==='uno')part.settings.outputs={};updateSimulation();renderAll()}
+// ---------- Firmware real (ATmega328P emulado) ----------
+let fw=null;
+function setFirmware(part,text,name){
+  if(!/^:/.test(text.trim())){toast('Isso não parece um .hex do PlatformIO');return}
+  const wasRunning=!!fw;stopSimulation();part.settings.firmware=text.trim();part.settings.firmwareName=name||'firmware.hex';markChanged();renderAll();
+  toast(`Firmware ${part.settings.firmwareName} carregado no ${part.name}`);if(wasRunning)runSimulation();
+}
+function watchFirmware(part,handle){
+  let stamp=0;clearInterval(part._watch);
+  const check=async()=>{try{const f=await handle.getFile();if(f.lastModified!==stamp){const first=!stamp;stamp=f.lastModified;setFirmware(part,await f.text(),f.name);if(!first)toast('Firmware novo: reboot')}}catch{}};
+  check();part._watch=setInterval(check,800);
+}
+function serialLog(text){const el=$('#serialOut');if(!el)return;el.textContent=(el.textContent+text).slice(-12000);el.scrollTop=el.scrollHeight}
+function i2cTargets(board,find,node){
+  // Displays com SDA no A4 e SCL no A5 deste Uno entram no barramento I²C.
+  const sda=find(node(board.id,'A4')),scl=find(node(board.id,'A5'));
+  return project.parts.filter(p=>(p.type==='display'||p.type==='oled')&&find(node(p.id,'SDA'))===sda&&find(node(p.id,'SCL'))===scl);
+}
+async function startFirmware(){
+  let mod,dev;try{[mod,dev]=await Promise.all([import('./emulator/avr.mjs'),import('./emulator/devices.mjs')])}catch{toast('Não foi possível carregar o emulador (sirva a pasta por HTTP)');return}
+  updateSimulation({quiet:true});
+  const boards=project.parts.filter(p=>p.type==='uno'&&p.settings?.firmware);
+  const units=[];
+  for(const board of boards){
+    let mcu;try{mcu=new mod.ATmega328P(board.settings.firmware)}catch(e){toast(`${board.name}: ${e.message}`);continue}
+    const dec=new TextDecoder();mcu.onSerial=b=>serialLog(dec.decode(new Uint8Array([b]),{stream:true}));
+    const devices=[];
+    for(const p of i2cTargets(board,lastNet.find,lastNet.node)){const d=p.type==='oled'?new dev.Ssd1306():new dev.LcdI2C();mcu.attachI2C(d.address,d);devices.push([p,d])}
+    try{const saved=localStorage.getItem('hs-eeprom-'+board.id);if(saved)mcu.eeprom.set(saved.match(/../g).map(h=>parseInt(h,16)))}catch{}
+    mcu.onEeprom=()=>{clearTimeout(mcu._eeSave);mcu._eeSave=setTimeout(()=>{try{localStorage.setItem('hs-eeprom-'+board.id,Array.from(mcu.eeprom,b=>b.toString(16).padStart(2,'0')).join(''))}catch{}},300)};
+    units.push({board,mcu,devices,clock:mod.CLOCK});
+  }
+  if(!units.length)return;
+  const other=project.parts.filter(p=>p.type==='uno'&&!p.settings?.firmware).length;
+  serialLog(`\n── boot: ${units.map(u=>u.board.settings.firmwareName).join(', ')} ──\n`);
+  if(other)toast(`${other} Uno sem firmware ficará parado`);
+  fw={units,raf:0,last:0,paint:0,audio:null};simulationTimer='firmware';showSerial(true);
+  $('#codeStatus').textContent='Rodando firmware real (ATmega328P a 16 MHz)';
+  renderAll();fw.raf=requestAnimationFrame(firmwareFrame);
+}
+function firmwareFrame(now){
+  if(!fw)return;const dt=fw.last?Math.min((now-fw.last)/1000,.05):0;fw.last=now;
+  for(const u of fw.units){
+    feedInputs(u);if(dt)u.mcu.run(Math.round(dt*u.clock));
+    const pins=u.mcu.pinSnapshot(),out={},duty={},tone={};
+    for(const label of UNO_OUT_PINS){const p=pins[label];if(!p||p.mode!=='output')continue;const pulse=u.mcu.pulseInfo(label);
+      if(pulse&&pulse.hz>20&&pulse.hz<20000&&(p.duty===null||p.duty===0||p.duty===1)){tone[label]=pulse.hz;out[label]=1}else{out[label]=p.level;if(p.duty!==null&&p.duty>0&&p.duty<1)duty[label]=p.duty}}
+    u.board.settings.outputs=out;u.board.settings.duty=duty;u.board.settings.tone=tone;
+    for(const[p,d]of u.devices){if(p.type==='display'){p.settings.lines=d.lines();p.settings.backlight=d.backlight}else p._oled=d}
+  }
+  if(now-fw.paint>45){fw.paint=now;servoAngles();updateSimulation({quiet:true});paintOleds();buzzerAudio()}
+  fw.raf=requestAnimationFrame(firmwareFrame);
+}
+function feedInputs(u){
+  if(!lastNet)return;const{find,node,highs,lows}=lastNet;const pins=u.mcu.pinSnapshot();
+  for(const label of UNO_OUT_PINS){const p=pins[label];if(!p||p.mode==='output')continue;const net=find(node(u.board.id,label));u.mcu.setInput(label,lows.has(net)?0:highs.has(net)?1:null)}
+  // Potenciômetro: SIG ligado a uma entrada analógica.
+  for(const pot of project.parts.filter(p=>p.type==='pot')){
+    const vcc=find(node(pot.id,'VCC')),gnd=find(node(pot.id,'GND')),sig=find(node(pot.id,'SIG'));if(!highs.has(vcc)||!lows.has(gnd))continue;
+    for(let i=0;i<6;i++)if(find(node(u.board.id,'A'+i))===sig)u.mcu.analog[i]=(pot.settings?.position??0.5)*5;
+  }
+}
+function servoAngles(){
+  if(!fw||!lastNet)return;const{find,node}=lastNet;
+  for(const s of project.parts.filter(p=>p.type==='servo')){const sig=find(node(s.id,'SIG'));
+    for(const u of fw.units)for(const label of UNO_OUT_PINS)if(find(node(u.board.id,label))===sig){const p=u.mcu.pulseInfo(label);if(p&&p.highUs>400&&p.highUs<2600){s.settings.angle=Math.round(Math.max(0,Math.min(180,(p.highUs-544)/(2400-544)*180)))}}}
+}
+function paintOleds(){
+  for(const p of project.parts.filter(p=>p.type==='oled'&&p._oled)){const c=document.querySelector(`[data-part="${p.id}"] canvas`);if(!c)continue;const ctx=c.getContext('2d'),img=ctx.createImageData(128,64),d=p._oled;
+    for(let y=0;y<64;y++)for(let x=0;x<128;x++){const on=d.on&&d.pixel(x,y),i=(y*128+x)*4;img.data[i]=on?140:6;img.data[i+1]=on?220:12;img.data[i+2]=on?255:28;img.data[i+3]=255}ctx.putImageData(img,0,0)}
+}
+function buzzerAudio(){
+  if(!fw)return;const hz=project.parts.find(p=>p.type==='buzzer'&&p.settings?.tone)?.settings.tone;
+  try{if(hz&&!fw.audio){const ac=new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type='square';g.gain.value=.04;o.connect(g).connect(ac.destination);o.start();fw.audio={ac,o}}
+    if(fw.audio){if(hz)fw.audio.o.frequency.setTargetAtTime(hz,fw.audio.ac.currentTime,.01);else{fw.audio.o.stop();fw.audio.ac.close();fw.audio=null}}}catch{}
+}
+function stopFirmware(){if(!fw)return;cancelAnimationFrame(fw.raf);try{fw.audio?.o.stop();fw.audio?.ac.close()}catch{}for(const u of fw.units)u.board.settings.outputs={};fw=null;simulationTimer=null;$('#codeStatus').textContent='Firmware parado'}
+function showSerial(on){const el=$('#serialPanel');if(el)el.hidden=!on}
 function loadExample(id){stopSimulation();snapshot();if(id==='empty'){project={version:1,title:'Circuito sem título',parts:[],wires:[],code:STARTER_CODE}}
   if(id==='blink')project=defaultProject();
   if(id==='button')project={version:1,title:'Botão e LED',parts:[{id:'b1',type:'source',name:'Fonte 5 V',x:290,y:320,settings:{}},{id:'sw1',type:'button',name:'Botão',x:480,y:320,settings:{}},{id:'r1',type:'resistor',name:'R1 · 220 Ω',x:660,y:320,settings:{value:'220 Ω'}},{id:'l1',type:'led',name:'LED verde',x:860,y:320,settings:{color:'#64c77d'}}],wires:[{id:'w1',a:{part:'b1',pin:'+'},b:{part:'sw1',pin:'1'}},{id:'w2',a:{part:'sw1',pin:'2'},b:{part:'r1',pin:'1'}},{id:'w3',a:{part:'r1',pin:'2'},b:{part:'l1',pin:'A'}},{id:'w4',a:{part:'l1',pin:'K'},b:{part:'b1',pin:'−'}}],code:STARTER_CODE};
@@ -255,7 +365,7 @@ function importProject(file){
       const safeParts=value.parts.slice(0,250).map((part,index)=>{
         const def=defFor(part.type);if(!def)return null;
         const raw=part.settings&&typeof part.settings==='object'?part.settings:{};
-        const settings={pressed:raw.pressed===true,value:typeof raw.value==='string'?raw.value.slice(0,24):undefined,color:typeof raw.color==='string'&&/^#[\da-f]{6}$/i.test(raw.color)?raw.color:undefined,screen:typeof raw.screen==='string'?raw.screen.slice(0,13):undefined};
+        const settings={pressed:raw.pressed===true,value:typeof raw.value==='string'?raw.value.slice(0,24):undefined,color:typeof raw.color==='string'&&/^#[\da-f]{6}$/i.test(raw.color)?raw.color:undefined,screen:typeof raw.screen==='string'?raw.screen.slice(0,13):undefined,firmware:typeof raw.firmware==='string'&&raw.firmware.startsWith(':')&&raw.firmware.length<400000?raw.firmware:undefined,firmwareName:typeof raw.firmwareName==='string'?raw.firmwareName.slice(0,60):undefined,position:Number.isFinite(raw.position)?Math.max(0,Math.min(1,raw.position)):undefined};
         if(raw.outputs&&typeof raw.outputs==='object')settings.outputs=Object.fromEntries(Object.entries(raw.outputs).filter(([pin,level])=>/^D(?:[0-9]|1[0-3])$/.test(pin)&&(level===0||level===1)));
         return{id:String(part.id||`part-${index}`).slice(0,60),type:def.type,name:String(part.name||def.name).slice(0,40),x:Math.max(0,Math.min(1680,Number.isFinite(Number(part.x))?Number(part.x):40)),y:Math.max(0,Math.min(1080,Number.isFinite(Number(part.y))?Number(part.y):40)),settings};
       }).filter(Boolean);
@@ -305,3 +415,6 @@ window.addEventListener('keydown',event=>{const typing=['INPUT','TEXTAREA','SELE
 window.addEventListener('resize',()=>{canvas.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`});
 
 renderAll();setTimeout(fitCircuit,30);saveProject();
+
+$('#serialSend')?.addEventListener('submit',e=>{e.preventDefault();const input=$('#serialSendText');if(fw&&input.value){fw.units[0].mcu.serialInput(input.value+'\n');serialLog('» '+input.value+'\n');input.value=''}});
+$('#serialClose')?.addEventListener('click',()=>showSerial(false));

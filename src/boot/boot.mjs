@@ -1,9 +1,10 @@
 // Página de boot: carrega um firmware.hex e roda no ATmega328P emulado em tempo real.
 import { ATmega328P, CLOCK } from '../emulator/avr.mjs';
+import { LcdI2C, Ssd1306 } from '../emulator/devices.mjs';
 const $ = id => document.getElementById(id);
 const UNO = { type: 'uno', width: 182, height: 220, pins: [] };
 const PIN_POS = { ...Object.fromEntries([...Array(14)].map((_, i) => [`D${i}`, [0, 26 + i * 12]])), ...Object.fromEntries([0, 1, 2, 3, 4, 5].map(i => [`A${i}`, [182, 38 + i * 20]])) };
-let mcu = null, running = false, raf = 0, last = 0, hexText = '', fileName = '', fileHandle = null, lastModified = 0, watchTimer = 0, perf = 1, pressed = new Set();
+let lcd = null, oled = null, audio = null, mcu = null, running = false, raf = 0, last = 0, hexText = '', fileName = '', fileHandle = null, lastModified = 0, watchTimer = 0, perf = 1, pressed = new Set();
 
 // Placa em pixel art + indicadores de pino
 $('boardWrap').innerHTML = window.PixelParts.art(UNO, { settings: {} }) + Object.entries(PIN_POS).map(([n, [x, y]]) => `<span class="pin-dot" data-pin="${n}" style="left:${(x / 182) * 100}%;top:${(y / 220) * 100}%" title="${n}"></span>`).join('');
@@ -14,16 +15,20 @@ function serialPrint(text) { const el = $('serial'); el.textContent = (el.textCo
 function load(text, name) {
   try { mcu = new ATmega328P(text); } catch (e) { serialPrint(`\n[erro] ${e.message}\n`); return false; }
   hexText = text; fileName = name || 'firmware.hex';
-  mcu.onSerial = b => serialPrint(String.fromCharCode(b));
+  const dec = new TextDecoder(); mcu.onSerial = b => serialPrint(dec.decode(new Uint8Array([b]), { stream: true }));
   mcu.onPinChange = () => {}; // estado lido a cada quadro
   mcu.analog[0] = Number($('a0Slider').value);
   for (const p of pressed) mcu.setInput(p, 0);
+  lcd = $('lcdOn').checked ? mcu.attachI2C(0x27, new LcdI2C()) : null; oled = $('oledOn').checked ? mcu.attachI2C(0x3c, new Ssd1306()) : null;
+  const key = 'hs-boot-eeprom-' + (name || 'firmware.hex');
+  try { const saved = localStorage.getItem(key); if (saved) mcu.eeprom.set(saved.match(/../g).map(h => parseInt(h, 16))); } catch {}
+  mcu.onEeprom = () => { clearTimeout(mcu._ee); mcu._ee = setTimeout(() => { try { localStorage.setItem(key, Array.from(mcu.eeprom, b => b.toString(16).padStart(2, '0')).join('')); } catch {} }, 300); };
   $('dropHint').hidden = true; $('runButton').disabled = false; $('resetButton').disabled = false;
   $('chipInfo').textContent = `ATmega328P · 16 MHz · ${fileName} · ${mcu.programSize} bytes`;
   paint(); return true;
 }
 function boot() { if (!mcu) return; running = true; last = 0; $('runButton').textContent = '⏸ Pausar'; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); }
-function pause() { running = false; $('runButton').textContent = '▶ Continuar'; cancelAnimationFrame(raf); }
+function pause() { running = false; sound(0); $('runButton').textContent = '▶ Continuar'; cancelAnimationFrame(raf); }
 function reboot(note) { if (!hexText) return; const was = running || !mcu; load(hexText, fileName); serialPrint(`\n── ${note || 'reset'} ──\n`); if (was) boot(); }
 function frame(now) {
   if (!running) return;
@@ -43,6 +48,20 @@ function paint() {
   document.querySelector('#boardWrap .ledL')?.classList.toggle('on', pins.D13.mode === 'output' && pins.D13.level === 1);
   for (const b of document.querySelectorAll('[data-in]')) { const p = pins[b.dataset.in]; b.disabled = p.mode === 'output'; b.classList.toggle('on', pressed.has(b.dataset.in)); b.title = p.mode === 'output' ? 'Saída' : p.mode === 'input_pullup' ? 'Entrada com pull-up' : 'Entrada'; }
   $('clock').textContent = `t = ${fmt(mcu.time)} s · ${running ? fmt(perf, 1) + '× folga' : 'pausado'}`;
+  if (lcd) $('lcdView').textContent = lcd.lines().join('\n'), $('lcdView').classList.toggle('dark', !lcd.backlight);
+  if (oled) { const ctx = $('oledView').getContext('2d'), img = ctx.createImageData(128, 64); for (let y = 0; y < 64; y++) for (let x = 0; x < 128; x++) { const on = oled.on && oled.pixel(x, y), i = (y * 128 + x) * 4; img.data[i] = on ? 140 : 6; img.data[i + 1] = on ? 220 : 12; img.data[i + 2] = on ? 255 : 28; img.data[i + 3] = 255; } ctx.putImageData(img, 0, 0); }
+  const items = []; let toneHz = 0;
+  for (const name of Object.keys(pins)) { const p = mcu.pulseInfo(name); if (!p || !p.periodUs) continue;
+    if (p.periodUs > 15000 && p.periodUs < 25000 && p.highUs > 400 && p.highUs < 2600) items.push(`${name} · servo ${Math.round((p.highUs - 544) / (2400 - 544) * 180)}° (${Math.round(p.highUs)} µs)`);
+    else { items.push(`${name} · ${fmt(p.hz, 1)} Hz · ${Math.round(p.highUs / p.periodUs * 100)}%`); if (!toneHz && p.hz > 20 && p.hz < 20000) toneHz = p.hz; } }
+  $('pulseView').innerHTML = items.length ? items.map(t => `<li>${t}</li>`).join('') : '<li>—</li>';
+  sound(running && $('soundOn').checked ? toneHz : 0);
+}
+function sound(hz) {
+  try {
+    if (hz && !audio) { const ac = new AudioContext(), o = ac.createOscillator(), g = ac.createGain(); o.type = 'square'; g.gain.value = 0.04; o.connect(g).connect(ac.destination); o.start(); audio = { ac, o }; }
+    if (audio) { if (hz) audio.o.frequency.setTargetAtTime(hz, audio.ac.currentTime, 0.01); else { audio.o.stop(); audio.ac.close(); audio = null; } }
+  } catch {}
 }
 async function readFile(file) { const text = await file.text(); if (load(text, file.name)) { serialPrint(`── boot: ${file.name} ──\n`); boot(); } }
 
@@ -76,3 +95,5 @@ $('a0Slider').oninput = e => { const v = Number(e.target.value); $('a0Value').te
 $('serialForm').onsubmit = e => { e.preventDefault(); if (!mcu) return; mcu.serialInput($('serialText').value + '\n'); $('serialText').value = ''; };
 $('clearSerial').onclick = () => { $('serial').textContent = ''; };
 document.addEventListener('visibilitychange', () => { if (document.hidden && running) { pause(); } });
+
+$('lcdOn').onchange = $('oledOn').onchange = () => { if (hexText) reboot('dispositivos alterados'); };

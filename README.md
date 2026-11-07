@@ -24,20 +24,33 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 
 ## Boot de firmware (Arduino Uno)
 
-Igual ao fluxo que você já usa com PlatformIO: **o PlatformIO compila, o Hardware Studio dá boot**. O emulador do ATmega328P (`src/emulator/avr.mjs`) foi escrito para este projeto, executa cada instrução do `firmware.hex` e emula Timer0/1/2, GPIO, PWM, USART (TX e RX) e ADC.
+Igual ao fluxo que você já usa com PlatformIO: **o PlatformIO compila, o Hardware Studio dá boot**. O emulador do ATmega328P (`src/emulator/avr.mjs`) foi escrito para este projeto e executa cada instrução do `firmware.hex`.
+
+| Periférico | Funciona com |
+| --- | --- |
+| GPIO, pull-up, `digitalRead/Write` | botões, LEDs, qualquer pino D0–D13 e A0–A5 |
+| Timer0/1/2, PWM | `millis`, `delay`, `analogWrite`, `Servo`, `tone` |
+| USART0 TX/RX | `Serial.print`, `Serial.read` (ritmo real do baud) |
+| ADC 10 bits | `analogRead` (potenciômetro) |
+| INT0/INT1, PCINT | `attachInterrupt`, ISRs de troca de pino |
+| EEPROM 1 KB | `EEPROM.get/put/update` (guardada entre resets e no navegador) |
+| Watchdog e sleep | `wdt_enable`, reset por watchdog, `sleep_cpu` (idle e power-down) |
+| SPI mestre | `SPI.transfer` com dispositivo plugável |
+| I²C (TWI) mestre | `Wire`, `LiquidCrystal_I2C` (LCD 0x27), `Adafruit_SSD1306` (OLED 0x3C) |
 
 ```sh
 # no platformio.ini do seu projeto
 extra_scripts = post:/caminho/para/hardware-simulator/tools/platformio/simulate.py
 
-pio run -t simulate                          # compila e roda em tempo real; digite para mandar pela serial
-SIM_ARGS="--seconds 5 --pins" pio run -t simulate   # roda 5 s e mostra cada mudança de pino
-node tools/avr-run.mjs .pio/build/uno/firmware.hex  # sem PlatformIO
+pio run -t simulate                                       # compila e roda em tempo real
+SIM_ARGS="--seconds 5 --pins --lcd --oled" pio run -t simulate
+node tools/avr-run.mjs .pio/build/uno/firmware.hex --lcd --eeprom eeprom.bin
 ```
 
-No navegador, abra `boot.html`, solte o `.pio/build/uno/firmware.hex` e use **Vigiar arquivo** (Chrome/Edge): a cada `pio run` o chip reinicia sozinho com o firmware novo. Há monitor serial, botões nos pinos de entrada e um potenciômetro no A0.
+- **Navegador (`boot.html`):** solte o `firmware.hex`, use **Vigiar arquivo** (Chrome/Edge) e cada `pio run` reinicia o chip. Monitor serial, botões nos pinos, potenciômetro no A0, LCD, OLED, pulsos medidos (servo em graus, frequência do `tone`) e som do `tone()`.
+- **Editor (`editor.html`):** selecione o Uno → **Carregar .hex** (ou **Vigiar**). O firmware real move o circuito: LEDs (com brilho de PWM), buzzer com som, botões e chaves viram entradas, potenciômetro vira tensão no pino analógico, servo gira, LCD e OLED ligados no A4/A5 mostram a tela. Exemplo pronto: importe `examples/firmware/painel-projeto.json` (fonte em `examples/firmware/painel`).
 
-Ainda não emula: EEPROM, SPI, I²C, watchdog, sleep real, outras placas (ESP32) e o consumo elétrico do chip. `node tests/avr.mjs` roda 9 testes com firmwares reais compilados pelo PlatformIO (`tests/fixtures/avr`).
+Ainda não emula: comparador analógico, captura de entrada do Timer1, USART síncrono, I²C/SPI escravo, outras placas (ESP32) e consumo elétrico do chip. `node tests/avr.mjs` roda 17 testes com firmwares reais compilados pelo PlatformIO (`tests/fixtures/avr`).
 
 ## Aparência
 

@@ -24,12 +24,18 @@
     <div><span class="label">Entradas digitais</span><small>Clique num pino de entrada para ligá-lo ao GND (como um botão).</small><div id="pinGrid" class="pin-grid"></div></div>
     <label class="analog"><span class="label">A0 <b id="a0Value">2,50 V</b></span><input id="a0Slider" type="range" min="0" max="5" step="0.01" value="2.5"></label>
   </div>
+  <div class="devices">
+    <div class="dev"><label class="label"><input type="checkbox" id="lcdOn" checked> LCD 16×2 I²C · 0x27</label><pre id="lcdView" class="lcd-view">                
+                </pre></div>
+    <div class="dev"><label class="label"><input type="checkbox" id="oledOn" checked> OLED SSD1306 · 0x3C</label><canvas id="oledView" width="128" height="64"></canvas></div>
+    <div class="dev"><span class="label">Pulsos medidos <label class="snd"><input type="checkbox" id="soundOn" checked> som do tone()</label></span><ul id="pulseView" class="pulse-view"><li>—</li></ul></div>
+  </div>
 </section>
 <section class="serial-side">
   <div class="serial-head"><span class="label">Monitor serial</span><button id="clearSerial" class="link">limpar</button></div>
   <pre id="serial" class="serial" aria-live="polite"></pre>
   <form id="serialForm" class="serial-input"><input id="serialText" placeholder="Enviar para o Uno…" autocomplete="off"><button>Enviar</button></form>
-  <details class="peek-lite"><summary>Como funciona?</summary><p>Quem compila é o PlatformIO (<code>pio run</code>). Esta página só carrega o <code>firmware.hex</code> e executa cada instrução do ATmega328P, com timers, serial, PWM e ADC. No terminal: <code>pio run -t simulate</code>. Não emula ainda EEPROM, SPI, I²C nem o consumo elétrico.</p></details>
+  <details class="peek-lite"><summary>Como funciona?</summary><p>Quem compila é o PlatformIO (<code>pio run</code>). Esta página só carrega o <code>firmware.hex</code> e executa cada instrução do ATmega328P: timers, PWM, serial, ADC, interrupções, EEPROM (salva neste navegador), watchdog, sleep, SPI e I²C com LCD 0x27 e OLED 0x3C. No terminal: <code>pio run -t simulate</code>. Ainda não emula comparador analógico, captura de entrada do Timer1 nem consumo elétrico.</p></details>
 </section>
 </main>
 <input id="fileInput" type="file" accept=".hex" hidden>

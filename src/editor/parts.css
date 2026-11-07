@@ -70,3 +70,16 @@
 [data-surface=editor] .peek-lite summary{cursor:pointer;list-style:none}
 [data-surface=editor] .peek-lite summary::after{content:" +";color:var(--accent2)}
 [data-surface=editor] .peek-lite[open] summary::after{content:" ×"}
+.px-art .lcdoff{fill:#3f5f45}
+.px-art .mono{font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:-.2px}
+.part-led.lit .px-art .bulb{opacity:calc(.3 + .7 * var(--duty,1))}
+/* Firmware no editor */
+[data-surface=editor] .fw-actions{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+[data-surface=editor] .fw-hint{font-size:11px;line-height:1.5;color:var(--muted);margin:4px 0 0}
+[data-surface=editor] .fw-hint code{font-size:10px}
+.serial-panel{position:absolute;right:14px;bottom:56px;z-index:30;width:min(360px,calc(100% - 28px));background:#0b1024;border:2px solid var(--ink,#182449);box-shadow:4px 4px 0 var(--accent2,#7941b7);display:flex;flex-direction:column}
+.serial-panel header{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--surface,#fff);color:var(--ink,#182449);font-size:12px}
+.serial-panel pre{margin:0;height:150px;overflow:auto;padding:8px 10px;color:#9be564;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap}
+.serial-panel input{width:100%;border:0;border-top:1px solid #2e3768;background:#10163a;color:#e9ecff;font:12px ui-monospace,monospace;padding:8px 10px}
+.serial-panel[hidden]{display:none}
+[data-surface=editor] .workspace{position:relative}

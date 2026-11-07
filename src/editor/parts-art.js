@@ -79,10 +79,18 @@
       return leadL(17, 26) + leadL(60, 26) + leadR(39, 78, 104) + R(24, 10, 56, 58, 'k') + R(26, 12, 52, 54, 'bp') + disc(52, 39, 16, 'c') + R(50, 27, 4, 24, 'm') + R(40, 37, 24, 4, 'm') + R(30, 14, 4, 4, 'p') + R(70, 60, 4, 4, 'p');
     },
     display(def, part) {
-      const txt = String(part?.settings?.screen || 'HELLO WORLD').slice(0, 13);
+      const lines = part?.settings?.lines, lit = lines ? part.settings.backlight !== false : true;
+      const t1 = lines ? lines[0] : String(part?.settings?.screen || 'HELLO WORLD').slice(0, 8), t2 = lines ? lines[1] : String(part?.settings?.screen || 'HELLO WORLD').slice(8);
       let s = R(0, 17, 10, 2, 'mt') + R(0, 53, 10, 2, 'mt') + R(102, 24, 10, 2, 'mt') + R(102, 47, 10, 2, 'mt');
-      s += R(8, 2, 96, 68, 'k') + R(10, 4, 92, 64, 'bd') + R(14, 12, 84, 46, 'k') + R(18, 16, 76, 38, 'lcd');
-      return s + T(22, 32, esc(txt.slice(0, 8)), 'lcdt', 11) + T(22, 47, esc(txt.slice(8)), 'lcdt', 11) + R(12, 6, 4, 4, 'mt') + R(96, 6, 4, 4, 'mt');
+      s += R(8, 2, 96, 68, 'k') + R(10, 4, 92, 64, 'bd') + R(14, 12, 84, 46, 'k') + R(18, 16, 76, 38, lit ? 'lcd' : 'lcdoff');
+      const fs = lines ? 7.6 : 11;
+      return s + T(20, 32, esc(t1).replace(/ /g, '&#160;'), 'lcdt mono', fs) + T(20, 47, esc(t2).replace(/ /g, '&#160;'), 'lcdt mono', fs) + R(12, 6, 4, 4, 'mt') + R(96, 6, 4, 4, 'mt');
+    },
+    oled() {
+      let s = leadL(18, 10) + leadL(40, 10) + leadR(28, 102, 112) + leadR(52, 102, 112);
+      s += R(8, 2, 96, 80, 'k') + R(10, 4, 92, 76, 'bp') + R(14, 14, 84, 46, 'k');
+      [[14, 6], [92, 6], [14, 72], [92, 72]].forEach(([x, y]) => { s += disc(x + 2, y + 2, 3, 'mt'); });
+      return s + '<foreignObject x="16" y="18" width="80" height="40"><canvas xmlns="http://www.w3.org/1999/xhtml" width="128" height="64" style="width:80px;height:40px;image-rendering:pixelated;display:block;background:#060c1c"></canvas></foreignObject>' + T(56, 70, 'SSD1306', 'c', 7, 'middle');
     },
     gate() {
       let s = leadL(20, 22) + leadL(52, 22) + leadR(36, 68, 90) + R(22, 16, 46, 40, 'ic') + R(22, 32, 4, 8, 'p');
@@ -107,10 +115,12 @@
       [36, 82].forEach(cx => { s += disc(cx, 40, 17, 'mt2') + disc(cx, 40, 14, 'mt') + disc(cx, 40, 9, 'k'); for (let i = -6; i <= 4; i += 4) s += R(cx + i, 38, 2, 2, 'mt2') + R(cx - 1, 38 + i, 2, 2, 'mt2'); });
       return s + R(52, 10, 14, 6, 'mt') + T(59, 72, 'HC-SR04', 'c', 7, 'middle');
     },
-    servo() {
+    servo(def, part) {
+      const a = (part?.settings?.angle ?? 90) - 90;
       let s = F(0, 17, 22, 2, '#6b4a2f') + F(0, 40, 22, 2, '#e25a4f') + F(74, 29, 22, 2, '#f2b44a');
       s += R(10, 32, 76, 18, 'k') + R(12, 34, 72, 14, 'bp') + R(20, 18, 56, 48, 'k') + R(22, 20, 52, 44, 'bp');
-      return s + R(26, 26, 44, 8, 'c') + disc(28, 30, 5, 'c') + disc(68, 30, 5, 'c') + disc(36, 30, 6, 'p') + R(34, 28, 4, 4, 'm') + T(48, 58, 'SG90', 'c', 9, 'middle');
+      s += `<g class="horn" transform="rotate(${a} 36 30)">${R(30, 27, 40, 6, 'c')}${disc(68, 30, 4, 'c')}${R(64, 29, 2, 2, 'm')}</g>`;
+      return s + disc(36, 30, 7, 'c') + disc(36, 30, 3, 'm') + T(48, 58, 'SG90', 'c', 9, 'middle');
     },
     motor() {
       return leadL(36, 16) + leadR(36, 60, 82) + R(38, 4, 4, 12, 'k') + R(14, 20, 8, 32, 'mt2') + R(20, 14, 42, 44, 'mt') + R(20, 22, 42, 2, 'mt2') + R(20, 48, 42, 2, 'mt2') + R(60, 18, 4, 36, 'mt2') + T(41, 41, 'M', 'k', 13, 'middle');
