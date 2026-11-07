@@ -28,6 +28,12 @@
     <div class="dev"><label class="label"><input type="checkbox" id="lcdOn" checked> LCD 16×2 I²C · 0x27</label><pre id="lcdView" class="lcd-view">                
                 </pre></div>
     <div class="dev"><label class="label"><input type="checkbox" id="oledOn" checked> OLED SSD1306 · 0x3C</label><canvas id="oledView" width="128" height="64"></canvas></div>
+    <div class="dev sensors"><span class="label">Sensores I²C</span>
+      <label><input type="checkbox" data-dev="bme" checked> BME280 0x76 · <input type="number" id="bmeT" value="24" step="0.5"> °C <input type="number" id="bmeH" value="55" step="1"> %</label>
+      <label><input type="checkbox" data-dev="mpu" checked> MPU6050 0x68 · incl. X <input type="number" id="mpuX" value="0" step="5"> °</label>
+      <label><input type="checkbox" data-dev="bh" checked> BH1750 0x23 · <input type="number" id="bhLux" value="320" step="10"> lx</label>
+      <label><input type="checkbox" data-dev="rtc"> DS3231 0x68 (troque com o MPU)</label>
+    </div>
     <div class="dev"><span class="label">Pulsos medidos <label class="snd"><input type="checkbox" id="soundOn" checked> som do tone()</label></span><ul id="pulseView" class="pulse-view"><li>—</li></ul></div>
   </div>
 </section>

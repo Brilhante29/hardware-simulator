@@ -1,7 +1,7 @@
 // Firmware real (compilado pelo PlatformIO) rodando no emulador ATmega328P.
 import { readFileSync } from 'node:fs';
 import { ATmega328P, parseHex } from '../src/emulator/avr.mjs';
-import { LcdI2C, Ssd1306 } from '../src/emulator/devices.mjs';
+import { LcdI2C, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750 } from '../src/emulator/devices.mjs';
 const hex = n => readFileSync(new URL(`./fixtures/avr/${n}.hex`, import.meta.url), 'utf8');
 function boot(name) { const m = new ATmega328P(hex(name)); m.out = ''; m.onSerial = b => { m.out += String.fromCharCode(b); }; return m; }
 
@@ -44,6 +44,13 @@ export function runAvrTests() {
     const m = boot('oled'); const o = m.attachI2C(0x3c, new Ssd1306()); m.runSeconds(1); eq(m.out, 'oled ok\r\n'); ok(o.on);
     ok(o.pixel(0, 40) && o.pixel(127, 40) && o.pixel(0, 63), 'retângulo'); ok(o.pixel(64, 52), 'círculo'); ok(!o.pixel(64, 30), 'fundo');
   });
+  test('BME280 (Adafruit): 23,4 °C, 1007,5 hPa e 61,2 % pelas fórmulas da Bosch', 'BME280 datasheet §4.2.3', () => {
+    const m = boot('bme280'); const b = m.attachI2C(0x76, new Bme280({ temperature: 23.4, pressure: 1007.5, humidity: 61.2 })); m.runSeconds(0.3); b.temperature = 31; m.runSeconds(0.6);
+    const lines = m.out.trim().split('\r\n'); eq(lines[0], '23.40 1007.50 61.21'); ok(lines.at(-1).startsWith('31.00 '), lines.at(-1));
+  });
+  test('MPU6050 (Adafruit): 0,5 g → 4,90 m/s² e 45 °/s → 0,786 rad/s', 'MPU-6000 registradores 0x3B–0x48', () => { const m = boot('mpu6050'); m.attachI2C(0x68, new Mpu6050({ accel: [0.5, -0.25, 1], gyro: [0, 0, 45], temperature: 28 })); m.runSeconds(0.5); eq(m.out.split('\r\n')[0], '4.90 -2.45 9.81 0.786 28.0'); });
+  test('DS3231 (RTClib): ajuste, segundos correndo e virada do dia', 'DS3231 registradores BCD', () => { const m = boot('ds3231'); m.attachI2C(0x68, new Ds3231()); m.runSeconds(3.2); ok(m.out.startsWith('ajustado\r\n2026-11-07 23:59:58 25.00'), m.out); ok(m.out.includes('2026-11-08 00:00:00'), m.out); });
+  test('BH1750: 432,5 lux', 'BH1750FVI modo H-res', () => { const m = boot('bh1750'); m.attachI2C(0x23, new Bh1750({ lux: 432.5 })); m.runSeconds(0.5); eq(m.out.split('\r\n')[0], '432.5'); });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;
 }

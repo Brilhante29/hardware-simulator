@@ -83,3 +83,6 @@
 .serial-panel input{width:100%;border:0;border-top:1px solid #2e3768;background:#10163a;color:#e9ecff;font:12px ui-monospace,monospace;padding:8px 10px}
 .serial-panel[hidden]{display:none}
 [data-surface=editor] .workspace{position:relative}
+.px-art .mod{fill:#5b3a9e}
+[data-surface=editor] .sensor-row{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:12px;margin:6px 0}
+[data-surface=editor] .sensor-row input{grid-column:1/-1;width:100%}

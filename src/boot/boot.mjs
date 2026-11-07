@@ -1,10 +1,10 @@
 // Página de boot: carrega um firmware.hex e roda no ATmega328P emulado em tempo real.
 import { ATmega328P, CLOCK } from '../emulator/avr.mjs';
-import { LcdI2C, Ssd1306 } from '../emulator/devices.mjs';
+import { LcdI2C, Ssd1306, Bme280, Mpu6050, Bh1750, Ds3231 } from '../emulator/devices.mjs';
 const $ = id => document.getElementById(id);
 const UNO = { type: 'uno', width: 182, height: 220, pins: [] };
 const PIN_POS = { ...Object.fromEntries([...Array(14)].map((_, i) => [`D${i}`, [0, 26 + i * 12]])), ...Object.fromEntries([0, 1, 2, 3, 4, 5].map(i => [`A${i}`, [182, 38 + i * 20]])) };
-let lcd = null, oled = null, audio = null, mcu = null, running = false, raf = 0, last = 0, hexText = '', fileName = '', fileHandle = null, lastModified = 0, watchTimer = 0, perf = 1, pressed = new Set();
+let sensors = {}, lcd = null, oled = null, audio = null, mcu = null, running = false, raf = 0, last = 0, hexText = '', fileName = '', fileHandle = null, lastModified = 0, watchTimer = 0, perf = 1, pressed = new Set();
 
 // Placa em pixel art + indicadores de pino
 $('boardWrap').innerHTML = window.PixelParts.art(UNO, { settings: {} }) + Object.entries(PIN_POS).map(([n, [x, y]]) => `<span class="pin-dot" data-pin="${n}" style="left:${(x / 182) * 100}%;top:${(y / 220) * 100}%" title="${n}"></span>`).join('');
@@ -20,6 +20,13 @@ function load(text, name) {
   mcu.analog[0] = Number($('a0Slider').value);
   for (const p of pressed) mcu.setInput(p, 0);
   lcd = $('lcdOn').checked ? mcu.attachI2C(0x27, new LcdI2C()) : null; oled = $('oledOn').checked ? mcu.attachI2C(0x3c, new Ssd1306()) : null;
+  sensors = {};
+  const on = k => document.querySelector(`[data-dev="${k}"]`).checked;
+  if (on('bme')) sensors.bme = mcu.attachI2C(0x76, new Bme280());
+  if (on('rtc')) sensors.rtc = mcu.attachI2C(0x68, new Ds3231({ start: Date.now() }));
+  else if (on('mpu')) sensors.mpu = mcu.attachI2C(0x68, new Mpu6050());
+  if (on('bh')) sensors.bh = mcu.attachI2C(0x23, new Bh1750());
+  applySensors();
   const key = 'hs-boot-eeprom-' + (name || 'firmware.hex');
   try { const saved = localStorage.getItem(key); if (saved) mcu.eeprom.set(saved.match(/../g).map(h => parseInt(h, 16))); } catch {}
   mcu.onEeprom = () => { clearTimeout(mcu._ee); mcu._ee = setTimeout(() => { try { localStorage.setItem(key, Array.from(mcu.eeprom, b => b.toString(16).padStart(2, '0')).join('')); } catch {} }, 300); };
@@ -97,3 +104,12 @@ $('clearSerial').onclick = () => { $('serial').textContent = ''; };
 document.addEventListener('visibilitychange', () => { if (document.hidden && running) { pause(); } });
 
 $('lcdOn').onchange = $('oledOn').onchange = () => { if (hexText) reboot('dispositivos alterados'); };
+
+function applySensors() {
+  const n = id => Number($(id).value);
+  if (sensors.bme) { sensors.bme.temperature = n('bmeT'); sensors.bme.humidity = n('bmeH'); }
+  if (sensors.mpu) { const a = n('mpuX') * Math.PI / 180; sensors.mpu.accel = [0, -Math.sin(a), Math.cos(a)]; }
+  if (sensors.bh) sensors.bh.lux = n('bhLux');
+}
+for (const id of ['bmeT', 'bmeH', 'mpuX', 'bhLux']) $(id).oninput = applySensors;
+document.querySelectorAll('[data-dev]').forEach(c => c.onchange = () => { if (hexText) reboot('sensores alterados'); });

@@ -155,6 +155,11 @@
     const left = def.pins.filter(p => p[1] === 0), right = def.pins.filter(p => p[1] !== 0);
     const bx = left.length ? 14 : 6, bw = W - bx - (right.length ? 14 : 6);
     let s = left.map(p => R(0, p[2] - 1, bx + 2, 2, 'mt')).join('') + right.map(p => R(bx + bw - 2, p[2] - 1, W - bx - bw + 2, 2, 'mt')).join('');
+    if (def.module) { // módulo de sensor (placa roxa estilo breakout) com o chip e o nome
+      s += R(bx, 2, bw, H - 4, 'k') + R(bx + 2, 4, bw - 4, H - 8, 'mod') + R(bx + bw / 2 - 12, 14, 24, 20, 'ic') + R(bx + bw / 2 - 10, 16, 4, 4, 'mt2');
+      [[bx + 6, 8], [bx + bw - 10, 8], [bx + 6, H - 12], [bx + bw - 10, H - 12]].forEach(([x, y]) => { s += R(x, y, 4, 4, 'mt'); });
+      return s + T(bx + bw / 2, H - 16, esc(String(def.tag).slice(0, 8)), 'c', 9, 'middle');
+    }
     if (board) {
       s += R(bx, 2, bw, H - 4, 'k') + R(bx + 2, 4, bw - 4, H - 8, 'bd');
       s += R(bx + bw / 2 - 26, 10, 52, H - 26, 'mt2') + R(bx + bw / 2 - 24, 12, 48, H - 30, 'mt');

@@ -13,7 +13,7 @@ const catalog = [
   {type:'gnd',name:'Trilho GND',category:'Energia',tag:'GND',width:72,height:66,icon:'custom',pins:[['GND',72,33]],description:'Referência de terra do circuito.',voltage:'0 V',kind:'lowRail'},
   {type:'buzzer',name:'Buzzer',category:'Saídas',tag:'BZ',width:82,height:68,icon:'buzzer',pins:[['+',0,35],['−',82,35]],description:'Transdutor sonoro que responde a uma saída energizada.',kind:'load'},
   {type:'pot',name:'Potenciômetro',category:'Sensores',tag:'10K',width:104,height:78,icon:'pot',pins:[['VCC',0,17],['GND',0,60],['SIG',104,39]],description:'Divisor resistivo ajustável com saída de sinal.',kind:'sensor'},
-  {type:'display',name:'Display 16×2',category:'Displays',tag:'LCD',width:112,height:72,icon:'display',pins:[['VCC',0,18],['GND',0,54],['SDA',112,25],['SCL',112,48]],description:'LCD HD44780 com PCF8574 I²C (0x27). Funciona com firmware real (LiquidCrystal_I2C).',kind:'display'},
+  {type:'display',name:'Display 16×2',category:'Displays',tag:'LCD',width:112,height:72,icon:'display',pins:[['VCC',0,18],['GND',0,54],['SDA',112,25],['SCL',112,48]],description:'LCD HD44780 com PCF8574 I²C (0x27). Funciona com firmware real (LiquidCrystal_I2C).',kind:'display',i2c:{cls:'LcdI2C',addr:0x27}},
   {type:'gate',name:'Porta AND',category:'Lógica',tag:'AND',width:90,height:72,icon:'gate',pins:[['A',0,20],['B',0,52],['Y',90,36]],description:'Saída lógica AND de duas entradas.',kind:'logic'},
   {type:'switch',name:'Chave liga/desliga',category:'Básicos',tag:'SW',width:94,height:66,icon:'button',pins:[['1',0,34],['2',94,34]],description:'Chave mantida. Alterne o contato no painel de propriedades.',kind:'switch'},
   {type:'capacitor',name:'Capacitor',category:'Básicos',tag:'C',width:82,height:66,icon:'custom',pins:[['+',0,34],['−',82,34]],description:'Componente passivo; o modelo transitório será adicionado em uma próxima etapa.',kind:'passive'},
@@ -26,7 +26,11 @@ const catalog = [
   {type:'relay',name:'Módulo relé',category:'Saídas',tag:'1CH',width:118,height:90,icon:'custom',pins:[['VCC',0,18],['GND',0,68],['IN',0,43],['COM',118,18],['NO',118,45],['NC',118,70]],description:'Relé de um canal com entrada de controle e contatos.',kind:'actuator'},
   {type:'rgb',name:'LED RGB',category:'Saídas',tag:'RGB',width:92,height:78,icon:'custom',pins:[['R',0,18],['G',0,38],['B',0,58],['COM',92,38]],description:'LED vermelho, verde e azul de cátodo comum.',kind:'load'},
   {type:'segment',name:'Display 7 segmentos',category:'Displays',tag:'7-SEG',width:96,height:96,icon:'custom',pins:[['A',0,15],['B',96,15],['C',96,34],['D',0,34],['E',0,54],['F',96,54],['G',0,74],['COM',96,74]],description:'Display numérico de sete segmentos.',kind:'display'},
-  {type:'oled',name:'Display OLED 128×64',category:'Displays',tag:'OLED',width:112,height:84,icon:'custom',pins:[['GND',0,18],['VCC',0,40],['SCL',112,28],['SDA',112,52]],description:'SSD1306 I²C (0x3C). Funciona com firmware real (Adafruit SSD1306).',kind:'display'},
+  {type:'bme280',name:'Sensor BME280',category:'Sensores',tag:'BME280',width:104,height:72,icon:'custom',pins:[['VCC',0,18],['GND',0,52],['SCL',104,24],['SDA',104,48]],description:'Temperatura, pressão e umidade (Bosch) no I²C 0x76.',kind:'sensor',module:true,i2c:{cls:'Bme280',addr:0x76},controls:[['temperature','Temperatura','°C',-20,60,0.1,24],['pressure','Pressão','hPa',900,1100,0.5,1013.25],['humidity','Umidade','%',0,100,1,55]]},
+  {type:'mpu6050',name:'Acelerômetro MPU6050',category:'Sensores',tag:'MPU6050',width:104,height:72,icon:'custom',pins:[['VCC',0,18],['GND',0,52],['SCL',104,24],['SDA',104,48]],description:'Acelerômetro e giroscópio de 3 eixos no I²C 0x68.',kind:'sensor',module:true,i2c:{cls:'Mpu6050',addr:0x68},controls:[['tiltX','Inclinação X','°',-90,90,1,0],['tiltY','Inclinação Y','°',-90,90,1,0],['gyroZ','Giro Z','°/s',-250,250,1,0]]},
+  {type:'ds3231',name:'Relógio RTC DS3231',category:'Sensores',tag:'DS3231',width:104,height:72,icon:'custom',pins:[['VCC',0,18],['GND',0,52],['SCL',104,24],['SDA',104,48]],description:'Relógio de tempo real com temperatura no I²C 0x68.',kind:'sensor',module:true,i2c:{cls:'Ds3231',addr:0x68},controls:[['temperature','Temperatura','°C',-20,60,0.25,25]]},
+  {type:'bh1750',name:'Luz BH1750',category:'Sensores',tag:'BH1750',width:104,height:72,icon:'custom',pins:[['VCC',0,18],['GND',0,52],['SCL',104,24],['SDA',104,48]],description:'Sensor de luminosidade em lux no I²C 0x23.',kind:'sensor',module:true,i2c:{cls:'Bh1750',addr:0x23},controls:[['lux','Luz','lx',0,5000,1,320]]},
+  {type:'oled',name:'Display OLED 128×64',category:'Displays',tag:'OLED',width:112,height:84,icon:'custom',pins:[['GND',0,18],['VCC',0,40],['SCL',112,28],['SDA',112,52]],description:'SSD1306 I²C (0x3C). Funciona com firmware real (Adafruit SSD1306).',kind:'display',i2c:{cls:'Ssd1306',addr:0x3c}},
   {type:'neopixel',name:'NeoPixel RGB',category:'Displays',tag:'LED',width:92,height:76,icon:'custom',pins:[['VCC',0,18],['GND',0,56],['DIN',92,28],['DOUT',92,52]],description:'LED RGB endereçável. Protocolo de dados ainda não é simulado.',kind:'display'},
 ];
 const categories = [
@@ -166,6 +170,7 @@ function modelStatus(def){
   if(k==='conductor')return{sim:true,text:'Simulado como condutor ideal: liga os dois terminais, sem queda de tensão.'};
   if(k==='switch')return{sim:true,text:'Simulado: abre e fecha o contato.'};
   if(k==='source'||k==='highRail'||k==='lowRail')return{sim:true,text:'Simulado: referência de 5 V ou 0 V.'};
+  if(def.i2c&&def.kind==='sensor')return{sim:true,text:`Simulado com firmware: ${def.tag} no I²C 0x${def.i2c.addr.toString(16).toUpperCase()} (SDA→A4, SCL→A5). Ajuste as leituras abaixo.`};
   if(t==='pot')return{sim:true,text:'Simulado com firmware: a posição vira tensão no pino analógico ligado ao SIG (analogRead).'};
   if(t==='servo')return{sim:true,text:'Simulado com firmware: o ângulo vem da largura do pulso no SIG (biblioteca Servo).'};
   if(t==='display')return{sim:true,text:'Simulado com firmware: LCD HD44780 com PCF8574 no I²C 0x27 (SDA→A4, SCL→A5).'};
@@ -181,6 +186,7 @@ function renderInspector(){
   let controls='';
   if(def.kind==='switch')controls=`<div class="property-section"><p class="property-label">Estado do contato</p><div class="switch-row"><span>${part.settings?.pressed?(part.type==='switch'?'Fechado':'Pressionado'):'Aberto'}</span><button id="toggleButtonPart" class="toggle ${part.settings?.pressed?'on':''}" aria-label="Alternar botão"></button></div></div>`;
   if(part.type==='uno')controls+=`<div class="property-section"><p class="property-label">Firmware (PlatformIO)</p><div class="property-row"><span>${part.settings?.firmware?safeText(part.settings.firmwareName||'firmware.hex'):'Sketch do editor'}</span><b>${part.settings?.firmware?Math.round(part.settings.firmware.length/1024)+' KB':'—'}</b></div><div class="fw-actions"><button id="fwLoad" class="button button-quiet">Carregar .hex</button>${window.showOpenFilePicker?'<button id="fwWatch" class="button button-quiet" title="Recarrega a cada pio run">Vigiar</button>':''}${part.settings?.firmware?'<button id="fwClear" class="text-button">Remover</button>':''}</div><p class="fw-hint">Arquivo: <code>.pio/build/uno/firmware.hex</code>. Com firmware, o Uno roda o código real; LCD/OLED no A4/A5 funcionam.</p></div>`;
+  if(def.controls)controls+=`<div class="property-section"><p class="property-label">Leituras do sensor</p>${def.controls.map(([k,label,unit,min,max,step,dflt])=>`<label class="sensor-row"><span>${safeText(label)}</span><b data-sv="${k}">${(part.settings?.sensor?.[k]??dflt)} ${safeText(unit)}</b><input type="range" data-sensor="${k}" min="${min}" max="${max}" step="${step}" value="${part.settings?.sensor?.[k]??dflt}"></label>`).join('')}</div>`;
   if(part.type==='pot')controls+=`<div class="property-section"><p class="property-label">Posição</p><input id="potPos" type="range" min="0" max="1" step="0.01" value="${part.settings?.position??0.5}" style="width:100%"><div class="property-row"><span>Saída</span><b id="potVolts">${((part.settings?.position??0.5)*5).toFixed(2)} V</b></div></div>`;
   if(part.type==='resistor')controls+=`<div class="property-section"><p class="property-label">Valor</p><input id="partValue" class="property-input" value="${safeText(part.settings?.value||'220 Ω')}" /></div>`;
   if(part.type==='led')controls+=`<div class="property-section"><p class="property-label">Cor</p><div class="property-row"><span>Cor do LED</span><input id="ledColor" type="color" value="${safeText(part.settings?.color||'#e56d5c')}" style="width:30px;height:24px;border:0;background:transparent;cursor:pointer" /></div><div class="property-row"><span>Estado</span><b>${part.settings?.lit?'Ligado':'Desligado'}</b></div></div>`;
@@ -193,6 +199,7 @@ function renderInspector(){
   $('#fwLoad')?.addEventListener('click',()=>{const input=document.createElement('input');input.type='file';input.accept='.hex';input.onchange=async()=>{const f=input.files[0];if(f)setFirmware(part,await f.text(),f.name)};input.click()});
   $('#fwWatch')?.addEventListener('click',async()=>{try{const[h]=await showOpenFilePicker({types:[{description:'Firmware Intel HEX',accept:{'text/plain':['.hex']}}]});watchFirmware(part,h)}catch{}});
   $('#fwClear')?.addEventListener('click',()=>{stopSimulation();delete part.settings.firmware;delete part.settings.firmwareName;markChanged();renderInspector();toast('Firmware removido: o Uno volta ao sketch do editor')});
+  document.querySelectorAll('[data-sensor]').forEach(input=>input.addEventListener('input',e=>{const k=e.target.dataset.sensor,unit=def.controls.find(c=>c[0]===k)[2];part.settings.sensor={...(part.settings.sensor||{}),[k]:Number(e.target.value)};document.querySelector(`[data-sv="${k}"]`).textContent=`${e.target.value} ${unit}`;applySensor(part);markChanged()}));
   $('#potPos')?.addEventListener('input',e=>{part.settings.position=Number(e.target.value);$('#potVolts').textContent=(part.settings.position*5).toFixed(2)+' V';markChanged()});
 }
 function showInspectorTab(tab){const code=tab==='code';$('#propertiesTab').classList.toggle('active',!code);$('#codeTab').classList.toggle('active',code);$('#propertiesView').hidden=code;$('#codeView').hidden=!code}
@@ -264,7 +271,7 @@ function serialLog(text){const el=$('#serialOut');if(!el)return;el.textContent=(
 function i2cTargets(board,find,node){
   // Displays com SDA no A4 e SCL no A5 deste Uno entram no barramento I²C.
   const sda=find(node(board.id,'A4')),scl=find(node(board.id,'A5'));
-  return project.parts.filter(p=>(p.type==='display'||p.type==='oled')&&find(node(p.id,'SDA'))===sda&&find(node(p.id,'SCL'))===scl);
+  return project.parts.filter(p=>defFor(p.type)?.i2c&&find(node(p.id,'SDA'))===sda&&find(node(p.id,'SCL'))===scl);
 }
 async function startFirmware(){
   let mod,dev;try{[mod,dev]=await Promise.all([import('./emulator/avr.mjs'),import('./emulator/devices.mjs')])}catch{toast('Não foi possível carregar o emulador (sirva a pasta por HTTP)');return}
@@ -275,7 +282,7 @@ async function startFirmware(){
     let mcu;try{mcu=new mod.ATmega328P(board.settings.firmware)}catch(e){toast(`${board.name}: ${e.message}`);continue}
     const dec=new TextDecoder();mcu.onSerial=b=>serialLog(dec.decode(new Uint8Array([b]),{stream:true}));
     const devices=[];
-    for(const p of i2cTargets(board,lastNet.find,lastNet.node)){const d=p.type==='oled'?new dev.Ssd1306():new dev.LcdI2C();mcu.attachI2C(d.address,d);devices.push([p,d])}
+    for(const p of i2cTargets(board,lastNet.find,lastNet.node)){const spec=defFor(p.type).i2c,d=new dev[spec.cls]({address:spec.addr,...(spec.cls==='Ds3231'?{start:Date.now()}:{})});mcu.attachI2C(d.address,d);p._device=d;applySensor(p);devices.push([p,d])}
     try{const saved=localStorage.getItem('hs-eeprom-'+board.id);if(saved)mcu.eeprom.set(saved.match(/../g).map(h=>parseInt(h,16)))}catch{}
     mcu.onEeprom=()=>{clearTimeout(mcu._eeSave);mcu._eeSave=setTimeout(()=>{try{localStorage.setItem('hs-eeprom-'+board.id,Array.from(mcu.eeprom,b=>b.toString(16).padStart(2,'0')).join(''))}catch{}},300)};
     units.push({board,mcu,devices,clock:mod.CLOCK});
@@ -300,6 +307,11 @@ function firmwareFrame(now){
   }
   if(now-fw.paint>45){fw.paint=now;servoAngles();updateSimulation({quiet:true});paintOleds();buzzerAudio()}
   fw.raf=requestAnimationFrame(firmwareFrame);
+}
+function applySensor(p){
+  const d=p._device,def=defFor(p.type);if(!d||!def?.controls)return;const v=k=>p.settings?.sensor?.[k]??def.controls.find(c=>c[0]===k)[6];
+  if(p.type==='mpu6050'){const tx=v('tiltX')*Math.PI/180,ty=v('tiltY')*Math.PI/180;d.accel=[Math.sin(ty),-Math.sin(tx),Math.cos(tx)*Math.cos(ty)];d.gyro=[0,0,v('gyroZ')];return}
+  for(const [k]of def.controls)d[k]=v(k);
 }
 function feedInputs(u){
   if(!lastNet)return;const{find,node,highs,lows}=lastNet;const pins=u.mcu.pinSnapshot();
@@ -365,7 +377,7 @@ function importProject(file){
       const safeParts=value.parts.slice(0,250).map((part,index)=>{
         const def=defFor(part.type);if(!def)return null;
         const raw=part.settings&&typeof part.settings==='object'?part.settings:{};
-        const settings={pressed:raw.pressed===true,value:typeof raw.value==='string'?raw.value.slice(0,24):undefined,color:typeof raw.color==='string'&&/^#[\da-f]{6}$/i.test(raw.color)?raw.color:undefined,screen:typeof raw.screen==='string'?raw.screen.slice(0,13):undefined,firmware:typeof raw.firmware==='string'&&raw.firmware.startsWith(':')&&raw.firmware.length<400000?raw.firmware:undefined,firmwareName:typeof raw.firmwareName==='string'?raw.firmwareName.slice(0,60):undefined,position:Number.isFinite(raw.position)?Math.max(0,Math.min(1,raw.position)):undefined};
+        const settings={pressed:raw.pressed===true,value:typeof raw.value==='string'?raw.value.slice(0,24):undefined,color:typeof raw.color==='string'&&/^#[\da-f]{6}$/i.test(raw.color)?raw.color:undefined,screen:typeof raw.screen==='string'?raw.screen.slice(0,13):undefined,firmware:typeof raw.firmware==='string'&&raw.firmware.startsWith(':')&&raw.firmware.length<400000?raw.firmware:undefined,firmwareName:typeof raw.firmwareName==='string'?raw.firmwareName.slice(0,60):undefined,position:Number.isFinite(raw.position)?Math.max(0,Math.min(1,raw.position)):undefined,sensor:raw.sensor&&typeof raw.sensor==='object'?Object.fromEntries(Object.entries(raw.sensor).filter(([k,v])=>/^\w{1,20}$/.test(k)&&Number.isFinite(v))):undefined};
         if(raw.outputs&&typeof raw.outputs==='object')settings.outputs=Object.fromEntries(Object.entries(raw.outputs).filter(([pin,level])=>/^D(?:[0-9]|1[0-3])$/.test(pin)&&(level===0||level===1)));
         return{id:String(part.id||`part-${index}`).slice(0,60),type:def.type,name:String(part.name||def.name).slice(0,40),x:Math.max(0,Math.min(1680,Number.isFinite(Number(part.x))?Number(part.x):40)),y:Math.max(0,Math.min(1080,Number.isFinite(Number(part.y))?Number(part.y):40)),settings};
       }).filter(Boolean);

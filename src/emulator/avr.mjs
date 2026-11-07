@@ -52,7 +52,7 @@ export class ATmega328P {
     this.i2c = new Map(); this.spiDevice = null; this.onReset = null;
     this.cycles = 0; this.reset('power');
   }
-  attachI2C(address, device) { this.i2c.set(address & 0x7f, device); return device; }
+  attachI2C(address, device) { this.i2c.set(address & 0x7f, device); device.attach?.(this); return device; }
   reset(kind = 'external') {
     this.data.fill(0); this.pc = 0; this.halted = false; this.lastError = null;
     if (kind === 'power') this.cycles = 0;

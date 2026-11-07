@@ -102,3 +102,89 @@ export class Ssd1306 {
   // Texto ASCII para testes e terminal: '#' aceso, '.' apagado (reduzido 2×).
   ascii(step = 2) { const rows = []; for (let y = 0; y < this.height; y += step) { let r = ''; for (let x = 0; x < this.width; x += step) r += this.pixel(x, y) ? '#' : '.'; rows.push(r); } return rows.join('\n'); }
 }
+
+// Base para sensores com ponteiro de registrador: 1º byte escrito = endereço; depois lê/escreve em sequência.
+class RegisterDevice {
+  constructor(address) { this.address = address; this.reg = new Uint8Array(256); this.ptr = 0; this.fresh = true; this.version = 0; }
+  attach(mcu) { this.mcu = mcu; }
+  get time() { return this.mcu ? this.mcu.time : 0; }
+  start(read) { if (read) this.prepareRead?.(); this.fresh = !read; return true; }
+  stop() { this.onStop?.(); }
+  write(b) { if (this.fresh) { this.ptr = b; this.fresh = false; return true; } this.writeReg(this.ptr, b); this.ptr = (this.ptr + 1) & 0xff; this.version++; return true; }
+  writeReg(r, v) { this.reg[r] = v; }
+  read() { const v = this.readReg(this.ptr); this.ptr = (this.ptr + 1) & 0xff; return v; }
+  readReg(r) { return this.reg[r]; }
+}
+
+// BME280 (Bosch, endereço 0x76/0x77): temperatura, pressão e umidade com as fórmulas de compensação do datasheet.
+const BME_CAL = { T1: 27504, T2: 26435, T3: -1000, P1: 36477, P2: -10685, P3: 3024, P4: 2855, P5: 140, P6: -7, P7: 15500, P8: -14600, P9: 6000, H1: 75, H2: 370, H3: 0, H4: 313, H5: 50, H6: 30 };
+export class Bme280 extends RegisterDevice {
+  constructor({ address = 0x76, temperature = 24, pressure = 1013.25, humidity = 55 } = {}) {
+    super(address); Object.assign(this, { temperature, pressure, humidity });
+    const c = BME_CAL, r = this.reg, u16 = (a, v) => { r[a] = v & 0xff; r[a + 1] = (v >> 8) & 0xff; };
+    [c.T1, c.T2, c.T3, c.P1, c.P2, c.P3, c.P4, c.P5, c.P6, c.P7, c.P8, c.P9].forEach((v, i) => u16(0x88 + i * 2, v));
+    r[0xa1] = c.H1; u16(0xe1, c.H2); r[0xe3] = c.H3; r[0xe4] = (c.H4 >> 4) & 0xff; r[0xe5] = (c.H4 & 0x0f) | ((c.H5 & 0x0f) << 4); r[0xe6] = (c.H5 >> 4) & 0xff; r[0xe7] = c.H6 & 0xff;
+    r[0xd0] = 0x60;
+  }
+  static compT(adc) { const c = BME_CAL, a = BigInt(adc); const v1 = (((a >> 3n) - (BigInt(c.T1) << 1n)) * BigInt(c.T2)) >> 11n; const d = (a >> 4n) - BigInt(c.T1); const v2 = (((d * d) >> 12n) * BigInt(c.T3)) >> 14n; const tf = v1 + v2; return { tFine: tf, t: Number((tf * 5n + 128n) >> 8n) / 100 }; }
+  static compP(adc, tFine) {
+    const c = BME_CAL; let v1 = tFine - 128000n, v2 = v1 * v1 * BigInt(c.P6); v2 += (v1 * BigInt(c.P5)) << 17n; v2 += BigInt(c.P4) << 35n;
+    v1 = ((v1 * v1 * BigInt(c.P3)) >> 8n) + ((v1 * BigInt(c.P2)) << 12n); v1 = (((1n << 47n) + v1) * BigInt(c.P1)) >> 33n; if (v1 === 0n) return 0;
+    let p = 1048576n - BigInt(adc); p = (((p << 31n) - v2) * 3125n) / v1; v1 = (BigInt(c.P9) * (p >> 13n) * (p >> 13n)) >> 25n; v2 = (BigInt(c.P8) * p) >> 19n; p = ((p + v1 + v2) >> 8n) + (BigInt(c.P7) << 4n);
+    return Number(p) / 256;
+  }
+  static compH(adc, tFine) {
+    const c = BME_CAL; let v = tFine - 76800n;
+    v = ((((BigInt(adc) << 14n) - (BigInt(c.H4) << 20n) - (BigInt(c.H5) * v)) + 16384n) >> 15n) * (((((((v * BigInt(c.H6)) >> 10n) * (((v * BigInt(c.H3)) >> 11n) + 32768n)) >> 10n) + 2097152n) * BigInt(c.H2) + 8192n) >> 14n);
+    v = v - (((((v >> 15n) * (v >> 15n)) >> 7n) * BigInt(c.H1)) >> 4n); v = v < 0n ? 0n : v > 419430400n ? 419430400n : v; return Number(v >> 12n) / 1024;
+  }
+  static search(lo, hi, f, target, increasing) { while (lo < hi) { const m = (lo + hi) >> 1; const v = f(m); if (increasing ? v < target : v > target) lo = m + 1; else hi = m; } return lo; }
+  prepareRead() {
+    const adcT = Bme280.search(0, (1 << 20) - 1, a => Bme280.compT(a).t, this.temperature, true), tFine = Bme280.compT(adcT).tFine;
+    const adcP = Bme280.search(0, (1 << 20) - 1, a => Bme280.compP(a, tFine), this.pressure * 100, false);
+    const adcH = Bme280.search(0, 65535, a => Bme280.compH(a, tFine), this.humidity, true);
+    const r = this.reg; r[0xf7] = adcP >> 12; r[0xf8] = (adcP >> 4) & 0xff; r[0xf9] = (adcP & 0xf) << 4; r[0xfa] = adcT >> 12; r[0xfb] = (adcT >> 4) & 0xff; r[0xfc] = (adcT & 0xf) << 4; r[0xfd] = adcH >> 8; r[0xfe] = adcH & 0xff;
+  }
+  writeReg(r, v) { if (r === 0xe0) return; if (r === 0xf3) return; this.reg[r] = v; }
+  readReg(r) { return r === 0xf3 ? 0 : this.reg[r]; }
+}
+
+// MPU-6050 (InvenSense, 0x68/0x69): acelerômetro, giroscópio e temperatura em big-endian a partir de 0x3B.
+export class Mpu6050 extends RegisterDevice {
+  constructor({ address = 0x68, accel = [0, 0, 1], gyro = [0, 0, 0], temperature = 25 } = {}) { super(address); Object.assign(this, { accel, gyro, temperature }); this.resetRegs(); }
+  resetRegs() { this.reg.fill(0); this.reg[0x6b] = 0x40; this.reg[0x75] = 0x68; }
+  writeReg(r, v) { if (r === 0x6b && (v & 0x80)) { this.resetRegs(); return; } if (r === 0x75) return; this.reg[r] = v; }
+  prepareRead() {
+    const aScale = [16384, 8192, 4096, 2048][(this.reg[0x1c] >> 3) & 3], gScale = [131, 65.5, 32.8, 16.4][(this.reg[0x1b] >> 3) & 3];
+    const s16 = (a, v) => { const x = Math.max(-32768, Math.min(32767, Math.round(v))) & 0xffff; this.reg[a] = x >> 8; this.reg[a + 1] = x & 0xff; };
+    const sleeping = this.reg[0x6b] & 0x40;
+    this.accel.forEach((g, i) => s16(0x3b + i * 2, sleeping ? 0 : g * aScale));
+    s16(0x41, sleeping ? 0 : (this.temperature - 36.53) * 340);
+    this.gyro.forEach((d, i) => s16(0x43 + i * 2, sleeping ? 0 : d * gScale));
+  }
+}
+
+// DS3231 (Maxim, 0x68): relógio em BCD que anda com o tempo simulado; flag OSF ligada no "primeiro boot".
+export class Ds3231 extends RegisterDevice {
+  constructor({ address = 0x68, start = Date.UTC(2026, 0, 1), temperature = 25 } = {}) { super(address); this.baseMs = start; this.baseT = 0; this.temperature = temperature; this.reg[0x0f] = 0x80; this.reg[0x0e] = 0x1c; this.pending = null; }
+  nowMs() { return this.baseMs + (this.time - this.baseT) * 1000; }
+  prepareRead() {
+    const d = new Date(this.nowMs()), bcd = n => ((Math.floor(n / 10) << 4) | (n % 10));
+    const r = this.reg; r[0] = bcd(d.getUTCSeconds()); r[1] = bcd(d.getUTCMinutes()); r[2] = bcd(d.getUTCHours()); r[3] = d.getUTCDay() || 7; r[4] = bcd(d.getUTCDate()); r[5] = bcd(d.getUTCMonth() + 1) | (d.getUTCFullYear() >= 2100 ? 0x80 : 0); r[6] = bcd(d.getUTCFullYear() % 100);
+    const q = Math.round(this.temperature * 4); r[0x11] = (q >> 2) & 0xff; r[0x12] = (q & 3) << 6;
+  }
+  writeReg(r, v) { if (r <= 6) { this.prepareRead(); this.pending = this.pending || Array.from(this.reg.slice(0, 7)); this.pending[r] = v; return; } if (r === 0x0f) { this.reg[r] = v & 0x7f | (this.reg[r] & 0x80 & v); return; } this.reg[r] = v; }
+  onStop() {
+    if (!this.pending) return; const b = this.pending, dec = x => (x >> 4) * 10 + (x & 0xf); this.pending = null;
+    this.baseMs = Date.UTC(2000 + dec(b[6]) + ((b[5] & 0x80) ? 100 : 0), dec(b[5] & 0x1f) - 1, dec(b[4] & 0x3f), dec(b[2] & 0x3f), dec(b[1] & 0x7f), dec(b[0] & 0x7f)); this.baseT = this.time;
+  }
+}
+
+// BH1750 (ROHM, 0x23/0x5C): sensor de luz por comandos; leitura = lux × 1,2 (× 2 no modo H2).
+export class Bh1750 {
+  constructor({ address = 0x23, lux = 320 } = {}) { this.address = address; this.lux = lux; this.mode = 0x10; this.on = false; this.out = []; this.version = 0; }
+  start(read) { if (read) { const mt = 69, k = (this.mode === 0x11 || this.mode === 0x21) ? 2 : 1, raw = Math.min(65535, Math.round(this.lux * 1.2 * k * (this.mtreg ?? mt) / mt)); this.out = this.on ? [raw >> 8, raw & 0xff] : [0, 0]; } return true; }
+  write(c) { if (c === 0x00) this.on = false; else if (c === 0x01) this.on = true; else if (c === 0x07) {} else if ((c & 0xf8) === 0x40) this.mtHi = c & 7; else if ((c & 0xe0) === 0x60) this.mtreg = ((this.mtHi ?? 2) << 5) | (c & 0x1f); else { this.mode = c; this.on = true; } this.version++; return true; }
+  read() { return this.out.shift() ?? 0; }
+  stop() {}
+}
