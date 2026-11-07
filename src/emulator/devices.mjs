@@ -188,3 +188,29 @@ export class Bh1750 {
   read() { return this.out.shift() ?? 0; }
   stop() {}
 }
+
+// DHT11 / DHT22 (AM2302): sensor de um fio. Responde ao pulso de start do chip com o protocolo temporizado do datasheet:
+// 80 µs baixo, 80 µs alto e 40 bits (50 µs baixo + 26 µs alto = 0, 70 µs alto = 1). O módulo tem pull-up externo.
+export class Dht {
+  constructor({ type = 22, temperature = 24, humidity = 55 } = {}) { this.type = type; this.temperature = temperature; this.humidity = humidity; this.lowStart = -1; this.reads = 0; }
+  attach(mcu, pin) { this.mcu = mcu; this.pin = pin; mcu.setInput(pin, 1); }
+  bytes() {
+    const sum = a => [...a, a.reduce((x, y) => x + y, 0) & 0xff];
+    if (this.type === 11) { const h = Math.max(0, Math.min(99, this.humidity)), t = Math.max(0, Math.min(50, this.temperature)); return sum([Math.floor(h), 0, Math.floor(t), Math.round((t % 1) * 10)]); }
+    const h = Math.round(Math.max(0, Math.min(100, this.humidity)) * 10), t = Math.round(Math.abs(this.temperature) * 10) | (this.temperature < 0 ? 0x8000 : 0);
+    return sum([h >> 8, h & 0xff, t >> 8, t & 0xff]);
+  }
+  onDrive({ output, level }) {
+    const m = this.mcu;
+    if (output && level === 0) { this.lowStart = m.cycles; return; }
+    if (this.lowStart < 0) return;
+    const lowUs = (m.cycles - this.lowStart) / 16; this.lowStart = -1;
+    if (lowUs < (this.type === 11 ? 18000 : 800)) return; // start curto demais: o sensor ignora
+    const us = 16, steps = [[0, 80], [1, 80]];
+    for (const byte of this.bytes()) for (let b = 7; b >= 0; b--) steps.push([0, 50], [1, (byte >> b) & 1 ? 70 : 26]);
+    steps.push([0, 50]);
+    let t = m.cycles + 30 * us;
+    for (const [level, dur] of steps) { const at = t; m.schedule(at, () => m.setInput(this.pin, level)); t += dur * us; }
+    m.schedule(t, () => m.setInput(this.pin, 1)); this.reads++;
+  }
+}

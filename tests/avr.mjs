@@ -1,7 +1,7 @@
 // Firmware real (compilado pelo PlatformIO) rodando no emulador ATmega328P.
 import { readFileSync } from 'node:fs';
 import { ATmega328P, parseHex } from '../src/emulator/avr.mjs';
-import { LcdI2C, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750 } from '../src/emulator/devices.mjs';
+import { LcdI2C, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750, Dht } from '../src/emulator/devices.mjs';
 const hex = n => readFileSync(new URL(`./fixtures/avr/${n}.hex`, import.meta.url), 'utf8');
 function boot(name) { const m = new ATmega328P(hex(name)); m.out = ''; m.onSerial = b => { m.out += String.fromCharCode(b); }; return m; }
 
@@ -55,6 +55,8 @@ export function runAvrTests() {
     const m = boot('neopixel'); m.runSeconds(0.05); eq(JSON.stringify(m.neopixel('D6')), '[[255,0,0],[0,255,0],[0,0,255],[18,52,86],[0,0,0],[0,0,0],[0,0,0],[255,255,255]]');
     m.runSeconds(0.2); eq(JSON.stringify(m.neopixel('D6')[7]), '[210,100,45]');
   });
+  test('DHT22 (Adafruit): −3,7 °C e 48,3 % pelo protocolo de um fio', 'AM2302: pulsos de 26/70 µs', () => { const m = boot('dht22'); const d = m.attachPinDevice('D4', new Dht({ type: 22, temperature: -3.7, humidity: 48.3 })); m.runSeconds(2.3); eq(m.out, '-3.7 48.3\r\n'); d.temperature = 31.2; m.runSeconds(2.2); ok(m.out.endsWith('31.2 48.3\r\n'), m.out); });
+  test('DHT11 (Adafruit): 26 °C e 61 %', 'DHT11: start de 18 ms', () => { const m = boot('dht11'); m.attachPinDevice('D4', new Dht({ type: 11, temperature: 26, humidity: 61 })); m.runSeconds(2.3); eq(m.out, '26.0 61.0\r\n'); });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;
 }

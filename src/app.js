@@ -30,6 +30,8 @@ const catalog = [
   {type:'mpu6050',name:'Acelerômetro MPU6050',category:'Sensores',tag:'MPU6050',width:104,height:72,icon:'custom',pins:[['VCC',0,18],['GND',0,52],['SCL',104,24],['SDA',104,48]],description:'Acelerômetro e giroscópio de 3 eixos no I²C 0x68.',kind:'sensor',module:true,i2c:{cls:'Mpu6050',addr:0x68},controls:[['tiltX','Inclinação X','°',-90,90,1,0],['tiltY','Inclinação Y','°',-90,90,1,0],['gyroZ','Giro Z','°/s',-250,250,1,0]]},
   {type:'ds3231',name:'Relógio RTC DS3231',category:'Sensores',tag:'DS3231',width:104,height:72,icon:'custom',pins:[['VCC',0,18],['GND',0,52],['SCL',104,24],['SDA',104,48]],description:'Relógio de tempo real com temperatura no I²C 0x68.',kind:'sensor',module:true,i2c:{cls:'Ds3231',addr:0x68},controls:[['temperature','Temperatura','°C',-20,60,0.25,25]]},
   {type:'bh1750',name:'Luz BH1750',category:'Sensores',tag:'BH1750',width:104,height:72,icon:'custom',pins:[['VCC',0,18],['GND',0,52],['SCL',104,24],['SDA',104,48]],description:'Sensor de luminosidade em lux no I²C 0x23.',kind:'sensor',module:true,i2c:{cls:'Bh1750',addr:0x23},controls:[['lux','Luz','lx',0,5000,1,320]]},
+  {type:'dht22',name:'Sensor DHT22',category:'Sensores',tag:'DHT22',width:70,height:96,icon:'custom',pins:[['VCC',0,20],['DATA',0,40],['NC',0,60],['GND',0,80]],description:'Temperatura e umidade (AM2302) em um fio de dados.',kind:'sensor',onewire:{cls:'Dht',type:22,pin:'DATA'},controls:[['temperature','Temperatura','°C',-40,80,0.1,24],['humidity','Umidade','%',0,100,0.1,55]]},
+  {type:'dht11',name:'Sensor DHT11',category:'Sensores',tag:'DHT11',width:70,height:96,icon:'custom',pins:[['VCC',0,20],['DATA',0,40],['NC',0,60],['GND',0,80]],description:'Temperatura e umidade básicas em um fio de dados.',kind:'sensor',onewire:{cls:'Dht',type:11,pin:'DATA'},controls:[['temperature','Temperatura','°C',0,50,1,24],['humidity','Umidade','%',20,90,1,55]]},
   {type:'oled',name:'Display OLED 128×64',category:'Displays',tag:'OLED',width:112,height:84,icon:'custom',pins:[['GND',0,18],['VCC',0,40],['SCL',112,28],['SDA',112,52]],description:'SSD1306 I²C (0x3C). Funciona com firmware real (Adafruit SSD1306).',kind:'display',i2c:{cls:'Ssd1306',addr:0x3c}},
   {type:'neostrip',name:'Fita NeoPixel 8',category:'Displays',tag:'WS2812',width:200,height:44,icon:'custom',pins:[['GND',0,10],['VCC',0,22],['DIN',0,34],['DOUT',200,22]],description:'8 LEDs WS2812B endereçáveis. Funciona com firmware real (Adafruit NeoPixel, FastLED).',kind:'display'},
   {type:'neopixel',name:'NeoPixel RGB',category:'Displays',tag:'LED',width:92,height:76,icon:'custom',pins:[['VCC',0,18],['GND',0,56],['DIN',92,28],['DOUT',92,52]],description:'LED WS2812B endereçável. Com firmware real, a cor vem do protocolo no DIN; DOUT encadeia o próximo.',kind:'display'},
@@ -171,6 +173,7 @@ function modelStatus(def){
   if(k==='conductor')return{sim:true,text:'Simulado como condutor ideal: liga os dois terminais, sem queda de tensão.'};
   if(k==='switch')return{sim:true,text:'Simulado: abre e fecha o contato.'};
   if(k==='source'||k==='highRail'||k==='lowRail')return{sim:true,text:'Simulado: referência de 5 V ou 0 V.'};
+  if(def.onewire)return{sim:true,text:`Simulado com firmware: ${def.tag} responde no fio DATA com o protocolo temporizado do datasheet.`};
   if(def.i2c&&def.kind==='sensor')return{sim:true,text:`Simulado com firmware: ${def.tag} no I²C 0x${def.i2c.addr.toString(16).toUpperCase()} (SDA→A4, SCL→A5). Ajuste as leituras abaixo.`};
   if(t==='neopixel'||t==='neostrip')return{sim:true,text:'Simulado com firmware: as cores são decodificadas do sinal WS2812 no DIN (DOUT segue para o próximo).'};
   if(t==='pot')return{sim:true,text:'Simulado com firmware: a posição vira tensão no pino analógico ligado ao SIG (analogRead).'};
@@ -285,6 +288,7 @@ async function startFirmware(){
     const dec=new TextDecoder();mcu.onSerial=b=>serialLog(dec.decode(new Uint8Array([b]),{stream:true}));
     const devices=[];
     for(const p of i2cTargets(board,lastNet.find,lastNet.node)){const spec=defFor(p.type).i2c,d=new dev[spec.cls]({address:spec.addr,...(spec.cls==='Ds3231'?{start:Date.now()}:{})});mcu.attachI2C(d.address,d);p._device=d;applySensor(p);devices.push([p,d])}
+    for(const p of project.parts){const ow=defFor(p.type)?.onewire;if(!ow)continue;const net=lastNet.find(lastNet.node(p.id,ow.pin));const pin=UNO_OUT_PINS.find(l=>lastNet.find(lastNet.node(board.id,l))===net);if(!pin)continue;const d=new dev[ow.cls]({type:ow.type});mcu.attachPinDevice(pin,d);p._device=d;applySensor(p);devices.push([p,d])}
     try{const saved=localStorage.getItem('hs-eeprom-'+board.id);if(saved)mcu.eeprom.set(saved.match(/../g).map(h=>parseInt(h,16)))}catch{}
     mcu.onEeprom=()=>{clearTimeout(mcu._eeSave);mcu._eeSave=setTimeout(()=>{try{localStorage.setItem('hs-eeprom-'+board.id,Array.from(mcu.eeprom,b=>b.toString(16).padStart(2,'0')).join(''))}catch{}},300)};
     units.push({board,mcu,devices,clock:mod.CLOCK});
@@ -317,7 +321,7 @@ function applySensor(p){
 }
 function feedInputs(u){
   if(!lastNet)return;const{find,node,highs,lows}=lastNet;const pins=u.mcu.pinSnapshot();
-  for(const label of UNO_OUT_PINS){const p=pins[label];if(!p||p.mode==='output')continue;const net=find(node(u.board.id,label));u.mcu.setInput(label,lows.has(net)?0:highs.has(net)?1:null)}
+  for(const label of UNO_OUT_PINS){const p=pins[label];if(!p||p.mode==='output'||u.mcu.pinDevices.has(label))continue;const net=find(node(u.board.id,label));u.mcu.setInput(label,lows.has(net)?0:highs.has(net)?1:null)}
   // Potenciômetro: SIG ligado a uma entrada analógica.
   for(const pot of project.parts.filter(p=>p.type==='pot')){
     const vcc=find(node(pot.id,'VCC')),gnd=find(node(pot.id,'GND')),sig=find(node(pot.id,'SIG'));if(!highs.has(vcc)||!lows.has(gnd))continue;

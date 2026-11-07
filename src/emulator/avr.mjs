@@ -49,8 +49,18 @@ export class ATmega328P {
     this.inputs = { B: new Array(8).fill(null), C: new Array(8).fill(null), D: new Array(8).fill(null) };
     this.analog = new Array(8).fill(0); // volts nas entradas A0..A7
     this.eeprom = new Uint8Array(1024).fill(0xff); // sobrevive a reset, como a EEPROM real
-    this.i2c = new Map(); this.spiDevice = null; this.onReset = null;
+    this.i2c = new Map(); this.spiDevice = null; this.onReset = null; this.pinDevices = new Map();
     this.cycles = 0; this.reset('power');
+  }
+  // Dispositivos de um fio (DHT…): recebem as mudanças que o chip faz no pino e respondem com eventos agendados.
+  attachPinDevice(pin, device) { this.pinDevices.set(pin, device); device.attach?.(this, pin); return device; }
+  schedule(atCycle, fn) { this.events.push({ at: atCycle, fn }); this.events.sort((a, b) => a.at - b.at); this.nextEventAt = this.events[0].at; }
+  runEvents() { while (this.events.length && this.events[0].at <= this.cycles) this.events.shift().fn(); this.nextEventAt = this.events.length ? this.events[0].at : Infinity; }
+  notifyPinDevices() {
+    for (const [pin, dev] of this.pinDevices) {
+      const [port, bit] = UNO_PINS[pin], p = PORTS[port], output = !!((this.data[p.ddr] >> bit) & 1), level = (this.data[p.port] >> bit) & 1, key = output * 2 + level;
+      if (this.driveKeys[pin] !== key) { this.driveKeys[pin] = key; dev.onDrive?.({ output, level }); }
+    }
   }
   attachI2C(address, device) { this.i2c.set(address & 0x7f, device); device.attach?.(this); return device; }
   reset(kind = 'external') {
@@ -62,7 +72,7 @@ export class ATmega328P {
     this.wdt = { last: this.cycles, ceUntil: -1 };
     this.spi = { doneAt: -1, rx: 0xff, flagSeen: false };
     this.twi = { doneAt: -1, apply: null, phase: 'idle', device: null, read: false };
-    this.sleeping = false; this.pulses = {};
+    this.sleeping = false; this.pulses = {}; this.events = []; this.nextEventAt = Infinity; this.driveKeys = {};
     this.sp = 0x8ff; this.interruptDelay = 0; this.irqCheckAt = 0;
     this.t0 = { acc: 0, flags: 0 }; this.t1 = { acc: 0, dir: 1 }; this.t2 = { acc: 0, dir: 1 };
     this.uart = { busyUntil: 0, pending: null, txc: false, rx: [], rxNextAt: 0, rxData: 0, rxReady: false };
@@ -199,6 +209,7 @@ export class ATmega328P {
     this.prevLevels = now; this.irqCheckAt = 0;
   }
   pinsChanged() {
+    if (this.pinDevices.size) this.notifyPinDevices();
     this.levelsChanged();
     if (!this.onPinChange) return;
     const now = this.pinSnapshot(), changed = {};
@@ -328,7 +339,8 @@ export class ATmega328P {
     const end = this.cycles + cycles;
     // Interrupções são verificadas a cada 16 ciclos (1 µs) ou logo após escrita em E/S, SEI e RETI.
     while (this.cycles < end && !this.halted) {
-      if (this.sleeping) { this.sleepUntil(end); continue; }
+      if (this.cycles >= this.nextEventAt) this.runEvents();
+      if (this.sleeping) { this.sleepUntil(Math.min(end, this.nextEventAt)); continue; }
       if (this.cycles >= this.irqCheckAt) {
         this.irqCheckAt = this.cycles + 16;
         if ((this.data[SREG] & 0x80) && !this.interruptDelay && this.serviceInterrupt()) continue;

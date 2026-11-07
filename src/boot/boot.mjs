@@ -1,6 +1,6 @@
 // Página de boot: carrega um firmware.hex e roda no ATmega328P emulado em tempo real.
 import { ATmega328P, CLOCK } from '../emulator/avr.mjs';
-import { LcdI2C, Ssd1306, Bme280, Mpu6050, Bh1750, Ds3231 } from '../emulator/devices.mjs';
+import { LcdI2C, Ssd1306, Bme280, Mpu6050, Bh1750, Ds3231, Dht } from '../emulator/devices.mjs';
 const $ = id => document.getElementById(id);
 const UNO = { type: 'uno', width: 182, height: 220, pins: [] };
 const PIN_POS = { ...Object.fromEntries([...Array(14)].map((_, i) => [`D${i}`, [0, 26 + i * 12]])), ...Object.fromEntries([0, 1, 2, 3, 4, 5].map(i => [`A${i}`, [182, 38 + i * 20]])) };
@@ -26,6 +26,7 @@ function load(text, name) {
   if (on('rtc')) sensors.rtc = mcu.attachI2C(0x68, new Ds3231({ start: Date.now() }));
   else if (on('mpu')) sensors.mpu = mcu.attachI2C(0x68, new Mpu6050());
   if (on('bh')) sensors.bh = mcu.attachI2C(0x23, new Bh1750());
+  if (on('dht')) sensors.dht = mcu.attachPinDevice('D4', new Dht({ type: 22 }));
   applySensors();
   const key = 'hs-boot-eeprom-' + (name || 'firmware.hex');
   try { const saved = localStorage.getItem(key); if (saved) mcu.eeprom.set(saved.match(/../g).map(h => parseInt(h, 16))); } catch {}
@@ -112,6 +113,7 @@ function applySensors() {
   if (sensors.bme) { sensors.bme.temperature = n('bmeT'); sensors.bme.humidity = n('bmeH'); }
   if (sensors.mpu) { const a = n('mpuX') * Math.PI / 180; sensors.mpu.accel = [0, -Math.sin(a), Math.cos(a)]; }
   if (sensors.bh) sensors.bh.lux = n('bhLux');
+  if (sensors.dht) { sensors.dht.temperature = n('dhtT'); sensors.dht.humidity = n('dhtH'); }
 }
-for (const id of ['bmeT', 'bmeH', 'mpuX', 'bhLux']) $(id).oninput = applySensors;
+for (const id of ['bmeT', 'bmeH', 'mpuX', 'bhLux', 'dhtT', 'dhtH']) $(id).oninput = applySensors;
 document.querySelectorAll('[data-dev]').forEach(c => c.onchange = () => { if (hexText) reboot('sensores alterados'); });

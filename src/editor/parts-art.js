@@ -157,7 +157,14 @@
         s += c && c !== '#000000' ? `<g style="filter:drop-shadow(0 0 6px ${c})">${F(x + 3, 15, 10, 10, c)}</g>` : R(x + 4, 16, 8, 8, 'p'); }
       return s;
     },
+    dht22(def, part) { return dhtArt(def, part, '#f4f5f2', '#d8dbd2'); },
+    dht11(def, part) { return dhtArt(def, part, '#3f8fd6', '#2f6fae'); },
   };
+  function dhtArt(def, part, body, grille) {
+    let s = [20, 40, 60, 80].map(y => leadL(y, 14)).join('') + R(12, 4, 52, 88, 'k') + F(14, 6, 48, 84, body);
+    for (let y = 12; y < 62; y += 8) for (let x = 20; x < 56; x += 8) s += F(x, y, 4, 4, grille);
+    return s + R(18, 70, 40, 14, 'k') + T(38, 81, esc(def.tag), 'c', 8, 'middle');
+  }
 
   function generic(def) {
     const W = def.width, H = def.height, board = def.category === 'Placas';
