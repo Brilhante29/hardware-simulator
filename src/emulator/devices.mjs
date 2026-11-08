@@ -238,3 +238,25 @@ export class Dht {
     m.schedule(t, () => m.setInput(this.pin, 1)); this.reads++;
   }
 }
+
+// Sensor ultrassônico HC-SR04 (datasheet ElecFreaks): pulso ≥ 10 µs no TRIG → rajada de 8 ciclos a 40 kHz e o ECHO sobe
+// por todo o tempo de ida e volta do som. Velocidade do som c = 331,3 + 0,606·T m/s. Alcance 2–400 cm; sem eco, o ECHO
+// fica alto ~38 ms. Enquanto mede, novos gatilhos são ignorados. Liga-se ao pino do TRIG: mcu.attachPinDevice(trig, sensor).
+export class HcSr04 {
+  constructor({ echo = 'D10', distanceCm = 100, temperatureC = 20 } = {}) { this.echo = echo; this.distanceCm = distanceCm; this.temperatureC = temperatureC; this.high = false; this.busy = false; this.pings = 0; }
+  attach(mcu) { this.mcu = mcu; }
+  // Tempo de ida e volta (µs) para a distância e temperatura atuais.
+  echoUs() { const d = this.distanceCm; if (!(d >= 2 && d <= 400)) return 38000; return 2 * (d / 100) / (331.3 + 0.606 * this.temperatureC) * 1e6; }
+  onDrive({ output, level }) {
+    const m = this.mcu, lv = output && level === 1;
+    if (lv && !this.high) this.riseAt = m.cycles;
+    if (!lv && this.high && !this.busy && (m.cycles - this.riseAt) >= 160) this.fire();
+    this.high = lv;
+  }
+  fire() {
+    const m = this.mcu, start = m.cycles + 460 * 16, dur = Math.round(this.echoUs() * 16); this.busy = true; this.pings++;
+    m.schedule(start, () => m.setInput(this.echo, 1));
+    m.schedule(start + dur, () => m.setInput(this.echo, 0));
+    m.schedule(start + dur + 200 * 16, () => { this.busy = false; });
+  }
+}

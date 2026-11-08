@@ -1,0 +1,1 @@
+// lib_deps = teckel12/NewPing@^1.9.7

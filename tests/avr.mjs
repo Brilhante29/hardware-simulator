@@ -1,7 +1,7 @@
 // Firmware real (compilado pelo PlatformIO) rodando no emulador: ATmega328P (Uno) e ATmega2560 (Mega 2560).
 import { readFileSync } from 'node:fs';
 import { ATmega328P, ATmega2560, createMcu, detectChip, parseHex } from '../src/emulator/avr.mjs';
-import { LcdI2C, LcdParallel, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750, Dht } from '../src/emulator/devices.mjs';
+import { LcdI2C, LcdParallel, HcSr04, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750, Dht } from '../src/emulator/devices.mjs';
 // Bordas de pinos (em ciclos) e UART 8N1 por bit: para bibliotecas que fazem serial em software.
 const edgeLog = (m, pins) => { const log = Object.fromEntries(pins.map(p => [p, []])), prev = m.onPinChange; m.onPinChange = (c, t, all) => { for (const p of pins) if (c[p]) log[p].push([m.cycles, c[p].level]); prev?.(c, t, all); }; return log; };
 const levelAt = (edges, c, idle = 1) => { let v = idle; for (const [t, l] of edges) { if (t > c) break; v = l; } return v; };
@@ -110,6 +110,15 @@ export function runAvrTests({ mega: megaPass = false } = {}) {
   });
   test('TimerOne: ISR a cada 1 ms e PWM de 25 % no OC1A', 'TimerOne (Timer1 modo 8, ICR1)', () => { const m = boot('lib_timerone'); m.runSeconds(0.6); ok(Math.abs(+m.out.trim() - 500) <= 3, m.out); ok(Math.abs(m.pinSnapshot()[onMega ? 'D11' : 'D9'].duty - 0.25) < 0.01); });
   test('Stepper: 10 passos e 3 de volta terminam na fase 3 (bobinas 1001)', 'Stepper 4 fios', () => { const m = boot('lib_stepper'); m.runSeconds(0.2); eq(m.out, 'ok\r\n'); const s = m.pinSnapshot(); eq(['D8', 'D9', 'D10', 'D11'].map(p => s[p].level).join(''), '1001'); });
+  test('HC-SR04 com pulseIn: 100 cm a 20 °C = 5,82 ms de eco; mais quente, o som corre mais; fora do alcance, eco de 38 ms', 'HcSr04 (ElecFreaks), c = 331,3 + 0,606·T', () => {
+    const m = boot('lib_sonar'), s = m.attachPinDevice('D9', new HcSr04({ echo: 'D10', distanceCm: 100 })); const last = () => m.out.trim().split('\r\n').at(-1).split(' ').map(Number);
+    m.runSeconds(0.25); let [us] = last(); ok(us >= 5770 && us <= 5824, us); s.distanceCm = 25; m.runSeconds(0.2); const cold = last()[0]; s.temperatureC = 35; m.runSeconds(0.2); const hot = last()[0];
+    ok(cold > hot && cold <= 1456 && cold >= 1442 && hot <= 1419 && hot >= 1405, `${cold} ${hot}`); // só lê a menos: ISR do millis s.distanceCm = 500; m.runSeconds(0.2); ok(Math.abs(last()[0] - 38000) < 300, last());
+  });
+  test('NewPing: ping_cm() dá 102, 25 e 0 (fora do máximo de 300 cm)', 'NewPing (US_ROUNDTRIP_CM = 57)', () => {
+    const m = boot('lib_newping'), s = m.attachPinDevice('D9', new HcSr04({ echo: 'D10', distanceCm: 100 })); const last = () => m.out.trim().split('\r\n').at(-1);
+    m.runSeconds(0.25); eq(last(), '102'); s.distanceCm = 25; m.runSeconds(0.2); eq(last(), '25'); s.distanceCm = 500; m.runSeconds(0.2); eq(last(), '0');
+  });
   test('Mega: o .hex diz qual é o chip (tabela de 57 vetores)', 'detectChip', () => {
     eq(detectChip(hex('blink')), 'atmega328p'); eq(detectChip(hex('mega_serial')), 'atmega2560'); ok(mega('mega_serial') instanceof Object && mega('mega_serial').chip.name === 'ATmega2560');
     let refused = false; try { new ATmega328P(hex('mega_big')); } catch (e) { refused = /não cabe/.test(e.message); } ok(refused, '138 KB aceitos num chip de 32 KB');
