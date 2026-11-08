@@ -25,7 +25,7 @@
     <label class="analog"><span class="label"><select id="aPin" aria-label="Entrada analógica"><option>A0</option></select> <b id="a0Value">2,50 V</b></span><input id="a0Slider" type="range" min="0" max="5" step="0.01" value="2.5"></label>
   </div>
   <div class="devices">
-    <div class="dev"><label class="label"><input type="checkbox" id="lcdOn" checked> LCD 16×2 I²C · 0x27</label><pre id="lcdView" class="lcd-view">                
+    <div class="dev"><label class="label"><input type="checkbox" id="lcdOn" checked> LCD 16×2 I²C · 0x27</label><label class="label"><input type="checkbox" id="lcdParOn"> LCD paralelo · RS 12, EN 11, D4–D7 nos pinos 5–2</label><pre id="lcdView" class="lcd-view">                
                 </pre></div>
     <div class="dev"><label class="label"><input type="checkbox" id="oledOn" checked> OLED SSD1306 · 0x3C</label><canvas id="oledView" width="128" height="64"></canvas></div>
     <div class="dev sensors"><span class="label">Sensores I²C</span>

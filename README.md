@@ -38,7 +38,9 @@ Igual ao fluxo que você já usa com PlatformIO: **o PlatformIO compila, o Hardw
 | SPI mestre | `SPI.transfer` com dispositivo plugável |
 | I²C (TWI) mestre e escravo | `Wire`, `LiquidCrystal_I2C` (LCD 0x27), `Adafruit_SSD1306` (OLED 0x3C), BME280, MPU6050, DS3231 (RTClib), BH1750; dois Unos com `Wire.onReceive/onRequest` |
 | SPI mestre e escravo; USART em SPI (MSPIM) | `SPI.transfer`, dois Unos com SS no D10 |
-| Um fio e pulsos | DHT11/DHT22 (Adafruit DHT), NeoPixel WS2812 (Adafruit NeoPixel) |
+| Um fio e pulsos | DHT11/DHT22 (Adafruit DHT), NeoPixel WS2812 (Adafruit NeoPixel e FastLED) |
+| Bit-banging e laços de ciclos | `SoftwareSerial`, `pulseIn`, `shiftOut/shiftIn`, `tone` com duração, `Stepper`, `TimerOne`, 12 `Servo` ao mesmo tempo |
+| LCD direto nos pinos | `LiquidCrystal` em 4 ou 8 bits (caracteres criados aparecem com os 5×8 pontos; `print` logo após `createChar` vai para a CGRAM, como no HD44780 real) |
 | Comparador, captura do Timer1, referências do ADC | `ACSR`/AIN0/AIN1, `ICR1` no D8, `analogReference(INTERNAL)` |
 | Consumo | estimativa pelo datasheet: ~10,4 mA ativo, ~2,4 mA idle, µA em power-down (Mega: ~20 mA ativo) |
 
@@ -59,7 +61,7 @@ O `simulate.py` passa o `build.mcu` da placa do `platformio.ini` para o emulador
 - **Navegador (`boot.html`):** solte o `firmware.hex`, use **Vigiar arquivo** (Chrome/Edge) e cada `pio run` reinicia o chip. Monitor serial, botões nos pinos, potenciômetro em qualquer entrada analógica, envio para Serial…Serial3 no Mega, LCD, OLED, pulsos medidos (servo em graus, frequência do `tone`) e som do `tone()`.
 - **Editor (`editor.html`):** selecione o Uno ou o Mega 2560 → **Carregar .hex** (ou **Vigiar**). O firmware real move o circuito: LEDs (com brilho de PWM), buzzer com som, botões e chaves viram entradas, potenciômetro vira tensão no pino analógico, servo gira, LCD e OLED ligados no I²C da placa (A4/A5 no Uno, D20/D21 no Mega) mostram a tela. Exemplo pronto: importe `examples/firmware/painel-projeto.json` (fonte em `examples/firmware/painel`).
 
-No editor, placas se falam por serial (TX→RX; no Mega também TX1/RX1 D18/D19, TX2/RX2 D16/D17, TX3/RX3 D14/D15), I²C (SDA/SCL em comum) ou SPI (SCK/MOSI e SS); os chips ligados rodam em passo de 10 µs. Fica de fora outra arquitetura de CPU (ESP32/ESP-IDF, Xtensa/RISC-V): é outro emulador inteiro. `node tests/avr.mjs` roda os testes com firmwares reais compilados pelo PlatformIO (`tests/fixtures/avr`).
+No editor, placas se falam por serial (TX→RX; no Mega também TX1/RX1 D18/D19, TX2/RX2 D16/D17, TX3/RX3 D14/D15), I²C (SDA/SCL em comum) ou SPI (SCK/MOSI e SS); os chips ligados rodam em passo de 10 µs. Fica de fora outra arquitetura de CPU (ESP32/ESP-IDF, Xtensa/RISC-V): é outro emulador inteiro. `node tests/avr.mjs` roda os testes com firmwares reais compilados pelo PlatformIO (`tests/fixtures/avr`) e repete a suíte do Uno com os mesmos firmwares compilados para o Mega (`tests/fixtures/avr/mega`). Onde o chip real erra, o emulador erra igual: `pulseIn` lê alguns µs a menos porque o ISR do `millis` pausa o laço de contagem.
 
 ## Aparência
 

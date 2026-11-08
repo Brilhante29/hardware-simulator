@@ -60,3 +60,4 @@ code{font:12px ui-monospace,monospace;background:var(--panel);padding:1px 5px}
 .analog select,.serial-input select{font:600 12px ui-monospace,monospace;padding:4px 6px;border:1.5px solid var(--ink);background:var(--surface);color:var(--ink)}
 .serial-input select{padding:8px 6px}
 .pin-grid:has(> :nth-child(15)){grid-template-columns:repeat(9,1fr);max-height:220px;overflow:auto}
+.lcd-glyph{display:inline-block;width:.6em;height:1.05em;vertical-align:-.2em;fill:currentColor}

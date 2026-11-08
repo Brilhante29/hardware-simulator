@@ -15,6 +15,7 @@ const catalog = [
   {type:'buzzer',name:'Buzzer',category:'Saídas',tag:'BZ',width:82,height:68,icon:'buzzer',pins:[['+',0,35],['−',82,35]],description:'Transdutor sonoro que responde a uma saída energizada.',kind:'load'},
   {type:'pot',name:'Potenciômetro',category:'Sensores',tag:'10K',width:104,height:78,icon:'pot',pins:[['VCC',0,17],['GND',0,60],['SIG',104,39]],description:'Divisor resistivo ajustável com saída de sinal.',kind:'sensor'},
   {type:'display',name:'Display 16×2',category:'Displays',tag:'LCD',width:112,height:72,icon:'display',pins:[['VCC',0,18],['GND',0,54],['SDA',112,25],['SCL',112,48]],description:'LCD HD44780 com PCF8574 I²C (0x27). Funciona com firmware real (LiquidCrystal_I2C).',kind:'display',i2c:{cls:'LcdI2C',addr:0x27}},
+  {type:'lcd1602',name:'Display 16×2 paralelo',category:'Displays',tag:'LCD',width:112,height:88,icon:'display',pins:[['VCC',0,14],['GND',0,34],['RS',0,54],['E',0,74],['D4',112,14],['D5',112,34],['D6',112,54],['D7',112,74]],description:'LCD HD44780 ligado direto nos pinos (biblioteca LiquidCrystal, modo 4 bits). Funciona com firmware real.',voltage:'5 V',kind:'display',parallelLcd:true},
   {type:'gate',name:'Porta AND',category:'Lógica',tag:'AND',width:90,height:72,icon:'gate',pins:[['A',0,20],['B',0,52],['Y',90,36]],description:'Saída lógica AND de duas entradas.',kind:'logic'},
   {type:'switch',name:'Chave liga/desliga',category:'Básicos',tag:'SW',width:94,height:66,icon:'button',pins:[['1',0,34],['2',94,34]],description:'Chave mantida. Alterne o contato no painel de propriedades.',kind:'switch'},
   {type:'capacitor',name:'Capacitor',category:'Básicos',tag:'C',width:82,height:66,icon:'custom',pins:[['+',0,34],['−',82,34]],description:'Componente passivo; o modelo transitório será adicionado em uma próxima etapa.',kind:'passive'},
@@ -185,6 +186,7 @@ function modelStatus(def){
   if(t==='neopixel'||t==='neostrip')return{sim:true,text:'Simulado com firmware: as cores são decodificadas do sinal WS2812 no DIN (DOUT segue para o próximo).'};
   if(t==='pot')return{sim:true,text:'Simulado com firmware: a posição vira tensão no pino analógico ligado ao SIG (analogRead).'};
   if(t==='servo')return{sim:true,text:'Simulado com firmware: o ângulo vem da largura do pulso no SIG (biblioteca Servo).'};
+  if(t==='lcd1602')return{sim:true,text:'Simulado com firmware: HD44780 em 4 bits; RS, E e D4–D7 em quaisquer pinos da placa (LiquidCrystal).'};
   if(t==='display')return{sim:true,text:'Simulado com firmware: LCD HD44780 com PCF8574 no I²C 0x27 (SDA→A4, SCL→A5).'};
   if(t==='oled')return{sim:true,text:'Simulado com firmware: SSD1306 128×64 no I²C 0x3C (SDA→A4, SCL→A5).'};
   return{sim:false,text:'Só visual: ainda não tem modelo elétrico. Ela entra no desenho e nas conexões, mas não reage à simulação.'};
@@ -270,7 +272,7 @@ function runSimulation(){
   if(parsed.warnings.length)toast(parsed.warnings[0]);
   renderAll();markChanged();
 }
-function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.angle;delete part.settings.colors}for(const part of project.parts)if(isBoard(part))part.settings.outputs={};updateSimulation();renderAll()}
+function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.glyphs;delete part.settings.angle;delete part.settings.colors}for(const part of project.parts)if(isBoard(part))part.settings.outputs={};updateSimulation();renderAll()}
 // ---------- Firmware real (ATmega328P emulado) ----------
 let fw=null;
 function setFirmware(part,text,name){
@@ -305,6 +307,8 @@ async function startFirmware(){
     const devices=[];
     for(const p of i2cTargets(board,lastNet.find,lastNet.node)){const spec=defFor(p.type).i2c,d=new dev[spec.cls]({address:spec.addr,...(spec.cls==='Ds3231'?{start:Date.now()}:{})});mcu.attachI2C(d.address,d);p._device=d;applySensor(p);devices.push([p,d])}
     for(const p of project.parts){const ow=defFor(p.type)?.onewire;if(!ow)continue;const net=lastNet.find(lastNet.node(p.id,ow.pin));const pin=ioOf(board).pins.find(l=>lastNet.find(lastNet.node(board.id,l))===net);if(!pin)continue;const d=new dev[ow.cls]({type:ow.type});mcu.attachPinDevice(pin,d);p._device=d;applySensor(p);devices.push([p,d])}
+    // LCD paralelo: descobre em quais pinos da placa estão RS, E e D4–D7 e escuta o E.
+    for(const p of project.parts){if(!defFor(p.type)?.parallelLcd)continue;const pinOf=l=>{const net=lastNet.find(lastNet.node(p.id,l));return ioOf(board).pins.find(x=>lastNet.find(lastNet.node(board.id,x))===net)};const rs=pinOf('RS'),en=pinOf('E'),d=['D4','D5','D6','D7'].map(pinOf);if(!rs||!en||d.some(x=>!x))continue;const lcd=new dev.LcdParallel({rs,en,d});mcu.attachPinDevice(en,lcd);devices.push([p,lcd])}
     try{const saved=localStorage.getItem('hs-eeprom-'+board.id);if(saved)mcu.eeprom.set(saved.match(/../g).map(h=>parseInt(h,16)))}catch{}
     mcu.onEeprom=()=>{clearTimeout(mcu._eeSave);mcu._eeSave=setTimeout(()=>{try{localStorage.setItem('hs-eeprom-'+board.id,Array.from(mcu.eeprom,b=>b.toString(16).padStart(2,'0')).join(''))}catch{}},300)};
     unit.devices=devices;units.push(unit);
@@ -335,7 +339,7 @@ function firmwareFrame(now){
     for(const label of ioOf(u.board).pins){const p=pins[label];if(!p||p.mode!=='output')continue;const pulse=u.mcu.pulseInfo(label);
       if(pulse&&pulse.hz>20&&pulse.hz<20000&&(p.duty===null||p.duty===0||p.duty===1)){tone[label]=pulse.hz;out[label]=1}else{out[label]=p.level;if(p.duty!==null&&p.duty>0&&p.duty<1)duty[label]=p.duty}}
     u.board.settings.outputs=out;u.board.settings.duty=duty;u.board.settings.tone=tone;
-    for(const[p,d]of u.devices){if(p.type==='display'){p.settings.lines=d.lines();p.settings.backlight=d.backlight}else p._oled=d}
+    for(const[p,d]of u.devices){if(p.type==='display'||p.type==='lcd1602'){p.settings.lines=d.lines();p.settings.glyphs=d.glyphs();p.settings.backlight=d.backlight}else p._oled=d}
   }
   if(now-fw.paint>45){fw.paint=now;const pw=$('#powerInfo');if(pw)pw.textContent=fw.units.map(u=>`≈ ${u.mcu.powerUsage().averageMa.toFixed(1).replace('.',',')} mA`).join(' · ');servoAngles();neopixels();updateSimulation({quiet:true});paintOleds();buzzerAudio()}
   fw.raf=requestAnimationFrame(firmwareFrame);

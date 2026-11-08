@@ -24,6 +24,15 @@
     const d1 = Math.min(9, Math.floor(digits / 10)), d2 = digits % 10, mult = Math.max(0, Math.min(9, exp));
     return [COLORS[d1], COLORS[d2], COLORS[mult]];
   }
+  // Linha do LCD: texto em fonte mono e, nas células com caractere criado (CGRAM), os 5×8 pontos de verdade.
+  function lcdLine(x, y, text, row, glyphs, fs) {
+    const cw = fs * 0.6, dot = cw / 5.2, rowH = fs * 0.95 / 8; let dots = '';
+    for (const [key, rows] of Object.entries(glyphs || {})) {
+      const [r, c] = key.split(',').map(Number); if (r !== row) continue;
+      rows.forEach((bits, yy) => { for (let xx = 0; xx < 5; xx++) if ((bits >> (4 - xx)) & 1) dots += R(+(x + c * cw + xx * dot).toFixed(2), +(y - fs * 0.8 + yy * rowH).toFixed(2), +(dot * 0.92).toFixed(2), +(rowH * 0.92).toFixed(2), 'lcdt'); });
+    }
+    return T(x, y, esc(String(text).replace(/▒/g, ' ')).replace(/ /g, '&#160;'), 'lcdt mono', fs) + dots;
+  }
   const ART = {
     uno(def, part) {
       let s = R(6, 2, 170, 216, 'k') + R(8, 4, 166, 212, 'ub');
@@ -100,7 +109,15 @@
       let s = R(0, 17, 10, 2, 'mt') + R(0, 53, 10, 2, 'mt') + R(102, 24, 10, 2, 'mt') + R(102, 47, 10, 2, 'mt');
       s += R(8, 2, 96, 68, 'k') + R(10, 4, 92, 64, 'bd') + R(14, 12, 84, 46, 'k') + R(18, 16, 76, 38, lit ? 'lcd' : 'lcdoff');
       const fs = lines ? 7.6 : 11;
-      return s + T(20, 32, esc(t1).replace(/ /g, '&#160;'), 'lcdt mono', fs) + T(20, 47, esc(t2).replace(/ /g, '&#160;'), 'lcdt mono', fs) + R(12, 6, 4, 4, 'mt') + R(96, 6, 4, 4, 'mt');
+      return s + lcdLine(20, 32, t1, 0, part?.settings?.glyphs, fs) + lcdLine(20, 47, t2, 1, part?.settings?.glyphs, fs) + R(12, 6, 4, 4, 'mt') + R(96, 6, 4, 4, 'mt');
+    },
+    // LCD paralelo: mesmo módulo verde, terminais RS/E à esquerda e D4–D7 à direita.
+    lcd1602(def, part) {
+      const lines = part?.settings?.lines, t1 = lines ? lines[0] : 'LiquidCrystal', t2 = lines ? lines[1] : '4 bits';
+      let s = def.pins.map(([, x, y]) => x === 0 ? R(0, y - 1, 10, 2, 'mt') : R(102, y - 1, 10, 2, 'mt')).join('');
+      s += R(8, 2, 96, 84, 'k') + R(10, 4, 92, 80, 'bd') + R(14, 20, 84, 46, 'k') + R(18, 24, 76, 38, 'lcd');
+      for (let i = 0; i < 16; i++) s += R(14 + i * 5, 8, 3, 3, 'mt');
+      return s + lcdLine(20, 40, t1, 0, part?.settings?.glyphs, lines ? 7.6 : 9) + lcdLine(20, 55, t2, 1, part?.settings?.glyphs, lines ? 7.6 : 9);
     },
     oled() {
       let s = leadL(18, 10) + leadL(40, 10) + leadR(28, 102, 112) + leadR(52, 102, 112);

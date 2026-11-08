@@ -41,17 +41,41 @@ export class LcdI2C {
     if (v & 0x02) { this.addr = 0; this.offset = 0; this.cg = false; return; }
     if (v & 0x01) { this.ddram.fill(0x20); this.addr = 0; this.offset = 0; this.inc = 1; this.cg = false; }
   }
+  // Código na DDRAM visível na linha r, coluna c (com o deslocamento do display).
+  codeAt(r, c) { const starts = [0x00, 0x40, 0x14, 0x54], base = starts[r] < 0x40 ? 0 : 0x40, len = 40; return this.ddram[base + ((starts[r] - base + c + this.offset) % len + len) % len]; }
+  // Caracteres criados (CGRAM, códigos 0–7 e o espelho 8–15) que estão na tela: { 'linha,coluna': [8 linhas de 5 bits] }.
+  glyphs() {
+    const out = {}; if (!this.display) return out;
+    for (let r = 0; r < this.rows; r++) for (let c = 0; c < this.cols; c++) { const ch = this.codeAt(r, c); if (ch < 16) out[`${r},${c}`] = [...this.cgram.slice((ch & 7) * 8, (ch & 7) * 8 + 8)]; }
+    return out;
+  }
   lines() {
-    const starts = [0x00, 0x40, 0x14, 0x54], out = [];
+    const out = [];
     for (let r = 0; r < this.rows; r++) {
       let line = '';
       for (let c = 0; c < this.cols; c++) {
-        const base = starts[r] < 0x40 ? 0 : 0x40, len = 40, idx = base + ((starts[r] - base + c + this.offset) % len + len) % len;
-        const ch = this.ddram[idx]; line += ch < 8 ? '▒' : ch >= 0x20 && ch < 0x7f ? String.fromCharCode(ch) : ch === 0xdf ? '°' : '█';
+        const ch = this.codeAt(r, c); line += ch < 16 ? '▒' : ch >= 0x20 && ch < 0x7f ? String.fromCharCode(ch) : ch === 0xdf ? '°' : '█';
       }
       out.push(this.display ? line : ' '.repeat(this.cols));
     }
     return out;
+  }
+}
+
+// LCD HD44780 ligado direto nos pinos (biblioteca LiquidCrystal): mesmo controlador do LcdI2C, sem o PCF8574.
+// pins: { rs, en, d: ['D5','D4','D3','D2'] } (D4–D7, 4 bits) ou 8 pinos (D0–D7). Liga-se com mcu.attachPinDevice(pins.en, lcd).
+export class LcdParallel extends LcdI2C {
+  constructor({ rs = 'D12', en = 'D11', d = ['D5', 'D4', 'D3', 'D2'], cols = 16, rows = 2 } = {}) {
+    super({ cols, rows }); this.pins = { rs, en, d }; this.backlight = true; this.enLevel = 0;
+  }
+  attach(mcu) { this.mcu = mcu; }
+  // Borda de descida no EN: o HD44780 lê RS e o barramento de dados.
+  onDrive({ output, level }) {
+    const en = output ? level : 0, prev = this.enLevel; this.enLevel = en;
+    if (!prev || en) return;
+    const lv = p => this.mcu.levelOf(p), rs = lv(this.pins.rs), d = this.pins.d.map(lv);
+    if (d.length === 8) { this.exec(rs, d.reduce((a, b, i) => a | (b << i), 0)); this.version++; return; }
+    this.latch(rs | (d[0] << 4) | (d[1] << 5) | (d[2] << 6) | (d[3] << 7)); this.version++;
   }
 }
 

@@ -1,6 +1,6 @@
 // Página de boot: carrega um firmware.hex e roda no chip certo (Uno ou Mega 2560, pela tabela de vetores) em tempo real.
 import { createMcu, CLOCK } from '../emulator/avr.mjs';
-import { LcdI2C, Ssd1306, Bme280, Mpu6050, Bh1750, Ds3231, Dht } from '../emulator/devices.mjs';
+import { LcdI2C, LcdParallel, Ssd1306, Bme280, Mpu6050, Bh1750, Ds3231, Dht } from '../emulator/devices.mjs';
 const $ = id => document.getElementById(id);
 // Mesmas posições de pino das placas do editor.
 const BOARDS = {
@@ -41,7 +41,9 @@ function load(text, name) {
   mcu.onPinChange = () => {}; // estado lido a cada quadro
   mcu.analog[+$('aPin').value.slice(1)] = Number($('a0Slider').value);
   for (const p of pressed) mcu.setInput(p, 0);
-  lcd = $('lcdOn').checked ? mcu.attachI2C(0x27, new LcdI2C()) : null; oled = $('oledOn').checked ? mcu.attachI2C(0x3c, new Ssd1306()) : null;
+  // LCD paralelo (fiação do exemplo da LiquidCrystal) tem preferência na tela quando os dois estão ligados.
+  lcd = $('lcdParOn').checked ? mcu.attachPinDevice('D11', new LcdParallel()) : null;
+  const lcdI2c = $('lcdOn').checked ? mcu.attachI2C(0x27, new LcdI2C()) : null; lcd ||= lcdI2c; oled = $('oledOn').checked ? mcu.attachI2C(0x3c, new Ssd1306()) : null;
   sensors = {};
   const on = k => document.querySelector(`[data-dev="${k}"]`).checked;
   if (on('bme')) sensors.bme = mcu.attachI2C(0x76, new Bme280());
@@ -78,7 +80,13 @@ function paint() {
   document.querySelector('#boardWrap .ledL')?.classList.toggle('on', pins.D13.mode === 'output' && pins.D13.level === 1);
   for (const b of document.querySelectorAll('[data-in]')) { const p = pins[b.dataset.in]; b.disabled = p.mode === 'output'; b.classList.toggle('on', pressed.has(b.dataset.in)); b.title = p.mode === 'output' ? 'Saída' : p.mode === 'input_pullup' ? 'Entrada com pull-up' : 'Entrada'; }
   $('clock').textContent = `t = ${fmt(mcu.time)} s · ≈ ${fmt(mcu.powerUsage().averageMa, 1)} mA · ${running ? fmt(perf, 1) + '× folga' : 'pausado'}`;
-  if (lcd) $('lcdView').textContent = lcd.lines().join('\n'), $('lcdView').classList.toggle('dark', !lcd.backlight);
+  if (lcd) { // caracteres criados (CGRAM) viram os 5×8 pontos de verdade
+    const g = lcd.glyphs(), esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const cell = rows => `<svg class="lcd-glyph" viewBox="0 0 5 8">${rows.map((bits, y) => [0, 1, 2, 3, 4].filter(x => (bits >> (4 - x)) & 1).map(x => `<rect x="${x}" y="${y}" width=".9" height=".9"/>`).join('')).join('')}</svg>`;
+    const html = lcd.lines().map((l, r) => [...l].map((ch, c) => g[`${r},${c}`] ? cell(g[`${r},${c}`]) : esc(ch)).join('')).join('\n');
+    if ($('lcdView').dataset.html !== html) { $('lcdView').innerHTML = html; $('lcdView').dataset.html = html; }
+    $('lcdView').classList.toggle('dark', !lcd.backlight);
+  }
   if (oled) { const ctx = $('oledView').getContext('2d'), img = ctx.createImageData(128, 64); for (let y = 0; y < 64; y++) for (let x = 0; x < 128; x++) { const on = oled.on && oled.pixel(x, y), i = (y * 128 + x) * 4; img.data[i] = on ? 140 : 6; img.data[i + 1] = on ? 220 : 12; img.data[i + 2] = on ? 255 : 28; img.data[i + 3] = 255; } ctx.putImageData(img, 0, 0); }
   const items = []; let toneHz = 0;
   for (const name of Object.keys(pins)) { const p = mcu.pulseInfo(name); if (!p || !p.periodUs) continue;
@@ -129,7 +137,7 @@ $('serialForm').onsubmit = e => { e.preventDefault(); if (!mcu) return; mcu.seri
 $('clearSerial').onclick = () => { $('serial').textContent = ''; };
 document.addEventListener('visibilitychange', () => { if (document.hidden && running) { pause(); } });
 
-$('lcdOn').onchange = $('oledOn').onchange = () => { if (hexText) reboot('dispositivos alterados'); };
+$('lcdOn').onchange = $('lcdParOn').onchange = $('oledOn').onchange = () => { if (hexText) reboot('dispositivos alterados'); };
 
 function applySensors() {
   const n = id => Number($(id).value);

@@ -5,11 +5,12 @@
 //  - no Mega, Serial1..Serial3 aparecem no terminal com o prefixo [Serial1] etc.
 //  - sem --seconds roda em tempo real até Ctrl+C; o que você digitar vai para a serial do Uno.
 //  - --pins mostra cada mudança de pino com o instante simulado.
-//  - --lcd liga um LCD 16×2 I²C (0x27) e mostra a tela quando ela muda; --oled liga um SSD1306 (0x3C) e desenha no fim.
+//  - --lcd liga um LCD 16×2 I²C (0x27) e mostra a tela quando ela muda; --lcd-par liga um LCD direto nos pinos
+//    (LiquidCrystal lcd(12, 11, 5, 4, 3, 2)); --oled liga um SSD1306 (0x3C) e desenha no fim.
 //  - --eeprom guarda a EEPROM do chip num arquivo entre execuções.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createMcu, CLOCK } from '../src/emulator/avr.mjs';
-import { LcdI2C, Ssd1306 } from '../src/emulator/devices.mjs';
+import { LcdI2C, LcdParallel, Ssd1306 } from '../src/emulator/devices.mjs';
 
 const args = process.argv.slice(2);
 const file = args.find(a => !a.startsWith('--'));
@@ -26,7 +27,7 @@ mcu.onSerial = (b, i = 0) => {
   if (!i) { process.stdout.write(Buffer.from([b])); return; }
   if (b === 10) { process.stderr.write(`\x1b[33m[Serial${i}]\x1b[0m ${Buffer.from(extra[i]).toString('utf8').replace(/\r$/, '')}\n`); extra[i] = []; } else extra[i].push(b);
 };
-const lcd = args.includes('--lcd') ? mcu.attachI2C(0x27, new LcdI2C()) : null;
+const lcd = args.includes('--lcd-par') ? mcu.attachPinDevice('D11', new LcdParallel()) : args.includes('--lcd') ? mcu.attachI2C(0x27, new LcdI2C()) : null;
 const oled = args.includes('--oled') ? mcu.attachI2C(0x3c, new Ssd1306()) : null;
 if (eepromFile && existsSync(eepromFile)) mcu.eeprom.set(readFileSync(eepromFile).subarray(0, mcu.eeprom.length));
 const saveEeprom = () => { if (eepromFile) writeFileSync(eepromFile, Buffer.from(mcu.eeprom)); };

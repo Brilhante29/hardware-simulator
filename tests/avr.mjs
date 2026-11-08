@@ -1,7 +1,12 @@
 // Firmware real (compilado pelo PlatformIO) rodando no emulador: ATmega328P (Uno) e ATmega2560 (Mega 2560).
 import { readFileSync } from 'node:fs';
 import { ATmega328P, ATmega2560, createMcu, detectChip, parseHex } from '../src/emulator/avr.mjs';
-import { LcdI2C, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750, Dht } from '../src/emulator/devices.mjs';
+import { LcdI2C, LcdParallel, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750, Dht } from '../src/emulator/devices.mjs';
+// Bordas de pinos (em ciclos) e UART 8N1 por bit: para bibliotecas que fazem serial em software.
+const edgeLog = (m, pins) => { const log = Object.fromEntries(pins.map(p => [p, []])), prev = m.onPinChange; m.onPinChange = (c, t, all) => { for (const p of pins) if (c[p]) log[p].push([m.cycles, c[p].level]); prev?.(c, t, all); }; return log; };
+const levelAt = (edges, c, idle = 1) => { let v = idle; for (const [t, l] of edges) { if (t > c) break; v = l; } return v; };
+const decodeUart = (edges, baud) => { const bit = 16e6 / baud; let out = '', next = 0; for (const [f, l] of edges) { if (l || f < next) continue; let b = 0; for (let k = 0; k < 8; k++) b |= levelAt(edges, f + (1.5 + k) * bit) << k; out += String.fromCharCode(b); next = f + 9.5 * bit; } return out; };
+const sendUart = (m, pin, text, baud, at, gap = 0.003) => { const bit = 16e6 / baud; let t = at; m.setInput(pin, 1); for (const ch of text) { const b = ch.charCodeAt(0); [0, ...[0, 1, 2, 3, 4, 5, 6, 7].map(k => (b >> k) & 1), 1].forEach((l, k) => m.schedule(Math.round(t + k * bit), () => m.setInput(pin, l))); t += gap * 16e6; } };
 // Segunda passada: os firmwares do Uno recompilados para o Mega (fixtures/avr/mega), com os pinos que mudam de lugar.
 let onMega = false; const pin = n => onMega ? ({ D8: 'PD4', D10: 'D53', D6: 'PE2', D7: 'D5' }[n] ?? n) : n;
 const hex = n => readFileSync(new URL(`./fixtures/avr/${onMega && !n.startsWith('mega_') ? 'mega/' : ''}${n}.hex`, import.meta.url), 'utf8');
@@ -80,6 +85,31 @@ export function runAvrTests({ mega: megaPass = false } = {}) {
     ok(M.out.startsWith('A0 12 23\r\n1 12 23'), M.out); ok(S.out.includes('bytes=6'), S.out);
   });
   test('USART0 como SPI mestre (MSPIM) troca 2 bytes', 'UCSR0C UMSEL = 11', () => { const m = boot('mspim'); m.mspimDevice = b => b ^ 0xff; m.runSeconds(0.05); eq(m.out, 'A5 3C\r\n'); });
+  // Bibliotecas que fazem tempo por laço de ciclos, bit-banging ou ISR de pino (rodam no Uno e, na segunda passada, no Mega).
+  test('SoftwareSerial 9600: transmite e recebe por bit-banging com PCINT', 'SoftwareSerial (RX D10, TX D11)', () => {
+    const m = boot('lib_softserial'), log = edgeLog(m, ['D11']); m.runSeconds(0.1); sendUart(m, 'D10', 'abc', 9600, m.cycles + 1000); m.runSeconds(0.1);
+    eq(decodeUart(log.D11, 9600), 'soft ola\r\nABC'); eq(m.out, 'pronto\r\nabc');
+  });
+  test('pulseIn mede 1.500/700 µs (lendo até 10 µs a menos, como no chip real: o ISR do millis pausa o laço); shiftOut/shiftIn', 'wiring_pulse.S, shiftOut/shiftIn', () => {
+    const m = boot('lib_pulsein'), log = edgeLog(m, ['D5', 'D4']); let lv = 0; const tick = () => { lv ^= 1; m.setInput('D7', lv); m.schedule(m.cycles + (lv ? 1500 : 700) * 16, tick); }; m.schedule(2000, tick);
+    let clk = 0; const prev = m.onPinChange; m.onPinChange = (c, t, a) => { prev(c, t, a); if (c.D5?.level === 1) { if (clk >= 16) m.setInput('D6', (0x5a >> (7 - (clk - 16))) & 1); clk++; } };
+    m.runSeconds(0.1); const lines = m.out.split('\r\n'), [hi, lo] = lines[0].split(' ').map(Number);
+    ok(hi >= 1490 && hi <= 1500 && lo >= 690 && lo <= 700, lines[0]); eq(log.D5.filter(e => e[1]).slice(0, 16).map(e => levelAt(log.D4, e[0], 0)).join(''), '1010010100111100'); eq(lines[1], '5A'); ok(+lines[2] >= 1000 && +lines[2] <= 1060, lines[2]);
+  });
+  test('tone(8, 1000, 200) para sozinho; tone(9, 2500) mede 2.500 Hz na média', 'Timer2 + ISR que alterna o pino', () => {
+    const m = boot('lib_tone'); m.runSeconds(0.1); const a = m.pulseInfo('D8'); m.runSeconds(0.6); const b = m.pulseInfo('D8'), c = m.pulseInfo('D9');
+    ok(Math.abs(a.hz - 1000) < 0.5, a.hz); eq(b, null); ok(Math.abs(c.hz - 2500) < 0.5, c.hz); m.runSeconds(0.5); eq(m.out, 'fim\r\n'); eq(m.levelOf('D9'), 0);
+  });
+  test('LiquidCrystal paralelo (RS 12, EN 11, D4–D7 em 5..2) com caractere criado', 'HD44780 em 4 bits pelos pinos', () => {
+    const m = boot('lib_lcdpar'), lcd = m.attachPinDevice('D11', new LcdParallel()); m.runSeconds(1.3); const l = lcd.lines();
+    eq(l[0], 'LiquidCrystal   '); ok(l[1].startsWith('t=') && l[1].slice(3, 6) === ' 1 ', l[1]); eq(lcd.ddram[0x42], 0); eq(lcd.glyphs()['1,2'].join(), '0,10,31,31,14,4,0,0'); // o coração criado aparece na tela
+  });
+  test('FastLED: 4 LEDs WS2812B no D6 com as cores exatas', 'clockless em assembly (ciclos contados)', () => { const m = boot('lib_fastled'); m.runSeconds(0.05); eq(JSON.stringify(m.neopixel('D6')), '[[255,0,0],[0,255,0],[0,0,255],[18,52,86]]'); });
+  test('12 servos ao mesmo tempo (D2..D13), 0° a 165°', 'Servo com vários canais por timer', () => {
+    const m = boot('lib_servos'); m.runSeconds(0.2); for (let i = 0; i < 12; i++) { const w = m.pulseInfo('D' + (2 + i))?.highUs, want = 544 + i * 15 * (2400 - 544) / 180; ok(w && Math.abs(w - want) < 8, `D${2 + i}: ${w} ≠ ${want}`); }
+  });
+  test('TimerOne: ISR a cada 1 ms e PWM de 25 % no OC1A', 'TimerOne (Timer1 modo 8, ICR1)', () => { const m = boot('lib_timerone'); m.runSeconds(0.6); ok(Math.abs(+m.out.trim() - 500) <= 3, m.out); ok(Math.abs(m.pinSnapshot()[onMega ? 'D11' : 'D9'].duty - 0.25) < 0.01); });
+  test('Stepper: 10 passos e 3 de volta terminam na fase 3 (bobinas 1001)', 'Stepper 4 fios', () => { const m = boot('lib_stepper'); m.runSeconds(0.2); eq(m.out, 'ok\r\n'); const s = m.pinSnapshot(); eq(['D8', 'D9', 'D10', 'D11'].map(p => s[p].level).join(''), '1001'); });
   test('Mega: o .hex diz qual é o chip (tabela de 57 vetores)', 'detectChip', () => {
     eq(detectChip(hex('blink')), 'atmega328p'); eq(detectChip(hex('mega_serial')), 'atmega2560'); ok(mega('mega_serial') instanceof Object && mega('mega_serial').chip.name === 'ATmega2560');
     let refused = false; try { new ATmega328P(hex('mega_big')); } catch (e) { refused = /não cabe/.test(e.message); } ok(refused, '138 KB aceitos num chip de 32 KB');

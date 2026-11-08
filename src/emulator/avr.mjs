@@ -249,8 +249,14 @@ export class AVR {
     const total = s(e.active) * mA.active + s(e.idle) * mA.idle + s(e.deep) * mA.deep, time = s(e.active + e.idle + e.deep);
     return { averageMa: time ? total / time : 0, mAh: total / 3600, activeShare: time ? s(e.active) / time : 1, source: p.source };
   }
-  // Frequência e largura de pulso medidas no pino (para servo, tone e PWM por software).
-  pulseInfo(pin) { const p = this.pulses[pin]; if (!p || p.last === undefined || this.cycles - p.last > CLOCK / 4) return null; return { highUs: p.high / 16, periodUs: p.period / 16, hz: p.period ? CLOCK / p.period : 0 }; }
+  // Frequência e largura de pulso medidas no pino (para servo, tone e PWM por software). O período é a média das
+  // últimas 16 subidas dentro de 50 ms: tone() e PWM por software alternam o pino numa ISR e cada período sozinho treme.
+  pulseInfo(pin) {
+    const p = this.pulses[pin]; if (!p || p.last === undefined || this.cycles - p.last > CLOCK / 4) return null;
+    const r = p.rises; let i = 0; while (i < r.length - 2 && r[r.length - 1] - r[i] > CLOCK / 20) i++;
+    const period = r.length - i >= 3 ? (r[r.length - 1] - r[i]) / (r.length - 1 - i) : p.period;
+    return { highUs: p.high / 16, periodUs: period / 16, hz: period ? CLOCK / period : 0 };
+  }
 
   pinSnapshot() {
     const out = {}, pwmMap = this.chip.pwm;
@@ -289,10 +295,10 @@ export class AVR {
       for (let b = 0; b < 8; b++) {
         if (!(diff & (1 << b))) continue;
         const name = this.pinName[port + b], level = (now[port] >> b) & 1, t = this.cycles;
-        const p = this.pulses[name] || (this.pulses[name] = { rise: -1, high: 0, period: 0, edges: 0, fall: -1, bits: [], frame: null });
+        const p = this.pulses[name] || (this.pulses[name] = { rise: -1, high: 0, period: 0, edges: 0, fall: -1, bits: [], frame: null, rises: [] });
         if (level) {
           if (p.fall >= 0 && t - p.fall > 800) this.wsFlush(p); // > 50 µs em nível baixo = reset do WS2812
-          if (p.rise >= 0) p.period = t - p.rise; p.rise = t;
+          if (p.rise >= 0) p.period = t - p.rise; p.rise = t; p.rises.push(t); if (p.rises.length > 17) p.rises.shift();
         } else if (p.rise >= 0) {
           p.high = t - p.rise; p.fall = t;
           // WS2812 a 800 kHz: bit 1 ≈ 0,8 µs alto (≥ 10 ciclos), bit 0 ≈ 0,4 µs; pulsos longos não são do protocolo.
