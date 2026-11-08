@@ -3,6 +3,11 @@ import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 const require = createRequire(import.meta.url);
 const { parse, timeline } = require('../src/editor/sketch.js');
+import { readFileSync } from 'node:fs';
+import { MEGA_PINS, UNO_PINS } from '../src/emulator/avr.mjs';
+const appSource = readFileSync(new URL('../src/app.js', import.meta.url), 'utf8');
+// Pinos [nome, x, y] de uma placa do catálogo do editor.
+const catalogPins = type => { const line = appSource.split('\n').find(l => l.includes(`{type:'${type}'`)); return [...line.matchAll(/\['([^']+)',(\d+),(\d+)\]/g)].map(m => [m[1], +m[2], +m[3]]); };
 
 const writes = ops => ops.filter(o => o.t === 'w').map(o => `${o.pin}:${o.level}`);
 const delays = ops => ops.filter(o => o.t === 'd').map(o => o.ms);
@@ -59,6 +64,22 @@ const cases = [
   ['for gigante é interrompido com aviso', () => {
     const r = parse('void loop(){ for (int i = 0; i < 100000; i++) { delay(1); } }');
     assert.ok(r.warnings.includes('for com repetições demais: interrompido')); assert.ok(r.loop.length <= 2001);
+  }],
+  ['Catálogo: Uno e Mega expõem todos os pinos de E/S do emulador, em posições únicas', () => {
+    for (const [type, map] of [['uno', UNO_PINS], ['mega', MEGA_PINS]]) {
+      const pins = catalogPins(type), names = new Set(pins.map(p => p[0]));
+      for (const n of Object.keys(map)) assert.ok(names.has(n), `${type} sem ${n}`);
+      assert.ok(names.has('5V') && names.has('GND')); assert.equal(new Set(pins.map(p => p[1] + ',' + p[2])).size, pins.length, `${type}: pinos sobrepostos`);
+    }
+    assert.equal(catalogPins('mega').length, 54 + 16 + 2);
+  }],
+  ['Mega: pinos de I²C, SPI e seriais do editor batem com as funções do ATmega2560', () => {
+    const io = appSource.match(/mega:\{mcu:'atmega2560'.*?serial:(\[\[.*?\]\])/)[0];
+    const port = n => MEGA_PINS[n].join(''); // datasheet: SCL=PD0, SDA=PD1, SCK=PB1, MOSI=PB2, SS=PB0, TXD1=PD3, RXD1=PD2, TXD2=PH1, RXD2=PH0, TXD3=PJ1, RXD3=PJ0
+    const want = { sda: 'D1', scl: 'D0', sck: 'B1', mosi: 'B2', ss: 'B0' };
+    for (const [k, pb] of Object.entries(want)) assert.equal(port(io.match(new RegExp(k + ":'(\\w+)'"))[1]), pb, k);
+    const pairs = JSON.parse(io.match(/serial:(\[\[.*?\]\])/)[1].replace(/'/g, '"'));
+    assert.deepEqual(pairs.map(([tx, rx]) => port(tx) + '/' + port(rx)), ['E1/E0', 'D3/D2', 'H1/H0', 'J1/J0']);
   }],
 ];
 let passed = 0;

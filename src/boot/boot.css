@@ -54,3 +54,9 @@ code{font:12px ui-monospace,monospace;background:var(--panel);padding:1px 5px}
 .devices{grid-template-columns:repeat(2,1fr)}
 .neo-view div{margin-top:8px}.neo-view small{display:block;font:11px ui-monospace,monospace;color:var(--muted)}
 .neo-view i{display:inline-block;width:16px;height:16px;margin:4px 4px 0 0;border:1px solid var(--line)}
+/* Mega 2560: placa mais comprida e 54 pinos digitais */
+.board-wrap.tall{aspect-ratio:182/340;width:min(100%,300px)}
+.board-wrap.tall .pin-dot{width:8px;height:8px;margin:-4px 0 0 -4px}
+.analog select,.serial-input select{font:600 12px ui-monospace,monospace;padding:4px 6px;border:1.5px solid var(--ink);background:var(--surface);color:var(--ink)}
+.serial-input select{padding:8px 6px}
+.pin-grid:has(> :nth-child(15)){grid-template-columns:repeat(9,1fr);max-height:220px;overflow:auto}

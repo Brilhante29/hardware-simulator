@@ -11,11 +11,13 @@ Import("env")  # noqa: F821  (injetado pelo PlatformIO)
 here = os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))
 runner = os.environ.get("HARDWARE_STUDIO_RUNNER") or os.path.normpath(os.path.join(here, "..", "avr-run.mjs"))
 extra = os.environ.get("SIM_ARGS", "")
+# build.mcu da placa (atmega328p no uno, atmega2560 no megaatmega2560); outro chip é recusado pelo emulador com o motivo.
+mcu = env.BoardConfig().get("build.mcu", "auto")  # noqa: F821
 
 env.AddCustomTarget(  # noqa: F821
     name="simulate",
     dependencies="$BUILD_DIR/${PROGNAME}.hex",
-    actions=['node "%s" "$BUILD_DIR/${PROGNAME}.hex" %s' % (runner, extra)],
+    actions=['node "%s" "$BUILD_DIR/${PROGNAME}.hex" --mcu %s %s' % (runner, mcu, extra)],
     title="Simulate",
-    description="Dá boot no firmware no emulador ATmega328P do Hardware Studio",
+    description="Dá boot no firmware no emulador AVR do Hardware Studio (Uno ou Mega 2560)",
 )

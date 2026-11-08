@@ -5,6 +5,7 @@ const STARTER_CODE = `// Exemplo: pisca o LED ligado ao pino 13\nvoid setup() {\
 
 const catalog = [
   {type:'uno',name:'Arduino Uno',category:'Placas',tag:'MCU',width:182,height:220,icon:'board',pins:[['D0',0,26],['D1',0,38],['D2',0,50],['D3',0,62],['D4',0,74],['D5',0,86],['D6',0,98],['D7',0,110],['D8',0,122],['D9',0,134],['D10',0,146],['D11',0,158],['D12',0,170],['D13',0,182],['A0',182,38],['A1',182,58],['A2',182,78],['A3',182,98],['A4',182,118],['A5',182,138],['5V',182,164],['GND',182,190]],description:'Placa de desenvolvimento ATmega328P.',voltage:'5 V',kind:'board'},
+  {type:'mega',name:'Arduino Mega 2560',category:'Placas',tag:'MCU',width:182,height:340,icon:'board',pins:[['D0',0,26],['D1',0,38],['D2',0,50],['D3',0,62],['D4',0,74],['D5',0,86],['D6',0,98],['D7',0,110],['D8',0,122],['D9',0,134],['D10',0,146],['D11',0,158],['D12',0,170],['D13',0,182],['D14',0,194],['D15',0,206],['D16',0,218],['D17',0,230],['D18',0,242],['D19',0,254],['D20',0,266],['D21',0,278],['A0',182,30],['A1',182,42],['A2',182,54],['A3',182,66],['A4',182,78],['A5',182,90],['A6',182,102],['A7',182,114],['A8',182,126],['A9',182,138],['A10',182,150],['A11',182,162],['A12',182,174],['A13',182,186],['A14',182,198],['A15',182,210],['5V',182,236],['GND',182,256],['D22',16,340],['D23',16,328],['D24',26,340],['D25',26,328],['D26',36,340],['D27',36,328],['D28',46,340],['D29',46,328],['D30',56,340],['D31',56,328],['D32',66,340],['D33',66,328],['D34',76,340],['D35',76,328],['D36',86,340],['D37',86,328],['D38',96,340],['D39',96,328],['D40',106,340],['D41',106,328],['D42',116,340],['D43',116,328],['D44',126,340],['D45',126,328],['D46',136,340],['D47',136,328],['D48',146,340],['D49',146,328],['D50',156,340],['D51',156,328],['D52',166,340],['D53',166,328]],description:'Placa ATmega2560: 54 pinos digitais (15 PWM), 16 analógicos, 4 seriais, 256 KB de flash.',voltage:'5 V',kind:'board'},
   {type:'led',name:'LED',category:'Básicos',tag:'LED',width:82,height:70,icon:'led',pins:[['A',0,38],['K',82,38]],description:'Diodo emissor de luz. A = ânodo, K = cátodo.',kind:'load'},
   {type:'resistor',name:'Resistor',category:'Básicos',tag:'R',width:104,height:66,icon:'resistor',pins:[['1',0,34],['2',104,34]],description:'Resistor genérico em série com o circuito.',kind:'conductor'},
   {type:'button',name:'Botão',category:'Básicos',tag:'SW',width:82,height:66,icon:'button',pins:[['1',0,34],['2',82,34]],description:'Chave momentânea. Alterne para abrir ou fechar o contato.',kind:'switch'},
@@ -113,6 +114,11 @@ function renderWires(){
 }
 let pointerCanvas={x:0,y:0};
 // Só o visual (classes + arte), para atualizar peças sem recriar o elemento durante a simulação.
+// Rótulo do pino. No conector duplo do Mega (borda de baixo) vai um rótulo vertical por coluna, como na serigrafia: 22·23 … 52·53.
+function pinLabel(def,name,x,y){
+  if(def.category==='Placas'&&x>0&&x<def.width){if(y<def.height)return'';const m=/^D(\d+)$/.exec(name);return`<span class="pin-label bottom" style="left:${x-5}px;top:${y+7}px">${m?`${m[1]}·${+m[1]+1}`:safeText(name)}</span>`}
+  return`<span class="pin-label ${x===0?'left':'right'}" style="left:${x===0?'auto':x+7+'px'};right:${x===0?'calc(100% + 5px)':'auto'};top:${y-4}px">${safeText(name)}</span>`;
+}
 function partVisual(part){
   const def=defFor(part.type);if(!def)return null;
   const classes=['part',`part-${part.type}`,selectedId===part.id?'selected':'',part.settings?.pressed?'pressed':'',part.settings?.lit?'lit':''].filter(Boolean).join(' ');
@@ -131,7 +137,7 @@ function partMarkup(part){
   const def=defFor(part.type);if(!def)return'';
   const classes=['part',`part-${part.type}`,selectedId===part.id?'selected':'',part.settings?.pressed?'pressed':'',part.settings?.lit?'lit':''].filter(Boolean).join(' ');
   const inner=window.PixelParts?window.PixelParts.art(def,part):'';
-  const pins=def.pins.map(([name,x,y])=>`<span class="pin ${pendingPin?.part===part.id&&pendingPin?.pin===name?'pending':''}" data-pin="${safeText(name)}" title="${safeText(name)}" style="left:${x}px;top:${y}px"></span><span class="pin-label ${x===0?'left':'right'}" style="left:${x===0?'auto':x+7+'px'};right:${x===0?'calc(100% + 5px)':'auto'};top:${y-4}px">${safeText(name)}</span>`).join('');
+  const pins=def.pins.map(([name,x,y])=>`<span class="pin ${pendingPin?.part===part.id&&pendingPin?.pin===name?'pending':''}" data-pin="${safeText(name)}" title="${safeText(name)}" style="left:${x}px;top:${y}px"></span>${pinLabel(def,name,x,y)}`).join('');
   return `<div class="${classes}" data-part="${safeText(part.id)}" style="${part.settings?.duty!==undefined?`--duty:${Number(part.settings.duty).toFixed(3)};`:''}left:${part.x}px;top:${part.y}px;width:${def.width}px;height:${def.height+18}px"><div class="part-card" style="width:${def.width}px;height:${def.height}px">${inner}</div><div class="part-title">${safeText(part.name||def.name)}</div>${pins}</div>`;
 }
 function renderParts(){
@@ -168,7 +174,8 @@ function renderAll(){
 }
 function modelStatus(def){
   if(!def)return null;const k=def.kind,t=def.type;
-  if(t==='uno')return{sim:true,text:'Simulado: saídas D0–D13 vêm do sketch.'};
+  if(t==='uno')return{sim:true,text:'Simulado: saídas D0–D13 vêm do sketch ou do firmware (.hex).'};
+  if(t==='mega')return{sim:true,text:'Simulado: ATmega2560 com firmware (.hex) — 54 digitais, A0–A15, Serial1–3, I²C no D20/D21, SPI no D50–D53.'};
   if(t==='led'||t==='buzzer')return{sim:true,text:t==='led'?'Simulado: liga quando há tensão no sentido certo. Com firmware, o PWM (analogWrite) controla o brilho.':'Simulado: liga com tensão; com firmware, tone() toca a frequência real no alto-falante.'};
   if(k==='conductor')return{sim:true,text:'Simulado como condutor ideal: liga os dois terminais, sem queda de tensão.'};
   if(k==='switch')return{sim:true,text:'Simulado: abre e fecha o contato.'};
@@ -190,7 +197,7 @@ function renderInspector(){
   const pins=def.pins.map(pin=>`<div class="property-row"><span>${safeText(pin[0])}</span><b>${project.wires.filter(w=>[w.a,w.b].some(end=>end.part===part.id&&end.pin===pin[0])).length?'Conectado':'Livre'}</b></div>`).join('');
   let controls='';
   if(def.kind==='switch')controls=`<div class="property-section"><p class="property-label">Estado do contato</p><div class="switch-row"><span>${part.settings?.pressed?(part.type==='switch'?'Fechado':'Pressionado'):'Aberto'}</span><button id="toggleButtonPart" class="toggle ${part.settings?.pressed?'on':''}" aria-label="Alternar botão"></button></div></div>`;
-  if(part.type==='uno')controls+=`<div class="property-section"><p class="property-label">Firmware (PlatformIO)</p><div class="property-row"><span>${part.settings?.firmware?safeText(part.settings.firmwareName||'firmware.hex'):'Sketch do editor'}</span><b>${part.settings?.firmware?Math.round(part.settings.firmware.length/1024)+' KB':'—'}</b></div><div class="fw-actions"><button id="fwLoad" class="button button-quiet">Carregar .hex</button>${window.showOpenFilePicker?'<button id="fwWatch" class="button button-quiet" title="Recarrega a cada pio run">Vigiar</button>':''}${part.settings?.firmware?'<button id="fwClear" class="text-button">Remover</button>':''}</div><p class="fw-hint">Arquivo: <code>.pio/build/uno/firmware.hex</code>. Com firmware, o Uno roda o código real; LCD/OLED no A4/A5 funcionam.</p></div>`;
+  if(isBoard(part))controls+=`<div class="property-section"><p class="property-label">Firmware (PlatformIO)</p><div class="property-row"><span>${part.settings?.firmware?safeText(part.settings.firmwareName||'firmware.hex'):'Sketch do editor'}</span><b>${part.settings?.firmware?Math.round(part.settings.firmware.length/1024)+' KB':'—'}</b></div><div class="fw-actions"><button id="fwLoad" class="button button-quiet">Carregar .hex</button>${window.showOpenFilePicker?'<button id="fwWatch" class="button button-quiet" title="Recarrega a cada pio run">Vigiar</button>':''}${part.settings?.firmware?'<button id="fwClear" class="text-button">Remover</button>':''}</div><p class="fw-hint">Arquivo: <code>.pio/build/${ioOf(part).env}/firmware.hex</code> (board = ${ioOf(part).env}). Com firmware, a placa roda o código real do ${ioOf(part).chip}; I²C no ${ioOf(part).sda}/${ioOf(part).scl}.</p></div>`;
   if(def.controls)controls+=`<div class="property-section"><p class="property-label">Leituras do sensor</p>${def.controls.map(([k,label,unit,min,max,step,dflt])=>`<label class="sensor-row"><span>${safeText(label)}</span><b data-sv="${k}">${(part.settings?.sensor?.[k]??dflt)} ${safeText(unit)}</b><input type="range" data-sensor="${k}" min="${min}" max="${max}" step="${step}" value="${part.settings?.sensor?.[k]??dflt}"></label>`).join('')}</div>`;
   if(part.type==='pot')controls+=`<div class="property-section"><p class="property-label">Posição</p><input id="potPos" type="range" min="0" max="1" step="0.01" value="${part.settings?.position??0.5}" style="width:100%"><div class="property-row"><span>Saída</span><b id="potVolts">${((part.settings?.position??0.5)*5).toFixed(2)} V</b></div></div>`;
   if(part.type==='resistor')controls+=`<div class="property-section"><p class="property-label">Valor</p><input id="partValue" class="property-input" value="${safeText(part.settings?.value||'220 Ω')}" /></div>`;
@@ -224,24 +231,28 @@ function deleteSelected(){
 }
 function unionFind(nodes,edges){const parent=new Map(nodes.map(n=>[n,n]));const find=x=>{let r=x;while(parent.get(r)!==r)r=parent.get(r);while(parent.get(x)!==x){const next=parent.get(x);parent.set(x,r);x=next}return r};for(const[a,b]of edges){if(!parent.has(a))parent.set(a,a);if(!parent.has(b))parent.set(b,b);parent.set(find(a),find(b))}return find}
 const UNO_OUT_PINS=['D0','D1','D2','D3','D4','D5','D6','D7','D8','D9','D10','D11','D12','D13','A0','A1','A2','A3','A4','A5'];
+const MEGA_OUT_PINS=[...Array(54)].map((_,i)=>'D'+i).concat([...Array(16)].map((_,i)=>'A'+i));
+// Pinos de cada placa: I²C, SPI, pares TX/RX das seriais e quantas entradas analógicas.
+const BOARD_IO={uno:{mcu:'atmega328p',chip:'ATmega328P',pins:UNO_OUT_PINS,sda:'A4',scl:'A5',sck:'D13',mosi:'D11',ss:'D10',serial:[['D1','D0']],analog:6,env:'uno'},mega:{mcu:'atmega2560',chip:'ATmega2560',pins:MEGA_OUT_PINS,sda:'D20',scl:'D21',sck:'D52',mosi:'D51',ss:'D53',serial:[['D1','D0'],['D18','D19'],['D16','D17'],['D14','D15']],analog:16,env:'megaatmega2560'}};
+const isBoard=p=>!!BOARD_IO[p?.type],ioOf=p=>BOARD_IO[p.type];
 let lastNet=null;
 function updateSimulation(opts={}){
   const nodes=[],edges=[];const node=(part,pin)=>`${part}:${pin}`;
   for(const part of project.parts){for(const[pin]of defFor(part.type)?.pins||[])nodes.push(node(part.id,pin));if(part.type==='resistor'||defFor(part.type)?.kind==='conductor')edges.push([node(part.id,defFor(part.type).pins[0][0]),node(part.id,defFor(part.type).pins[1][0])]);if((['button','switch'].includes(part.type)||defFor(part.type)?.kind==='switch')&&part.settings?.pressed)edges.push([node(part.id,defFor(part.type).pins[0][0]),node(part.id,defFor(part.type).pins[1][0])]);}
   for(const wire of project.wires)edges.push([node(wire.a.part,wire.a.pin),node(wire.b.part,wire.b.pin)]);
   const find=unionFind(nodes,edges);const highs=new Set(),lows=new Set();
-  for(const part of project.parts){const definition=defFor(part.type);if(part.type==='source'||definition?.kind==='source'){const pins=definition.pins;highs.add(find(node(part.id,part.type==='source'?'+':pins[0][0])));lows.add(find(node(part.id,part.type==='source'?'−':pins[1][0])))}if(definition?.kind==='highRail')highs.add(find(node(part.id,definition.pins[0][0])));if(definition?.kind==='lowRail')lows.add(find(node(part.id,definition.pins[0][0])));if(part.type==='uno'){highs.add(find(node(part.id,'5V')));lows.add(find(node(part.id,'GND')));for(const label of UNO_OUT_PINS){if(!pinDef(part,label))continue;const level=part.settings?.outputs?.[label];if(level===1)highs.add(find(node(part.id,label)));if(level===0)lows.add(find(node(part.id,label)))} }}
+  for(const part of project.parts){const definition=defFor(part.type);if(part.type==='source'||definition?.kind==='source'){const pins=definition.pins;highs.add(find(node(part.id,part.type==='source'?'+':pins[0][0])));lows.add(find(node(part.id,part.type==='source'?'−':pins[1][0])))}if(definition?.kind==='highRail')highs.add(find(node(part.id,definition.pins[0][0])));if(definition?.kind==='lowRail')lows.add(find(node(part.id,definition.pins[0][0])));if(isBoard(part)){highs.add(find(node(part.id,'5V')));lows.add(find(node(part.id,'GND')));for(const label of ioOf(part).pins){if(!pinDef(part,label))continue;const level=part.settings?.outputs?.[label];if(level===1)highs.add(find(node(part.id,label)));if(level===0)lows.add(find(node(part.id,label)))} }}
   const lights=[];lastNet={find,node,highs,lows};
   // PWM e tone vindos do firmware: brilho proporcional e buzzer apitando.
   const netDuty=new Map(),netTone=new Map();
-  for(const b of project.parts)if(b.type==='uno'){for(const[l,d]of Object.entries(b.settings?.duty||{}))netDuty.set(find(node(b.id,l)),d);for(const[l,f]of Object.entries(b.settings?.tone||{}))netTone.set(find(node(b.id,l)),f)}
+  for(const b of project.parts)if(isBoard(b)){for(const[l,d]of Object.entries(b.settings?.duty||{}))netDuty.set(find(node(b.id,l)),d);for(const[l,f]of Object.entries(b.settings?.tone||{}))netTone.set(find(node(b.id,l)),f)}
   for(const part of project.parts){if(part.type==='led'){const anode=find(node(part.id,'A')),cathode=find(node(part.id,'K'));const lit=Array.from(highs).some(h=>h===anode)&&Array.from(lows).some(l=>l===cathode);part.settings.lit=lit;part.settings.duty=lit&&netDuty.has(anode)?netDuty.get(anode):undefined;lights.push(lit)}if(part.type==='buzzer'){const pos=find(node(part.id,'+')),neg=find(node(part.id,'−'));const toneHz=netTone.get(pos);part.settings.tone=toneHz&&lows.has(neg)?toneHz:undefined;part.settings.lit=!!part.settings.tone||(highs.has(pos)&&lows.has(neg))}}
   if(opts.quiet)refreshParts();else renderParts();if(selectedId&&!opts.quiet)renderInspector();
 }
-function applyWrites(writes){const boards=project.parts.filter(p=>p.type==='uno');for(const board of boards){const outputs={...(board.settings.outputs||{})};for(const w of writes)outputs[`D${w.pin}`]=w.level;board.settings.outputs=outputs}updateSimulation()}
+function applyWrites(writes){const boards=project.parts.filter(p=>isBoard(p));for(const board of boards){const outputs={...(board.settings.outputs||{})};for(const w of writes)outputs[`D${w.pin}`]=w.level;board.settings.outputs=outputs}updateSimulation()}
 function runSimulation(){
   if(simulationTimer){stopSimulation();return}
-  if(project.parts.some(p=>p.type==='uno'&&p.settings?.firmware)){startFirmware();return}
+  if(project.parts.some(p=>isBoard(p)&&p.settings?.firmware)){startFirmware();return}
   const sketch=$('#codeEditor').value;const parsed=window.Sketch.parse(sketch);
   if(!parsed.writes){toast('O sketch não tem digitalWrite() reconhecido em setup() ou loop()');showInspectorTab('code');$('#codeStatus').textContent=parsed.warnings[0]||'Sem instruções reconhecidas';return}
   project.code=sketch;
@@ -259,7 +270,7 @@ function runSimulation(){
   if(parsed.warnings.length)toast(parsed.warnings[0]);
   renderAll();markChanged();
 }
-function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.angle;delete part.settings.colors}for(const part of project.parts)if(part.type==='uno')part.settings.outputs={};updateSimulation();renderAll()}
+function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.angle;delete part.settings.colors}for(const part of project.parts)if(isBoard(part))part.settings.outputs={};updateSimulation();renderAll()}
 // ---------- Firmware real (ATmega328P emulado) ----------
 let fw=null;
 function setFirmware(part,text,name){
@@ -272,40 +283,46 @@ function watchFirmware(part,handle){
   const check=async()=>{try{const f=await handle.getFile();if(f.lastModified!==stamp){const first=!stamp;stamp=f.lastModified;setFirmware(part,await f.text(),f.name);if(!first)toast('Firmware novo: reboot')}}catch{}};
   check();part._watch=setInterval(check,800);
 }
-function serialLog(text,unit){const el=$('#serialOut');if(!el)return;if(unit&&fw&&fw.units.length>1){unit.buf=(unit.buf||'')+text;const cut=unit.buf.lastIndexOf('\n');if(cut<0)return;text=unit.buf.slice(0,cut+1).split('\n').filter(l=>l.length).map(l=>'['+unit.board.name+'] '+l+'\n').join('');unit.buf=unit.buf.slice(cut+1)}el.textContent=(el.textContent+text).slice(-12000);el.scrollTop=el.scrollHeight}
+// Várias placas ou Serial1–3 do Mega: junta por linha e marca a origem ([Uno 2], [Serial1], [Mega Serial2]).
+function serialLog(text,unit,port=0){const el=$('#serialOut');if(!el)return;const many=fw&&fw.units.length>1;
+  // Uma placa só: a Serial0 sai crua; linhas da Serial1–3 esperam a Serial0 fechar a linha dela.
+  if(unit&&!many&&!port){el.textContent=(el.textContent+text).slice(-12000);if(unit.pend&&/\n$/.test(el.textContent)){el.textContent+=unit.pend;unit.pend=''}el.scrollTop=el.scrollHeight;return}
+  if(unit&&(many||port)){const k='buf'+port;unit[k]=(unit[k]||'')+text;const cut=unit[k].lastIndexOf('\n');if(cut<0)return;const tag=[many?unit.board.name:'',port?'Serial'+port:''].filter(Boolean).join(' ');text=unit[k].slice(0,cut+1).split('\n').map(l=>l.replace(/\r$/,'')).filter(l=>l.length).map(l=>'['+tag+'] '+l+'\n').join('');unit[k]=unit[k].slice(cut+1);if(!many&&el.textContent&&!/\n$/.test(el.textContent)){unit.pend=(unit.pend||'')+text;return}}el.textContent=(el.textContent+text).slice(-12000);el.scrollTop=el.scrollHeight}
 function i2cTargets(board,find,node){
-  // Displays com SDA no A4 e SCL no A5 deste Uno entram no barramento I²C.
-  const sda=find(node(board.id,'A4')),scl=find(node(board.id,'A5'));
+  // Displays e sensores com SDA/SCL nos pinos de I²C desta placa (A4/A5 no Uno, D20/D21 no Mega) entram no barramento.
+  const sda=find(node(board.id,ioOf(board).sda)),scl=find(node(board.id,ioOf(board).scl));
   return project.parts.filter(p=>defFor(p.type)?.i2c&&find(node(p.id,'SDA'))===sda&&find(node(p.id,'SCL'))===scl);
 }
 async function startFirmware(){
   let mod,dev;try{[mod,dev]=await Promise.all([import('./emulator/avr.mjs'),import('./emulator/devices.mjs')])}catch{toast('Não foi possível carregar o emulador (sirva a pasta por HTTP)');return}
   updateSimulation({quiet:true});
-  const boards=project.parts.filter(p=>p.type==='uno'&&p.settings?.firmware);
+  const boards=project.parts.filter(p=>isBoard(p)&&p.settings?.firmware);
   const units=[];
   for(const board of boards){
-    let mcu;try{mcu=new mod.ATmega328P(board.settings.firmware)}catch(e){toast(`${board.name}: ${e.message}`);continue}
-    const dec=new TextDecoder(),unit={board,mcu,devices:null,clock:mod.CLOCK,links:[]};mcu.onSerial=b=>{serialLog(dec.decode(new Uint8Array([b]),{stream:true}),unit);for(const t of unit.links)t.serialByte(b)};
+    // Como o avrdude, recusa firmware compilado para outro chip (a assinatura não bate).
+    let mcu;try{const io=ioOf(board),got=mod.detectChip(board.settings.firmware);if(got!==io.mcu)throw Error(`firmware compilado para ${mod.CHIPS[got].name} (${mod.CHIPS[got].board}); esta placa é ${io.chip}. Recompile com board = ${io.env}.`);mcu=mod.createMcu(board.settings.firmware,io.mcu)}catch(e){toast(`${board.name}: ${e.message}`);serialLog(`[${board.name}] ${e.message}\n`);continue}
+    const decs=[0,1,2,3].map(()=>new TextDecoder()),unit={board,mcu,devices:null,clock:mod.CLOCK,links:[]};mcu.onSerial=(b,i=0)=>{serialLog(decs[i].decode(new Uint8Array([b]),{stream:true}),unit,i);for(const[from,t,to]of unit.links)if(from===i)t.serialByte(b,to)};
     const devices=[];
     for(const p of i2cTargets(board,lastNet.find,lastNet.node)){const spec=defFor(p.type).i2c,d=new dev[spec.cls]({address:spec.addr,...(spec.cls==='Ds3231'?{start:Date.now()}:{})});mcu.attachI2C(d.address,d);p._device=d;applySensor(p);devices.push([p,d])}
-    for(const p of project.parts){const ow=defFor(p.type)?.onewire;if(!ow)continue;const net=lastNet.find(lastNet.node(p.id,ow.pin));const pin=UNO_OUT_PINS.find(l=>lastNet.find(lastNet.node(board.id,l))===net);if(!pin)continue;const d=new dev[ow.cls]({type:ow.type});mcu.attachPinDevice(pin,d);p._device=d;applySensor(p);devices.push([p,d])}
+    for(const p of project.parts){const ow=defFor(p.type)?.onewire;if(!ow)continue;const net=lastNet.find(lastNet.node(p.id,ow.pin));const pin=ioOf(board).pins.find(l=>lastNet.find(lastNet.node(board.id,l))===net);if(!pin)continue;const d=new dev[ow.cls]({type:ow.type});mcu.attachPinDevice(pin,d);p._device=d;applySensor(p);devices.push([p,d])}
     try{const saved=localStorage.getItem('hs-eeprom-'+board.id);if(saved)mcu.eeprom.set(saved.match(/../g).map(h=>parseInt(h,16)))}catch{}
     mcu.onEeprom=()=>{clearTimeout(mcu._eeSave);mcu._eeSave=setTimeout(()=>{try{localStorage.setItem('hs-eeprom-'+board.id,Array.from(mcu.eeprom,b=>b.toString(16).padStart(2,'0')).join(''))}catch{}},300)};
     unit.devices=devices;units.push(unit);
   }
   if(!units.length)return;
-  // Serial entre placas: TX (D1) de uma ligado ao RX (D0) de outra.
+  // Serial entre placas: TX de uma ligado ao RX de outra (no Mega também Serial1–3: TX1 D18/RX1 D19, TX2 D16/RX2 D17, TX3 D14/RX3 D15).
   const same=(a,b,pa,pb=pa)=>lastNet.find(lastNet.node(a.board.id,pa))===lastNet.find(lastNet.node(b.board.id,pb));
   let lockstep=false;
   for(const a of units)for(const b of units){if(a===b)continue;
-    if(same(a,b,'D1','D0')){a.links.push(b.mcu);serialLog(`── ${a.board.name} TX → ${b.board.name} RX ──\n`)}
-    if(same(a,b,'A4')&&same(a,b,'A5')){a.mcu.linkI2C(b.mcu);lockstep=true;if(a.board.id<b.board.id)serialLog(`── I²C: ${a.board.name} ↔ ${b.board.name} ──\n`)}
-    if(same(a,b,'D13')&&same(a,b,'D11')){const ss=UNO_OUT_PINS.find(l=>same(a,b,l,'D10'));a.mcu.linkSPI(b.mcu,ss);lockstep=true;if(a.board.id<b.board.id)serialLog(`── SPI: ${a.board.name} ↔ ${b.board.name} ──\n`)}}
-  const other=project.parts.filter(p=>p.type==='uno'&&!p.settings?.firmware).length;
+    const A=ioOf(a.board),B=ioOf(b.board),sn=i=>i?'Serial'+i:'Serial';
+    A.serial.forEach(([tx],ti)=>B.serial.forEach(([,rx],ri)=>{if(same(a,b,tx,rx)){a.links.push([ti,b.mcu,ri]);serialLog(`── ${a.board.name} ${sn(ti)} TX → ${b.board.name} ${sn(ri)} RX ──\n`)}}));
+    if(same(a,b,A.sda,B.sda)&&same(a,b,A.scl,B.scl)){a.mcu.linkI2C(b.mcu);lockstep=true;if(a.board.id<b.board.id)serialLog(`── I²C: ${a.board.name} ↔ ${b.board.name} ──\n`)}
+    if(same(a,b,A.sck,B.sck)&&same(a,b,A.mosi,B.mosi)){const ss=A.pins.find(l=>same(a,b,l,B.ss));a.mcu.linkSPI(b.mcu,ss);lockstep=true;if(a.board.id<b.board.id)serialLog(`── SPI: ${a.board.name} ↔ ${b.board.name} ──\n`)}}
+  const other=project.parts.filter(p=>isBoard(p)&&!p.settings?.firmware).length;
   serialLog(`\n── boot: ${units.map(u=>u.board.settings.firmwareName).join(', ')} ──\n`);
-  if(other)toast(`${other} Uno sem firmware ficará parado`);
+  if(other)toast(`${other} placa(s) sem firmware ficará(ão) parada(s)`);
   fw={units,raf:0,last:0,paint:0,audio:null,lockstep:typeof lockstep!=='undefined'&&lockstep};simulationTimer='firmware';showSerial(true);
-  $('#codeStatus').textContent='Rodando firmware real (ATmega328P a 16 MHz)';
+  $('#codeStatus').textContent=`Rodando firmware real (${[...new Set(units.map(u=>u.mcu.chip.name))].join(' + ')} a 16 MHz)`;
   renderAll();fw.raf=requestAnimationFrame(firmwareFrame);
 }
 function firmwareFrame(now){
@@ -315,7 +332,7 @@ function firmwareFrame(now){
   for(const u of fw.units){
     if(!fw.lockstep){feedInputs(u);if(dt)u.mcu.run(Math.round(dt*u.clock))}
     const pins=u.mcu.pinSnapshot(),out={},duty={},tone={};
-    for(const label of UNO_OUT_PINS){const p=pins[label];if(!p||p.mode!=='output')continue;const pulse=u.mcu.pulseInfo(label);
+    for(const label of ioOf(u.board).pins){const p=pins[label];if(!p||p.mode!=='output')continue;const pulse=u.mcu.pulseInfo(label);
       if(pulse&&pulse.hz>20&&pulse.hz<20000&&(p.duty===null||p.duty===0||p.duty===1)){tone[label]=pulse.hz;out[label]=1}else{out[label]=p.level;if(p.duty!==null&&p.duty>0&&p.duty<1)duty[label]=p.duty}}
     u.board.settings.outputs=out;u.board.settings.duty=duty;u.board.settings.tone=tone;
     for(const[p,d]of u.devices){if(p.type==='display'){p.settings.lines=d.lines();p.settings.backlight=d.backlight}else p._oled=d}
@@ -330,22 +347,22 @@ function applySensor(p){
 }
 function feedInputs(u){
   if(!lastNet)return;const{find,node,highs,lows}=lastNet;const pins=u.mcu.pinSnapshot();
-  for(const label of UNO_OUT_PINS){const p=pins[label];if(!p||p.mode==='output'||u.mcu.pinDevices.has(label))continue;const net=find(node(u.board.id,label));u.mcu.setInput(label,lows.has(net)?0:highs.has(net)?1:null)}
+  for(const label of ioOf(u.board).pins){const p=pins[label];if(!p||p.mode==='output'||u.mcu.pinDevices.has(label))continue;const net=find(node(u.board.id,label));u.mcu.setInput(label,lows.has(net)?0:highs.has(net)?1:null)}
   // Potenciômetro: SIG ligado a uma entrada analógica.
   for(const pot of project.parts.filter(p=>p.type==='pot')){
     const vcc=find(node(pot.id,'VCC')),gnd=find(node(pot.id,'GND')),sig=find(node(pot.id,'SIG'));if(!highs.has(vcc)||!lows.has(gnd))continue;
-    for(let i=0;i<6;i++)if(find(node(u.board.id,'A'+i))===sig)u.mcu.analog[i]=(pot.settings?.position??0.5)*5;
+    for(let i=0;i<ioOf(u.board).analog;i++)if(find(node(u.board.id,'A'+i))===sig)u.mcu.analog[i]=(pot.settings?.position??0.5)*5;
   }
 }
 function servoAngles(){
   if(!fw||!lastNet)return;const{find,node}=lastNet;
   for(const s of project.parts.filter(p=>p.type==='servo')){const sig=find(node(s.id,'SIG'));
-    for(const u of fw.units)for(const label of UNO_OUT_PINS)if(find(node(u.board.id,label))===sig){const p=u.mcu.pulseInfo(label);if(p&&p.highUs>400&&p.highUs<2600){s.settings.angle=Math.round(Math.max(0,Math.min(180,(p.highUs-544)/(2400-544)*180)))}}}
+    for(const u of fw.units)for(const label of ioOf(u.board).pins)if(find(node(u.board.id,label))===sig){const p=u.mcu.pulseInfo(label);if(p&&p.highUs>400&&p.highUs<2600){s.settings.angle=Math.round(Math.max(0,Math.min(180,(p.highUs-544)/(2400-544)*180)))}}}
 }
 // NeoPixel: segue a corrente DIN→DOUT a partir do pino do Uno e distribui as cores pela ordem dos LEDs.
 function neopixels(){
   if(!fw||!lastNet)return;const{find,node}=lastNet;const hex=c=>'#'+c.map(v=>v.toString(16).padStart(2,'0')).join('');
-  for(const u of fw.units)for(const label of UNO_OUT_PINS){
+  for(const u of fw.units)for(const label of ioOf(u.board).pins){
     const frame=u.mcu.neopixel(label);if(!frame)continue;let net=find(node(u.board.id,label)),idx=0,guard=0;
     while(guard++<64){const next=project.parts.find(p=>(p.type==='neopixel'||p.type==='neostrip')&&find(node(p.id,'DIN'))===net);if(!next)break;
       const n=next.type==='neostrip'?8:1,cols=[];for(let i=0;i<n;i++)cols.push(hex(frame[idx+i]||[0,0,0]));idx+=n;next.settings.colors=cols;net=find(node(next.id,'DOUT'))}

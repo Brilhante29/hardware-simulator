@@ -1,23 +1,45 @@
-// Página de boot: carrega um firmware.hex e roda no ATmega328P emulado em tempo real.
-import { ATmega328P, CLOCK } from '../emulator/avr.mjs';
+// Página de boot: carrega um firmware.hex e roda no chip certo (Uno ou Mega 2560, pela tabela de vetores) em tempo real.
+import { createMcu, CLOCK } from '../emulator/avr.mjs';
 import { LcdI2C, Ssd1306, Bme280, Mpu6050, Bh1750, Ds3231, Dht } from '../emulator/devices.mjs';
 const $ = id => document.getElementById(id);
-const UNO = { type: 'uno', width: 182, height: 220, pins: [] };
-const PIN_POS = { ...Object.fromEntries([...Array(14)].map((_, i) => [`D${i}`, [0, 26 + i * 12]])), ...Object.fromEntries([0, 1, 2, 3, 4, 5].map(i => [`A${i}`, [182, 38 + i * 20]])) };
-let sensors = {}, lcd = null, oled = null, audio = null, mcu = null, running = false, raf = 0, last = 0, hexText = '', fileName = '', fileHandle = null, lastModified = 0, watchTimer = 0, perf = 1, pressed = new Set();
+// Mesmas posições de pino das placas do editor.
+const BOARDS = {
+  atmega328p: { def: { type: 'uno', width: 182, height: 220, pins: [] }, digital: 14, analog: 6, pos: { ...Object.fromEntries([...Array(14)].map((_, i) => [`D${i}`, [0, 26 + i * 12]])), ...Object.fromEntries([0, 1, 2, 3, 4, 5].map(i => [`A${i}`, [182, 38 + i * 20]])) } },
+  atmega2560: { def: { type: 'mega', width: 182, height: 340, pins: [] }, digital: 54, analog: 16, serials: 4, pos: { ...Object.fromEntries([...Array(22)].map((_, i) => [`D${i}`, [0, 26 + i * 12]])), ...Object.fromEntries([...Array(16)].map((_, i) => [`A${i}`, [182, 30 + i * 12]])), ...Object.fromEntries([...Array(32)].map((_, i) => [`D${22 + i}`, [16 + (i >> 1) * 10, i & 1 ? 328 : 340]])) } },
+};
+let board = null;
+let lineBufs = ['', '', '', ''], sensors = {}, lcd = null, oled = null, audio = null, mcu = null, running = false, raf = 0, last = 0, hexText = '', fileName = '', fileHandle = null, lastModified = 0, watchTimer = 0, perf = 1, pressed = new Set();
 
-// Placa em pixel art + indicadores de pino
-$('boardWrap').innerHTML = window.PixelParts.art(UNO, { settings: {} }) + Object.entries(PIN_POS).map(([n, [x, y]]) => `<span class="pin-dot" data-pin="${n}" style="left:${(x / 182) * 100}%;top:${(y / 220) * 100}%" title="${n}"></span>`).join('');
-$('pinGrid').innerHTML = [...Array(14)].map((_, i) => `<button type="button" data-in="D${i}" disabled>D${i}</button>`).join('');
+// Placa em pixel art + indicadores de pino; troca quando o firmware é de outro chip.
+function showBoard(id) {
+  if (board === BOARDS[id]) return; board = BOARDS[id]; const { def, pos } = board;
+  $('boardWrap').classList.toggle('tall', def.height > 300);
+  $('boardWrap').innerHTML = window.PixelParts.art(def, { settings: {} }) + Object.entries(pos).map(([n, [x, y]]) => `<span class="pin-dot" data-pin="${n}" style="left:${(x / def.width) * 100}%;top:${(y / def.height) * 100}%" title="${n}"></span>`).join('');
+  $('pinGrid').innerHTML = [...Array(board.digital)].map((_, i) => `<button type="button" data-in="D${i}" disabled>D${i}</button>`).join('');
+  const keep = $('aPin').value; $('aPin').innerHTML = [...Array(board.analog)].map((_, i) => `<option>A${i}</option>`).join(''); if (keep && +keep.slice(1) < board.analog) $('aPin').value = keep;
+  $('serialPort').hidden = !board.serials; $('serialPort').innerHTML = [...Array(board.serials || 1)].map((_, i) => `<option value="${i}">${i ? 'Serial' + i : 'Serial'}</option>`).join('');
+  for (const p of [...pressed]) if (!pos[p]) pressed.delete(p);
+}
+showBoard('atmega328p');
 
 function fmt(n, d = 3) { return n.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
 function serialPrint(text) { const el = $('serial'); el.textContent = (el.textContent + text).slice(-20000); el.scrollTop = el.scrollHeight; }
 function load(text, name) {
-  try { mcu = new ATmega328P(text); } catch (e) { serialPrint(`\n[erro] ${e.message}\n`); return false; }
-  hexText = text; fileName = name || 'firmware.hex';
-  const dec = new TextDecoder(); mcu.onSerial = b => serialPrint(dec.decode(new Uint8Array([b]), { stream: true }));
+  try { mcu = createMcu(text); } catch (e) { serialPrint(`\n[erro] ${e.message}\n`); return false; }
+  hexText = text; fileName = name || 'firmware.hex'; showBoard(mcu.chip.id);
+  // Serial0 sai como está; Serial1–3 (Mega) saem por linha com o prefixo da porta.
+  const decs = [0, 1, 2, 3].map(() => new TextDecoder()); lineBufs = ['', '', '', ''];
+  // Linhas das outras portas esperam a Serial0 terminar a linha dela, para não cortar uma frase no meio.
+  const atLineStart = () => /(^|\n)$/.test($('serial').textContent);
+  mcu.onSerial = (b, i = 0) => {
+    const t = decs[i].decode(new Uint8Array([b]), { stream: true });
+    if (!i) { serialPrint(t); if (lineBufs[0] && atLineStart()) { serialPrint(lineBufs[0]); lineBufs[0] = ''; } return; }
+    lineBufs[i] += t; const cut = lineBufs[i].lastIndexOf('\n'); if (cut < 0) return;
+    const lines = lineBufs[i].slice(0, cut + 1).split('\n').map(l => l.replace(/\r$/, '')).filter(Boolean).map(l => `[Serial${i}] ${l}\n`).join(''); lineBufs[i] = lineBufs[i].slice(cut + 1);
+    if (atLineStart()) serialPrint(lines); else lineBufs[0] += lines;
+  };
   mcu.onPinChange = () => {}; // estado lido a cada quadro
-  mcu.analog[0] = Number($('a0Slider').value);
+  mcu.analog[+$('aPin').value.slice(1)] = Number($('a0Slider').value);
   for (const p of pressed) mcu.setInput(p, 0);
   lcd = $('lcdOn').checked ? mcu.attachI2C(0x27, new LcdI2C()) : null; oled = $('oledOn').checked ? mcu.attachI2C(0x3c, new Ssd1306()) : null;
   sensors = {};
@@ -32,7 +54,7 @@ function load(text, name) {
   try { const saved = localStorage.getItem(key); if (saved) mcu.eeprom.set(saved.match(/../g).map(h => parseInt(h, 16))); } catch {}
   mcu.onEeprom = () => { clearTimeout(mcu._ee); mcu._ee = setTimeout(() => { try { localStorage.setItem(key, Array.from(mcu.eeprom, b => b.toString(16).padStart(2, '0')).join('')); } catch {} }, 300); };
   $('dropHint').hidden = true; $('runButton').disabled = false; $('resetButton').disabled = false;
-  $('chipInfo').textContent = `ATmega328P · 16 MHz · ${fileName} · ${mcu.programSize} bytes`;
+  $('chipInfo').textContent = `${mcu.chip.name} · ${mcu.chip.board} · 16 MHz · ${fileName} · ${mcu.programSize.toLocaleString('pt-BR')} bytes`; document.title = `Boot · ${mcu.chip.board}`;
   paint(); return true;
 }
 function boot() { if (!mcu) return; running = true; last = 0; $('runButton').textContent = '⏸ Pausar'; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); }
@@ -101,8 +123,9 @@ $('pinGrid').onclick = e => {
   const n = b.dataset.in; if (pressed.has(n)) { pressed.delete(n); mcu?.setInput(n, null); } else { pressed.add(n); mcu?.setInput(n, 0); }
   paint();
 };
-$('a0Slider').oninput = e => { const v = Number(e.target.value); $('a0Value').textContent = fmt(v, 2) + ' V'; if (mcu) mcu.analog[0] = v; };
-$('serialForm').onsubmit = e => { e.preventDefault(); if (!mcu) return; mcu.serialInput($('serialText').value + '\n'); $('serialText').value = ''; };
+$('a0Slider').oninput = e => { const v = Number(e.target.value); $('a0Value').textContent = fmt(v, 2) + ' V'; if (mcu) mcu.analog[+$('aPin').value.slice(1)] = v; };
+$('aPin').onchange = () => { if (mcu) mcu.analog[+$('aPin').value.slice(1)] = Number($('a0Slider').value); };
+$('serialForm').onsubmit = e => { e.preventDefault(); if (!mcu) return; mcu.serialInput($('serialText').value + '\n', Math.min(+$('serialPort').value || 0, mcu.uarts.length - 1)); $('serialText').value = ''; };
 $('clearSerial').onclick = () => { $('serial').textContent = ''; };
 document.addEventListener('visibilitychange', () => { if (document.hidden && running) { pause(); } });
 

@@ -88,3 +88,5 @@
 [data-surface=editor] .sensor-row input{grid-column:1/-1;width:100%}
 .px-art .strip{fill:#f2f4f7}
 .serial-panel .power-info{margin-left:auto;margin-right:8px;font:11px ui-monospace,monospace;color:var(--muted,#4c5b7a)}
+[data-surface=editor] .pin-label.bottom{writing-mode:vertical-rl;right:auto;line-height:1}
+[data-surface=editor] .part-mega .part-title{transform:translateY(30px)}

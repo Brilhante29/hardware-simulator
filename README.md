@@ -16,15 +16,15 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 - `studio.html`: bancada de medição, cenários editáveis, biblioteca e validação.
 - `editor.html`: editor livre com peças em pixel art, fios, sketch Arduino simplificado e projetos JSON.
 - `lab/sn74hc595.html`: registrador digital interativo.
-- `boot.html`: dá boot no `firmware.hex` do PlatformIO num Arduino Uno emulado.
+- `boot.html`: dá boot no `firmware.hex` do PlatformIO num Arduino Uno ou Mega 2560 emulado (o chip é detectado pelo arquivo).
 
 ## Tour em vídeo
 
 [docs/media/hardware-studio-tour.mp4](docs/media/hardware-studio-tour.mp4) (1min48, 1080p, com trilha chiptune original) mostra as animações da oficina, a bancada, o editor com três projetos que combinam placas, o registrador e os testes. O roteiro em [tools/demo-video](tools/demo-video/README.md) regrava o vídeo.
 
-## Boot de firmware (Arduino Uno)
+## Boot de firmware (Arduino Uno e Mega 2560)
 
-Igual ao fluxo que você já usa com PlatformIO: **o PlatformIO compila, o Hardware Studio dá boot**. O emulador do ATmega328P (`src/emulator/avr.mjs`) foi escrito para este projeto e executa cada instrução do `firmware.hex`.
+Igual ao fluxo que você já usa com PlatformIO: **o PlatformIO compila, o Hardware Studio dá boot**. O emulador AVR (`src/emulator/avr.mjs`) foi escrito para este projeto e executa cada instrução do `firmware.hex` num ATmega328P (`board = uno`) ou ATmega2560 (`board = megaatmega2560`). O chip sai da tabela de vetores do arquivo (26 vetores no Uno, 57 no Mega); `--mcu` força um deles.
 
 | Periférico | Funciona com |
 | --- | --- |
@@ -40,7 +40,9 @@ Igual ao fluxo que você já usa com PlatformIO: **o PlatformIO compila, o Hardw
 | SPI mestre e escravo; USART em SPI (MSPIM) | `SPI.transfer`, dois Unos com SS no D10 |
 | Um fio e pulsos | DHT11/DHT22 (Adafruit DHT), NeoPixel WS2812 (Adafruit NeoPixel) |
 | Comparador, captura do Timer1, referências do ADC | `ACSR`/AIN0/AIN1, `ICR1` no D8, `analogReference(INTERNAL)` |
-| Consumo | estimativa pelo datasheet: ~10,4 mA ativo, ~2,4 mA idle, µA em power-down |
+| Consumo | estimativa pelo datasheet: ~10,4 mA ativo, ~2,4 mA idle, µA em power-down (Mega: ~20 mA ativo) |
+
+No **Mega 2560** vale tudo acima e mais: 256 KB de flash (PC de 17 bits, `ELPM`/`pgm_read_byte_far`, `EICALL`), 8 KB de RAM, 4 KB de EEPROM, portas A–L (D0–D53, A0–A15), Timers 3/4/5 com canal C (15 pinos PWM), `Serial1`–`Serial3`, INT0–INT7, PCINT nas portas B/E/J/K, ADC8–ADC15 e a referência de 2,56 V. I²C fica no D20/D21 e SPI no D50–D53, como na placa. Firmware de um chip carregado no outro é recusado com o motivo, como faz o `avrdude`.
 
 ```sh
 # no platformio.ini do seu projeto
@@ -49,12 +51,15 @@ extra_scripts = post:/caminho/para/hardware-simulator/tools/platformio/simulate.
 pio run -t simulate                                       # compila e roda em tempo real
 SIM_ARGS="--seconds 5 --pins --lcd --oled" pio run -t simulate
 node tools/avr-run.mjs .pio/build/uno/firmware.hex --lcd --eeprom eeprom.bin
+node tools/avr-run.mjs .pio/build/megaatmega2560/firmware.hex   # Serial1–3 aparecem como [Serial1] …
 ```
 
-- **Navegador (`boot.html`):** solte o `firmware.hex`, use **Vigiar arquivo** (Chrome/Edge) e cada `pio run` reinicia o chip. Monitor serial, botões nos pinos, potenciômetro no A0, LCD, OLED, pulsos medidos (servo em graus, frequência do `tone`) e som do `tone()`.
-- **Editor (`editor.html`):** selecione o Uno → **Carregar .hex** (ou **Vigiar**). O firmware real move o circuito: LEDs (com brilho de PWM), buzzer com som, botões e chaves viram entradas, potenciômetro vira tensão no pino analógico, servo gira, LCD e OLED ligados no A4/A5 mostram a tela. Exemplo pronto: importe `examples/firmware/painel-projeto.json` (fonte em `examples/firmware/painel`).
+O `simulate.py` passa o `build.mcu` da placa do `platformio.ini` para o emulador.
 
-No editor, dois Unos se falam por serial (TX→RX), I²C (A4/A5 em comum) ou SPI (D10–D13); os chips ligados rodam em passo de 10 µs. Fica de fora outra arquitetura de CPU (ESP32/ESP-IDF): é outro emulador inteiro. `node tests/avr.mjs` roda os testes com firmwares reais compilados pelo PlatformIO (`tests/fixtures/avr`).
+- **Navegador (`boot.html`):** solte o `firmware.hex`, use **Vigiar arquivo** (Chrome/Edge) e cada `pio run` reinicia o chip. Monitor serial, botões nos pinos, potenciômetro em qualquer entrada analógica, envio para Serial…Serial3 no Mega, LCD, OLED, pulsos medidos (servo em graus, frequência do `tone`) e som do `tone()`.
+- **Editor (`editor.html`):** selecione o Uno ou o Mega 2560 → **Carregar .hex** (ou **Vigiar**). O firmware real move o circuito: LEDs (com brilho de PWM), buzzer com som, botões e chaves viram entradas, potenciômetro vira tensão no pino analógico, servo gira, LCD e OLED ligados no I²C da placa (A4/A5 no Uno, D20/D21 no Mega) mostram a tela. Exemplo pronto: importe `examples/firmware/painel-projeto.json` (fonte em `examples/firmware/painel`).
+
+No editor, placas se falam por serial (TX→RX; no Mega também TX1/RX1 D18/D19, TX2/RX2 D16/D17, TX3/RX3 D14/D15), I²C (SDA/SCL em comum) ou SPI (SCK/MOSI e SS); os chips ligados rodam em passo de 10 µs. Fica de fora outra arquitetura de CPU (ESP32/ESP-IDF, Xtensa/RISC-V): é outro emulador inteiro. `node tests/avr.mjs` roda os testes com firmwares reais compilados pelo PlatformIO (`tests/fixtures/avr`).
 
 ## Aparência
 
