@@ -1,9 +1,11 @@
-// Firmware real (compilado pelo PlatformIO) rodando no emulador ATmega328P.
+// Firmware real (compilado pelo PlatformIO) rodando no emulador: ATmega328P (Uno) e ATmega2560 (Mega 2560).
 import { readFileSync } from 'node:fs';
-import { ATmega328P, parseHex } from '../src/emulator/avr.mjs';
+import { ATmega328P, ATmega2560, createMcu, detectChip, parseHex } from '../src/emulator/avr.mjs';
 import { LcdI2C, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750, Dht } from '../src/emulator/devices.mjs';
 const hex = n => readFileSync(new URL(`./fixtures/avr/${n}.hex`, import.meta.url), 'utf8');
 function boot(name) { const m = new ATmega328P(hex(name)); m.out = ''; m.onSerial = b => { m.out += String.fromCharCode(b); }; return m; }
+// Mega: saída de cada USART em outs[0..3].
+function mega(name) { const m = createMcu(hex(name)); m.outs = ['', '', '', '']; m.onSerial = (b, i) => { m.outs[i] += String.fromCharCode(b); }; return m; }
 
 export function runAvrTests() {
   const results = []; const test = (name, source, fn) => { try { fn(); results.push({ name, source, pass: true }); } catch (e) { results.push({ name, source, pass: false, error: e.message }); } };
@@ -74,6 +76,35 @@ export function runAvrTests() {
     ok(M.out.startsWith('A0 12 23\r\n1 12 23'), M.out); ok(S.out.includes('bytes=6'), S.out);
   });
   test('USART0 como SPI mestre (MSPIM) troca 2 bytes', 'UCSR0C UMSEL = 11', () => { const m = boot('mspim'); m.mspimDevice = b => b ^ 0xff; m.runSeconds(0.05); eq(m.out, 'A5 3C\r\n'); });
+  test('Mega: o .hex diz qual é o chip (tabela de 57 vetores)', 'detectChip', () => {
+    eq(detectChip(hex('blink')), 'atmega328p'); eq(detectChip(hex('mega_serial')), 'atmega2560'); ok(mega('mega_serial') instanceof Object && mega('mega_serial').chip.name === 'ATmega2560');
+    let refused = false; try { new ATmega328P(hex('mega_big')); } catch (e) { refused = /não cabe/.test(e.message); } ok(refused, '138 KB aceitos num chip de 32 KB');
+  });
+  test('Mega: Serial, Serial1, Serial2 e Serial3 com baud próprio; Serial1 ecoa', 'USART0..3 (0xC0, 0xC8, 0xD0, 0x130)', () => {
+    const m = mega('mega_serial'), edges = []; m.onPinChange = (c, t) => { if (c.D13) edges.push([t, c.D13.level]); };
+    m.runSeconds(0.1); m.serialInput('ola mega', 1); m.runSeconds(1.2);
+    eq(m.outs[0], 'mega0\r\nRAM livre ok: 21FF\r\nOLA MEGA'); eq(m.outs[1], 'um\r\n'); eq(m.outs[2], 'dois\r\n'); eq(m.outs[3], 'tres\r\n');
+    const highs = edges.filter(e => e[1]).map(e => e[0]); ok(highs.length && Math.abs(highs[0] - 0.5) < 0.002, `D13 (PB7) em ${highs[0]}`);
+  });
+  test('Mega: analogWrite nos 15 pinos PWM (Timers 0 a 5, canais A/B/C)', 'OCRnA/B/C, COMnx', () => {
+    const m = mega('mega_pwm'); m.runSeconds(0.05); const p = m.pinSnapshot(), pins = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 44, 45, 46];
+    pins.forEach((n, i) => { const v = 16 * (i + 1), want = n === 4 || n === 13 ? (v + 1) / 256 : v / 256; ok(Math.abs(p['D' + n].duty - want) < 1e-9, `D${n}: ${p['D' + n].duty} ≠ ${want}`); });
+  });
+  test('Mega: INT0, INT3, INT4, INT5 e PCINT2 (porta K)', 'EICRA/EICRB, PCMSK2', () => {
+    const m = mega('mega_irq'); m.runSeconds(0.05); const tog = (pin, n) => { for (let i = 0; i < n; i++) { m.setInput(pin, 0); m.runSeconds(0.002); m.setInput(pin, null); m.runSeconds(0.002); } };
+    tog('D2', 3); tog('D3', 2); tog('D18', 2); tog('D21', 1); tog('A8', 2); m.runSeconds(0.2); ok(m.outs[0].endsWith('3 2 4 1 4\r\n'), m.outs[0].slice(-40));
+  });
+  test('Mega: ADC8/ADC15 (MUX5), referência de 2,56 V, EEPROM de 4 KB e Servo no Timer5', 'ADCSRB MUX5, REFS = 11', () => {
+    const m = mega('mega_adc'); m.analog[0] = 1.28; m.analog[8] = 2.5; m.analog[15] = 5; m.runSeconds(0.3);
+    eq(m.outs[0], '262\r\n512\r\n1023\r\n512\r\n1023\r\n4096\r\n0\r\n'); eq(m.eeprom[4095], 0); const s = m.pulseInfo('D9'); ok(s && Math.abs(s.highUs - 1010) < 3 && Math.abs(s.periodUs - 20000) < 20, JSON.stringify(s));
+  });
+  test('Mega: 138 KB de flash — ELPM com RAMPZ, código acima de 128 KB e ponteiro de função', 'PC de 17 bits, EICALL, .data', () => {
+    const m = mega('mega_big'); m.runSeconds(0.6); eq(m.outs[0], 'dados na RAM\r\n4003243\r\n4004640\r\n4088928\r\n4081878\r\n1019200\r\ntab4 em 0x108\r\n'); eq(m.lastError, null);
+  });
+  test('Mega: LCD I²C em D20/D21', 'TWI do 2560', () => { const m = mega('mega_lcd'), lcd = m.attachI2C(0x27, new LcdI2C()); m.runSeconds(1.5); eq(lcd.lines()[0], 'Mega 2560       '); eq(lcd.lines()[1], '256 KB flash    '); });
+  test('Mega: consumo do 2560 (~20 mA ativo a 16 MHz) e pelo menos 1× o tempo real', 'Atmel 2549Q §31.1', () => {
+    const m = mega('mega_serial'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); ok(Math.abs(m.powerUsage().averageMa - 20) < 0.01);
+  });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;
 }
