@@ -7,10 +7,11 @@
 //  - --pins mostra cada mudança de pino com o instante simulado.
 //  - --lcd liga um LCD 16×2 I²C (0x27) e mostra a tela quando ela muda; --lcd-par liga um LCD direto nos pinos
 //    (LiquidCrystal lcd(12, 11, 5, 4, 3, 2)); --oled liga um SSD1306 (0x3C) e desenha no fim.
+//  - --sonar 120 liga um HC-SR04 com TRIG no D9 e ECHO no D10, com o obstáculo a 120 cm.
 //  - --eeprom guarda a EEPROM do chip num arquivo entre execuções.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createMcu, CLOCK } from '../src/emulator/avr.mjs';
-import { LcdI2C, LcdParallel, Ssd1306 } from '../src/emulator/devices.mjs';
+import { LcdI2C, LcdParallel, HcSr04, Ssd1306 } from '../src/emulator/devices.mjs';
 
 const args = process.argv.slice(2);
 const file = args.find(a => !a.startsWith('--'));
@@ -29,6 +30,7 @@ mcu.onSerial = (b, i = 0) => {
 };
 const lcd = args.includes('--lcd-par') ? mcu.attachPinDevice('D11', new LcdParallel()) : args.includes('--lcd') ? mcu.attachI2C(0x27, new LcdI2C()) : null;
 const oled = args.includes('--oled') ? mcu.attachI2C(0x3c, new Ssd1306()) : null;
+if (args.includes('--sonar')) mcu.attachPinDevice('D9', new HcSr04({ echo: 'D10', distanceCm: Number(args[args.indexOf('--sonar') + 1]) || 100 }));
 if (eepromFile && existsSync(eepromFile)) mcu.eeprom.set(readFileSync(eepromFile).subarray(0, mcu.eeprom.length));
 const saveEeprom = () => { if (eepromFile) writeFileSync(eepromFile, Buffer.from(mcu.eeprom)); };
 let lastLcd = '';

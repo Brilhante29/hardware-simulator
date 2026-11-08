@@ -1,6 +1,6 @@
 // Página de boot: carrega um firmware.hex e roda no chip certo (Uno ou Mega 2560, pela tabela de vetores) em tempo real.
 import { createMcu, CLOCK } from '../emulator/avr.mjs';
-import { LcdI2C, LcdParallel, Ssd1306, Bme280, Mpu6050, Bh1750, Ds3231, Dht } from '../emulator/devices.mjs';
+import { LcdI2C, LcdParallel, HcSr04, Ssd1306, Bme280, Mpu6050, Bh1750, Ds3231, Dht } from '../emulator/devices.mjs';
 const $ = id => document.getElementById(id);
 // Mesmas posições de pino das placas do editor.
 const BOARDS = {
@@ -51,6 +51,7 @@ function load(text, name) {
   else if (on('mpu')) sensors.mpu = mcu.attachI2C(0x68, new Mpu6050());
   if (on('bh')) sensors.bh = mcu.attachI2C(0x23, new Bh1750());
   if (on('dht')) sensors.dht = mcu.attachPinDevice('D4', new Dht({ type: 22 }));
+  if (on('sonar')) sensors.sonar = mcu.attachPinDevice('D9', new HcSr04({ echo: 'D10' }));
   applySensors();
   const key = 'hs-boot-eeprom-' + (name || 'firmware.hex');
   try { const saved = localStorage.getItem(key); if (saved) mcu.eeprom.set(saved.match(/../g).map(h => parseInt(h, 16))); } catch {}
@@ -145,6 +146,7 @@ function applySensors() {
   if (sensors.mpu) { const a = n('mpuX') * Math.PI / 180; sensors.mpu.accel = [0, -Math.sin(a), Math.cos(a)]; }
   if (sensors.bh) sensors.bh.lux = n('bhLux');
   if (sensors.dht) { sensors.dht.temperature = n('dhtT'); sensors.dht.humidity = n('dhtH'); }
+  if (sensors.sonar) sensors.sonar.distanceCm = n('sonarCm');
 }
-for (const id of ['bmeT', 'bmeH', 'mpuX', 'bhLux', 'dhtT', 'dhtH']) $(id).oninput = applySensors;
+for (const id of ['bmeT', 'bmeH', 'mpuX', 'bhLux', 'dhtT', 'dhtH', 'sonarCm']) $(id).oninput = applySensors;
 document.querySelectorAll('[data-dev]').forEach(c => c.onchange = () => { if (hexText) reboot('sensores alterados'); });

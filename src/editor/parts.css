@@ -90,3 +90,8 @@
 .serial-panel .power-info{margin-left:auto;margin-right:8px;font:11px ui-monospace,monospace;color:var(--muted,#4c5b7a)}
 [data-surface=editor] .pin-label.bottom{writing-mode:vertical-rl;right:auto;line-height:1}
 [data-surface=editor] .part-mega .part-title{transform:translateY(30px)}
+/* Motor girando (velocidade e sentido pelo solver) e alerta de corrente acima do limite */
+.px-art .rotor{transform-box:view-box;transform-origin:41px 5px}
+.px-art .rotor.spin{animation:pxSpin var(--spin,1s) linear infinite;animation-direction:var(--dir,normal)}
+@keyframes pxSpin{to{transform:rotate(360deg)}}
+.part.warn .px-art{filter:drop-shadow(0 0 0 #e5484d) drop-shadow(0 0 6px rgba(229,72,77,.7))}

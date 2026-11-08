@@ -125,18 +125,20 @@
       [[14, 6], [92, 6], [14, 72], [92, 72]].forEach(([x, y]) => { s += disc(x + 2, y + 2, 3, 'mt'); });
       return s + '<foreignObject x="16" y="18" width="80" height="40"><canvas xmlns="http://www.w3.org/1999/xhtml" width="128" height="64" style="width:80px;height:40px;image-rendering:pixelated;display:block;background:#060c1c"></canvas></foreignObject>' + T(56, 70, 'SSD1306', 'c', 7, 'middle');
     },
-    gate() {
+    gate(def, part) {
       let s = leadL(20, 22) + leadL(52, 22) + leadR(36, 68, 90) + R(22, 16, 46, 40, 'ic') + R(22, 32, 4, 8, 'p');
       for (let i = 0; i < 4; i++) s += R(28 + i * 10, 10, 4, 6, 'mt') + R(28 + i * 10, 56, 4, 6, 'mt');
-      return s + T(46, 41, 'AND', 'c', 11, 'middle');
+      const y = part?.settings?.out; // nível da saída Y vindo do solver
+      return s + T(46, 41, 'AND', 'c', 11, 'middle') + (y === 1 ? R(76, 26, 8, 6, 'ledL on') : y === 0 ? R(76, 26, 8, 6, 'ledL') : '');
     },
     capacitor() {
       let s = leadL(34, 28) + leadR(34, 54, 82) + R(28, 8, 26, 50, 'd') + R(28, 8, 26, 4, 'l') + R(28, 54, 26, 4, 'k') + R(46, 12, 6, 42, 'p');
       return s + R(48, 20, 2, 4, 'd') + R(48, 30, 2, 4, 'd') + R(48, 40, 2, 4, 'd') + R(30, 14, 4, 30, 'm');
     },
-    diode() { return leadL(34, 24) + leadR(34, 58, 82) + R(24, 27, 34, 14, 'k') + R(26, 29, 20, 2, 'd') + R(50, 27, 4, 14, 'l'); },
-    transistor() {
-      return leadL(41, 28) + R(64, 21, 30, 2, 'mt') + R(64, 60, 30, 2, 'mt') + R(26, 26, 4, 30, 'k') + R(30, 18, 34, 46, 'k') + R(60, 18, 4, 46, 'd') + T(44, 45, 'NPN', 'c', 8, 'middle');
+    diode(def, part) { return leadL(34, 24) + leadR(34, 58, 82) + R(24, 27, 34, 14, 'k') + R(26, 29, 20, 2, 'd') + R(50, 27, 4, 14, part?.settings?.lit ? 'g' : 'l'); },
+    transistor(def, part) {
+      const on = part?.settings?.on;
+      return leadL(41, 28) + R(64, 21, 30, 2, on ? 'g' : 'mt') + R(64, 60, 30, 2, on ? 'g' : 'mt') + R(26, 26, 4, 30, 'k') + R(30, 18, 34, 46, 'k') + R(60, 18, 4, 46, on ? 'g' : 'd') + T(44, 45, 'NPN', 'c', 8, 'middle');
     },
     ldr() {
       let s = leadL(34, 30) + leadR(34, 70, 100) + disc(50, 34, 20, 'ld2') + disc(50, 34, 18, 'ld');
@@ -155,26 +157,32 @@
       s += `<g class="horn" transform="rotate(${a} 36 30)">${R(30, 27, 40, 6, 'c')}${disc(68, 30, 4, 'c')}${R(64, 29, 2, 2, 'm')}</g>`;
       return s + disc(36, 30, 7, 'c') + disc(36, 30, 3, 'm') + T(48, 58, 'SG90', 'c', 9, 'middle');
     },
-    motor() {
-      return leadL(36, 16) + leadR(36, 60, 82) + R(38, 4, 4, 12, 'k') + R(14, 20, 8, 32, 'mt2') + R(20, 14, 42, 44, 'mt') + R(20, 22, 42, 2, 'mt2') + R(20, 48, 42, 2, 'mt2') + R(60, 18, 4, 36, 'mt2') + T(41, 41, 'M', 'k', 13, 'middle');
+    motor(def, part) {
+      const sp = part?.settings?.speed || 0, spin = Math.abs(sp) > 0.05 ? `class="rotor spin" style="--spin:${(0.9 / Math.abs(sp)).toFixed(2)}s;--dir:${sp < 0 ? 'reverse' : 'normal'}"` : 'class="rotor"';
+      return leadL(36, 16) + leadR(36, 60, 82) + R(14, 20, 8, 32, 'mt2') + R(20, 14, 42, 44, 'mt') + R(20, 22, 42, 2, 'mt2') + R(20, 48, 42, 2, 'mt2') + R(60, 18, 4, 36, 'mt2') + T(41, 41, 'M', 'k', 13, 'middle')
+        + `<g ${spin}>${R(39, -2, 4, 14, 'k')}${R(32, 3, 18, 4, 'o')}</g>`;
     },
-    relay() {
+    relay(def, part) {
       let s = '';[18, 43, 68].forEach(y => { s += R(0, y - 1, 12, 2, 'mt'); });[18, 45, 70].forEach(y => { s += R(104, y - 1, 14, 2, 'mt'); });
       s += R(10, 2, 98, 86, 'k') + R(12, 4, 94, 82, 'bd') + R(24, 12, 54, 48, 'k') + R(26, 14, 50, 44, 'bp') + T(51, 34, 'RELÉ', 'c', 9, 'middle') + T(51, 46, '5V', 'p', 8, 'middle');
       s += F(82, 8, 22, 74, '#2f7a4c') + F(84, 10, 18, 70, '#3f9a63');
       [18, 45, 70].forEach(y => { s += disc(93, y, 5, 'mt') + R(90, y - 1, 7, 2, 'mt2'); });
-      return s + R(28, 70, 6, 4, 'g') + T(38, 74, 'IN', 'p', 7);
+      const on = part?.settings?.on; // LED do módulo e a lâmina do COM indo para o NO quando a bobina liga
+      return s + R(28, 70, 6, 4, on ? 'ledL on' : 'ledL') + T(38, 74, 'IN', 'p', 7) + (on ? R(86, 18, 3, 28, 'o') : R(86, 18, 3, 52, 'mt2'));
     },
-    rgb() {
+    rgb(def, part) {
+      const [r, g, b] = part?.settings?.rgb || [0, 0, 0], lit = r + g + b > 0.02, col = `rgb(${Math.round(255 * Math.min(1, r * 1.2))},${Math.round(255 * Math.min(1, g * 1.2))},${Math.round(255 * Math.min(1, b * 1.2))})`;
       let s = leadL(18, 30) + leadL(38, 30) + leadL(58, 30) + leadR(38, 62, 92);
       s += R(36, 12, 20, 2, 'mk') + R(32, 14, 28, 2, 'mk') + R(30, 16, 32, 32, 'mk') + R(28, 48, 36, 6, 'mk2');
+      if (lit) s += `<g style="filter:drop-shadow(0 0 7px ${col})">${F(32, 14, 28, 34, col)}</g>`;
       return s + F(36, 28, 5, 5, '#e25a4f') + F(44, 28, 5, 5, '#4fd06b') + F(52, 28, 5, 5, '#4a8cf0') + R(34, 18, 4, 8, 'hl');
     },
-    segment() {
+    segment(def, part) {
       let s = '';[[0, 15], [0, 34], [0, 54], [0, 74]].forEach(([, y]) => { s += R(0, y - 1, 16, 2, 'mt'); });[[96, 15], [96, 34], [96, 54], [96, 74]].forEach(([, y]) => { s += R(80, y - 1, 16, 2, 'mt'); });
       s += R(16, 4, 64, 88, 'k') + R(18, 6, 60, 84, 'ic');
       const seg = [[34, 16, 26, 4], [60, 20, 4, 22], [60, 46, 4, 22], [34, 68, 26, 4], [30, 46, 4, 22], [30, 20, 4, 22], [34, 42, 26, 4]];
-      return s + seg.map(([x, y, w, h]) => R(x, y, w, h, 'sg')).join('') + R(68, 70, 4, 4, 'sg');
+      const on = part?.settings?.segs || ''; // segmentos A..G com corrente
+      return s + seg.map(([x, y, w, h], i) => on.includes('ABCDEFG'[i]) ? `<g style="filter:drop-shadow(0 0 4px #ff4a3d)">${F(x, y, w, h, '#ff4a3d')}</g>` : R(x, y, w, h, 'sg')).join('') + R(68, 70, 4, 4, 'sg');
     },
     neopixel(def, part) {
       const c = part?.settings?.colors?.[0];
@@ -221,7 +229,8 @@
   }
 
   function svg(def, part, cls) {
-    const body = ART[def.type] ? ART[def.type](def, part || {}) : generic(def);
+    let body = ART[def.type] ? ART[def.type](def, part || {}) : generic(def);
+    const warn = part?.settings?.warn; if (warn) body += `<g class="px-warn"><title>${esc(warn)}</title>${F(def.width - 14, 0, 14, 14, '#e5484d')}${T(def.width - 7, 11, '!', 'c', 11, 'middle')}</g>`;
     return `<svg class="px-art ${cls || ''}" viewBox="0 0 ${def.width} ${def.height}" width="${def.width}" height="${def.height}" shape-rendering="crispEdges" aria-hidden="true">${body}</svg>`;
   }
   window.PixelParts = { art: (def, part) => svg(def, part), thumb: def => svg(def, { settings: {} }, 'px-thumb') };

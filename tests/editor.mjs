@@ -3,6 +3,8 @@ import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 const require = createRequire(import.meta.url);
 const { parse, timeline } = require('../src/editor/sketch.js');
+const Circuit = require('../src/editor/circuit.js');
+const near = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg ?? ''} ${a} ≠ ${b} ± ${tol}`);
 import { readFileSync } from 'node:fs';
 import { MEGA_PINS, UNO_PINS } from '../src/emulator/avr.mjs';
 const appSource = readFileSync(new URL('../src/app.js', import.meta.url), 'utf8');
@@ -80,6 +82,37 @@ const cases = [
     for (const [k, pb] of Object.entries(want)) assert.equal(port(io.match(new RegExp(k + ":'(\\w+)'"))[1]), pb, k);
     const pairs = JSON.parse(io.match(/serial:(\[\[.*?\]\])/)[1].replace(/'/g, '"'));
     assert.deepEqual(pairs.map(([tx, rx]) => port(tx) + '/' + port(rx)), ['E1/E0', 'D3/D2', 'H1/H0', 'J1/J0']);
+  }],
+  ['Solver CC: valores de resistor como as pessoas escrevem', () => {
+    for (const [t, v] of [['220 Ω', 220], ['10k', 1e4], ['4,7 kΩ', 4700], ['1M', 1e6], ['1R5', 1.5], ['2k2', 2200], ['abc', 220]]) assert.equal(Circuit.ohms(t), v, t);
+  }],
+  ['Solver CC: divisor de tensão e LDR (GL5528) no A0', () => {
+    const div = Circuit.solve({ sources: [{ node: 'v', volts: 5, r: 0 }, { node: 'g', volts: 0, r: 0 }], resistors: [['v', 'a', 10e3], ['a', 'g', 4.7e3]] });
+    near(div.volts('a'), 5 * 4.7 / 14.7, 1e-9);
+    const ldr = lux => Circuit.solve({ sources: [{ node: 'v', volts: 5, r: 0 }, { node: 'g', volts: 0, r: 0 }], resistors: [['v', 'a', Circuit.ldrOhms(lux)], ['a', 'g', 10e3]] }).volts('a');
+    assert.ok(ldr(1000) > 4.5 && Math.abs(ldr(10) - 2) < 1e-9 && ldr(0.1) < 0.5, `${ldr(1000)} ${ldr(10)} ${ldr(0.1)}`); // mais luz, mais tensão
+  }],
+  ['Solver CC: botão com pull-down de 10 kΩ (exemplo Button do Arduino) lê 0 solto e 1 apertado', () => {
+    const pin = pressed => Circuit.logicLevel(Circuit.solve({ sources: [{ node: '5V', volts: 5, r: 0 }, { node: 'GND', volts: 0, r: 0 }], shorts: [['5V', 'btn1'], ...(pressed ? [['btn1', 'D2']] : [])], resistors: [['D2', 'GND', 10e3]] }).volts('D2'));
+    assert.equal(pin(false), 0); assert.equal(pin(true), 1);
+  }],
+  ['Solver CC: pull-up interno de 35 kΩ e botão ao GND; pino solto sem pull-up flutua', () => {
+    const v = pressed => Circuit.solve({ sources: [{ node: 'D2', volts: 5, r: Circuit.PULLUP_R }, { node: 'GND', volts: 0, r: 0 }], shorts: pressed ? [['D2', 'GND']] : [] }).volts('D2');
+    assert.equal(Circuit.logicLevel(v(false)), 1); assert.equal(Circuit.logicLevel(v(true)), 0);
+    assert.equal(Circuit.logicLevel(Circuit.solve({ sources: [{ node: 'GND', volts: 0, r: 0 }], resistors: [] }).volts('D7')), null);
+  }],
+  ['Solver CC: LED vermelho com 220 Ω num pino a 5 V passa ~11,9 mA; invertido não acende; sem resistor passa do limite', () => {
+    const led = (a, k, r) => Circuit.solve({ sources: [{ node: 'pin', volts: 5, r: Circuit.PIN_R }, { node: 'GND', volts: 0, r: 0 }], resistors: r ? [['pin', 'x', r]] : [], shorts: r ? [] : [['pin', 'x']], diodes: [{ a: a === 'pin' ? 'x' : 'GND', k: k === 'GND' ? 'GND' : 'x', vf: Circuit.ledVf('red'), rs: 15 }] }).diodeCurrent[0];
+    near(led('pin', 'GND', 220) * 1e3, (5 - 1.9) / (25 + 220 + 15) * 1e3, 0.01); assert.equal(led('GND', 'pin', 220), 0);
+    assert.ok(led('pin', 'GND', 0) * 1e3 > 40, 'sem resistor deveria passar de 40 mA');
+  }],
+  ['Solver CC: dois LEDs vermelhos em série acendem com 5 V; três não (precisam de 5,7 V)', () => {
+    const chain = vfs => { const nodes = ['p', ...vfs.map((_, i) => 'n' + i)]; return Circuit.solve({ sources: [{ node: 'p', volts: 5, r: 0 }, { node: nodes.at(-1), volts: 0, r: 0 }], resistors: [], diodes: vfs.map((vf, i) => ({ a: nodes[i], k: nodes[i + 1], vf, rs: 15 })) }).diodeCurrent; };
+    assert.ok(chain([1.9, 1.9]).every(i => i > 0)); assert.ok(chain([1.9, 1.9, 1.9]).every(i => i === 0)); near(chain([1.9, 1.9])[0], (5 - 3.8) / 30, 1e-9);
+  }],
+  ['Solver CC: curto entre 5 V e GND é apontado', () => {
+    const r = Circuit.solve({ sources: [{ node: 'a', volts: 5, r: 0 }, { node: 'b', volts: 0, r: 0 }], shorts: [['a', 'b']] });
+    assert.equal(r.conflicts.length, 1);
   }],
 ];
 let passed = 0;
