@@ -149,7 +149,9 @@ function renderParts(){
       if(event.target.closest('.pin'))return;
       if(event.button!==0)return;
       const part=project.parts.find(item=>item.id===id);if(!part)return;
-      if(event.detail===2&&['button','switch'].includes(part.type)){part.settings.pressed=!part.settings.pressed;renderAll();if(simulationTimer)updateSimulation();return}
+      // Com a simulação rodando, o botão é momentâneo como o real: conduz só enquanto está apertado.
+      if(simulationTimer&&part.type==='button'){const set=v=>{part.settings.pressed=v;part._toggledAt=performance.now();el.classList.toggle('pressed',v);updateSimulation({quiet:true})};set(true);window.addEventListener('pointerup',()=>set(false),{once:true});event.preventDefault();return}
+      if(event.detail===2&&['button','switch'].includes(part.type)){part.settings.pressed=!part.settings.pressed;part._toggledAt=performance.now();renderAll();if(simulationTimer)updateSimulation();return}
       selectedId=id;selectedWire=null;el.classList.add('selected');renderInspector();
       const startX=event.clientX,startY=event.clientY,originalX=part.x,originalY=part.y;
       const move=e=>{part.x=Math.max(8,Math.min(1680,originalX+(e.clientX-startX)/zoom));part.y=Math.max(8,Math.min(1080,originalY+(e.clientY-startY)/zoom));el.style.left=part.x+'px';el.style.top=part.y+'px';renderWires();renderInspector()};
@@ -209,6 +211,7 @@ function renderInspector(){
   const pins=def.pins.map(pin=>`<div class="property-row"><span>${safeText(pin[0])}</span><b>${project.wires.filter(w=>[w.a,w.b].some(end=>end.part===part.id&&end.pin===pin[0])).length?'Conectado':'Livre'}</b></div>`).join('');
   let controls='';
   if(def.kind==='switch')controls=`<div class="property-section"><p class="property-label">Estado do contato</p><div class="switch-row"><span>${part.settings?.pressed?(part.type==='switch'?'Fechado':'Pressionado'):'Aberto'}</span><button id="toggleButtonPart" class="toggle ${part.settings?.pressed?'on':''}" aria-label="Alternar botão"></button></div></div>`;
+  if(['button','switch'].includes(part.type))controls+=`<div class="property-section"><label class="property-row"><span>Trepidação real (bounce)</span><input id="bounceOn" type="checkbox" ${part.settings?.bounce!==false?'checked':''}></label><p class="fw-hint">Como numa chave de verdade, cada troca oscila 2–5 vezes em até ~2 ms: sem debounce no código, um aperto pode contar várias vezes. Com a simulação rodando, segure o botão para apertar.</p></div>`;
   if(isBoard(part))controls+=`<div class="property-section"><p class="property-label">Firmware (PlatformIO)</p><div class="property-row"><span>${part.settings?.firmware?safeText(part.settings.firmwareName||'firmware.hex'):'Sketch do editor'}</span><b>${part.settings?.firmware?Math.round(part.settings.firmware.length/1024)+' KB':'—'}</b></div><div class="fw-actions"><button id="fwLoad" class="button button-quiet">Carregar .hex</button>${window.showOpenFilePicker?'<button id="fwWatch" class="button button-quiet" title="Recarrega a cada pio run">Vigiar</button>':''}${part.settings?.firmware?'<button id="fwClear" class="text-button">Remover</button>':''}</div><p class="fw-hint">Arquivo: <code>.pio/build/${ioOf(part).env}/firmware.hex</code> (board = ${ioOf(part).env}). Com firmware, a placa roda o código real do ${ioOf(part).chip}; I²C no ${ioOf(part).sda}/${ioOf(part).scl}.</p></div>`;
   if(def.controls)controls+=`<div class="property-section"><p class="property-label">Leituras do sensor</p>${def.controls.map(([k,label,unit,min,max,step,dflt])=>`<label class="sensor-row"><span>${safeText(label)}</span><b data-sv="${k}">${(part.settings?.sensor?.[k]??dflt)} ${safeText(unit)}</b><input type="range" data-sensor="${k}" min="${min}" max="${max}" step="${step}" value="${part.settings?.sensor?.[k]??dflt}"></label>`).join('')}</div>`;
   if(part.type==='relay')controls+=`<div class="property-section"><p class="property-label">Entrada IN</p><div class="property-row"><span>Aciona com</span><select id="relayTrig"><option ${part.settings?.trigger!=='LOW'?'selected':''}>HIGH</option><option ${part.settings?.trigger==='LOW'?'selected':''}>LOW</option></select></div><p class="fw-hint">Módulos com optoacoplador costumam acionar com LOW.</p></div>`;
@@ -222,7 +225,8 @@ function renderInspector(){
   $('#capValue')?.addEventListener('change',e=>{part.settings.value=e.target.value;markChanged()});$('#capRating')?.addEventListener('change',e=>{part.settings.rating=String(parseFloat(e.target.value.replace(',','.'))||16);markChanged()});
   $('#partValue')?.addEventListener('change',event=>{part.settings.value=event.target.value;markChanged()});
   $('#ledColor')?.addEventListener('input',event=>{part.settings.color=event.target.value;markChanged()});
-  $('#toggleButtonPart')?.addEventListener('click',()=>{part.settings.pressed=!part.settings.pressed;markChanged();if(fw){updateSimulation({quiet:true});renderInspector()}else{renderAll();if(simulationTimer)updateSimulation()}});
+  $('#bounceOn')?.addEventListener('change',e=>{part.settings.bounce=e.target.checked;markChanged()});
+  $('#toggleButtonPart')?.addEventListener('click',()=>{part.settings.pressed=!part.settings.pressed;part._toggledAt=performance.now();markChanged();if(fw){updateSimulation({quiet:true});renderInspector()}else{renderAll();if(simulationTimer)updateSimulation()}});
   $('#deleteSelectedPart')?.addEventListener('click',deleteSelected);
   $('#fwLoad')?.addEventListener('click',()=>{const input=document.createElement('input');input.type='file';input.accept='.hex';input.onchange=async()=>{const f=input.files[0];if(f)setFirmware(part,await f.text(),f.name)};input.click()});
   $('#fwWatch')?.addEventListener('click',async()=>{try{const[h]=await showOpenFilePicker({types:[{description:'Firmware Intel HEX',accept:{'text/plain':['.hex']}}]});watchFirmware(part,h)}catch{}});
@@ -334,7 +338,8 @@ function updateSimulation(opts={}){
       if(part.type==='transistor'){part.settings.on=!!st&&st.mode!=='off';part.settings.mode=st?.mode}
       if(part.type==='capacitor'){const vc=part._vc||0,rated=parseFloat(String(part.settings.rating||'16').replace(',','.'))||16;part.settings.vc=vc;if(vc<-1)part.settings.warn=`Eletrolítico invertido: ${vc.toFixed(1)} V. No real ele aquece, vaza e pode estufar.`;else if(vc>rated)part.settings.warn=`${vc.toFixed(1)} V acima dos ${rated} V nominais do capacitor.`}
       if(part.type==='gate')part.settings.out=st;
-      if(part.type==='motor'){const a=V(part,'+'),b=V(part,'−');const v=a!==undefined&&b!==undefined?a-b:0;part.settings.speed=Math.max(-1,Math.min(1,v/5))*dutyOf(part,['+','−']);part.settings.lit=Math.abs(part.settings.speed)>0.05}
+      // Motor: a velocidade persegue o alvo com inércia (τ ≈ 0,15 s de um motor pequeno), em vez de saltar.
+      if(part.type==='motor'){const a=V(part,'+'),b=V(part,'−');const v=a!==undefined&&b!==undefined?a-b:0,target=Math.max(-1,Math.min(1,v/5))*dutyOf(part,['+','−']),now=performance.now(),dt=part._t?Math.min(0.2,(now-part._t)/1000):1;part._t=now;const cur=part._speed??0;part._speed=cur+(target-cur)*(1-Math.exp(-dt/0.15));if(Math.abs(part._speed-target)<0.005)part._speed=target;part.settings.speed=part._speed;part.settings.lit=Math.abs(part.settings.speed)>0.05}
       if(part.type==='buzzer'){const pos=find(node(part.id,'+')),toneHz=netTone.get(pos),a=V(part,'+'),b=V(part,'−');part.settings.tone=toneHz&&b!==undefined&&b<1?toneHz:undefined;part.settings.lit=!!part.settings.tone||(a!==undefined&&b!==undefined&&a-b>=3)}
     }
     // Pino de saída fornecendo mais que o limite absoluto do ATmega (40 mA).
@@ -364,7 +369,7 @@ function runSimulation(){
   if(parsed.warnings.length)toast(parsed.warnings[0]);
   renderAll();markChanged();
 }
-function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}clearInterval(capTicker);capTicker=null;lastSketchSolve=0;circuitStates={};for(const p of project.parts)delete p._vc;for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.glyphs;delete part.settings.rgb;delete part.settings.segs;delete part.settings.speed;delete part.settings.on;delete part.settings.out;delete part.settings.warn;delete part.settings.modes;delete part.settings.current;delete part.settings.vc;delete part.settings.mode;delete part.settings.angle;delete part.settings.colors}for(const part of project.parts)if(isBoard(part))part.settings.outputs={};updateSimulation();renderAll()}
+function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}clearInterval(capTicker);capTicker=null;lastSketchSolve=0;circuitStates={};for(const p of project.parts){delete p._vc;delete p._speed;delete p._angle;delete p._t}for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.glyphs;delete part.settings.rgb;delete part.settings.segs;delete part.settings.speed;delete part.settings.on;delete part.settings.out;delete part.settings.warn;delete part.settings.modes;delete part.settings.current;delete part.settings.vc;delete part.settings.mode;delete part.settings.angle;delete part.settings.colors}for(const part of project.parts)if(isBoard(part))part.settings.outputs={};updateSimulation();renderAll()}
 // ---------- Firmware real (ATmega328P emulado) ----------
 let fw=null;
 function setFirmware(part,text,name){
@@ -445,14 +450,21 @@ function applySensor(p){
 }
 // Entradas do firmware pelo solver: nível lógico pelos limiares do ATmega e tensão real nos pinos analógicos.
 function feedInputs(u){
-  const sol=fw?.solve||lastSolve;if(!sol)return;const pins=u.mcu.pinSnapshot(),n=l=>`${u.board.id}:${l}`;
-  for(const label of ioOf(u.board).pins){const p=pins[label];if(!p||p.mode==='output'||u.mcu.pinDevices.has(label)||u.driven?.has(label))continue;u.mcu.setInput(label,window.Circuit.logicLevel(sol.volts(n(label))))}
+  const sol=fw?.solve||lastSolve;if(!sol)return;const pins=u.mcu.pinSnapshot(),n=l=>`${u.board.id}:${l}`,fed=(u.fed||={});
+  const bouncing=project.parts.some(p=>(p.type==='button'||p.type==='switch')&&p.settings?.bounce!==false&&p._toggledAt&&performance.now()-p._toggledAt<300);
+  for(const label of ioOf(u.board).pins){const p=pins[label];if(!p||p.mode==='output'||u.mcu.pinDevices.has(label)||u.driven?.has(label))continue;
+    const lv=window.Circuit.logicLevel(sol.volts(n(label))),prev=fed[label];fed[label]=lv;
+    if(bouncing&&lv!==null&&prev!==undefined&&prev!==null&&lv!==prev)bounce(u.mcu,label,lv);else if(lv!==prev||!bouncing)u.mcu.setInput(label,lv)}
   for(let i=0;i<ioOf(u.board).analog;i++){const v=sol.volts(n('A'+i));if(v!==undefined)u.mcu.analog[i]=Math.max(0,Math.min(5,v))}
 }
+// Contato mecânico trepida: alterna 2 a 5 vezes, com 50–500 µs entre trocas, antes de assentar no nível novo.
+function bounce(mcu,label,lv){let t=mcu.cycles,v=lv;const flips=2+Math.floor(Math.random()*4);mcu.setInput(label,lv);for(let i=0;i<flips;i++){t+=Math.round((50+Math.random()*450)*16);v=1-v;const x=v;mcu.schedule(t,()=>mcu.setInput(label,x))}if(v!==lv){t+=Math.round((50+Math.random()*450)*16);mcu.schedule(t,()=>mcu.setInput(label,lv))}}
 function servoAngles(){
   if(!fw||!lastNet)return;const{find,node}=lastNet;
   for(const s of project.parts.filter(p=>p.type==='servo')){const sig=find(node(s.id,'SIG'));
-    for(const u of fw.units)for(const label of ioOf(u.board).pins)if(find(node(u.board.id,label))===sig){const p=u.mcu.pulseInfo(label);if(p&&p.highUs>400&&p.highUs<2600){s.settings.angle=Math.round(Math.max(0,Math.min(180,(p.highUs-544)/(2400-544)*180)))}}}
+    for(const u of fw.units)for(const label of ioOf(u.board).pins)if(find(node(u.board.id,label))===sig){const p=u.mcu.pulseInfo(label);if(p&&p.highUs>400&&p.highUs<2600){const target=Math.max(0,Math.min(180,(p.highUs-544)/(2400-544)*180)),now=performance.now(),dt=s._t?Math.min(0.1,(now-s._t)/1000):0;s._t=now;
+      // SG90 a 4,8 V: 0,1 s por 60° → no máximo 600°/s; o braço anda até o alvo em vez de saltar.
+      const cur=s._angle??target,step=600*dt;s._angle=Math.abs(target-cur)<=step?target:cur+Math.sign(target-cur)*step;s.settings.angle=Math.round(s._angle)}}}
 }
 // NeoPixel: segue a corrente DIN→DOUT a partir do pino do Uno e distribui as cores pela ordem dos LEDs.
 function neopixels(){
@@ -513,7 +525,8 @@ function importProject(file){
       const safeParts=value.parts.slice(0,250).map((part,index)=>{
         const def=defFor(part.type);if(!def)return null;
         const raw=part.settings&&typeof part.settings==='object'?part.settings:{};
-        const settings={pressed:raw.pressed===true,value:typeof raw.value==='string'?raw.value.slice(0,24):undefined,color:typeof raw.color==='string'&&/^#[\da-f]{6}$/i.test(raw.color)?raw.color:undefined,screen:typeof raw.screen==='string'?raw.screen.slice(0,13):undefined,firmware:typeof raw.firmware==='string'&&raw.firmware.startsWith(':')&&raw.firmware.length<400000?raw.firmware:undefined,firmwareName:typeof raw.firmwareName==='string'?raw.firmwareName.slice(0,60):undefined,position:Number.isFinite(raw.position)?Math.max(0,Math.min(1,raw.position)):undefined,sensor:raw.sensor&&typeof raw.sensor==='object'?Object.fromEntries(Object.entries(raw.sensor).filter(([k,v])=>/^\w{1,20}$/.test(k)&&Number.isFinite(v))):undefined};
+        // Firmware até 800 mil caracteres: os 256 KB de flash do Mega em Intel HEX.
+        const settings={pressed:raw.pressed===true,value:typeof raw.value==='string'?raw.value.slice(0,24):undefined,color:typeof raw.color==='string'&&/^#[\da-f]{6}$/i.test(raw.color)?raw.color:undefined,screen:typeof raw.screen==='string'?raw.screen.slice(0,13):undefined,firmware:typeof raw.firmware==='string'&&raw.firmware.startsWith(':')&&raw.firmware.length<800000?raw.firmware:undefined,firmwareName:typeof raw.firmwareName==='string'?raw.firmwareName.slice(0,60):undefined,position:Number.isFinite(raw.position)?Math.max(0,Math.min(1,raw.position)):undefined,bounce:typeof raw.bounce==='boolean'?raw.bounce:undefined,trigger:raw.trigger==='LOW'||raw.trigger==='HIGH'?raw.trigger:undefined,rating:typeof raw.rating==='string'&&/^\d{1,3}(\.\d+)?$/.test(raw.rating)?raw.rating:undefined,sensor:raw.sensor&&typeof raw.sensor==='object'?Object.fromEntries(Object.entries(raw.sensor).filter(([k,v])=>/^\w{1,20}$/.test(k)&&Number.isFinite(v))):undefined};
         if(raw.outputs&&typeof raw.outputs==='object')settings.outputs=Object.fromEntries(Object.entries(raw.outputs).filter(([pin,level])=>/^D(?:[0-9]|1[0-3])$/.test(pin)&&(level===0||level===1)));
         return{id:String(part.id||`part-${index}`).slice(0,60),type:def.type,name:String(part.name||def.name).slice(0,40),x:Math.max(0,Math.min(1680,Number.isFinite(Number(part.x))?Number(part.x):40)),y:Math.max(0,Math.min(1080,Number.isFinite(Number(part.y))?Number(part.y):40)),settings};
       }).filter(Boolean);
