@@ -18,9 +18,9 @@ const catalog = [
   {type:'lcd1602',name:'Display 16×2 paralelo',category:'Displays',tag:'LCD',width:112,height:88,icon:'display',pins:[['VCC',0,14],['GND',0,34],['RS',0,54],['E',0,74],['D4',112,14],['D5',112,34],['D6',112,54],['D7',112,74]],description:'LCD HD44780 ligado direto nos pinos (biblioteca LiquidCrystal, modo 4 bits). Funciona com firmware real.',voltage:'5 V',kind:'display',parallelLcd:true},
   {type:'gate',name:'Porta AND',category:'Lógica',tag:'AND',width:90,height:72,icon:'gate',pins:[['A',0,20],['B',0,52],['Y',90,36]],description:'Porta AND (74HC08): Y = A·B com níveis de 5 V.',kind:'logic'},
   {type:'switch',name:'Chave liga/desliga',category:'Básicos',tag:'SW',width:94,height:66,icon:'button',pins:[['1',0,34],['2',94,34]],description:'Chave mantida. Alterne o contato no painel de propriedades.',kind:'switch'},
-  {type:'capacitor',name:'Capacitor',category:'Básicos',tag:'C',width:82,height:66,icon:'custom',pins:[['+',0,34],['−',82,34]],description:'Capacitor: em corrente contínua não conduz (circuito aberto). Carga e descarga ficam na bancada física.',kind:'passive'},
+  {type:'capacitor',name:'Capacitor',category:'Básicos',tag:'C',width:82,height:66,icon:'custom',pins:[['+',0,34],['−',82,34]],description:'Capacitor eletrolítico (padrão 100 µF / 16 V): carrega e descarrega com o tempo da simulação; parado, é circuito aberto.',kind:'passive'},
   {type:'diode',name:'Diodo',category:'Básicos',tag:'D',width:82,height:66,icon:'custom',pins:[['A',0,34],['K',82,34]],description:'Diodo de silício (1N4148/1N4007): conduz de A para K a partir de ~0,7 V.',kind:'passive'},
-  {type:'transistor',name:'Transistor NPN',category:'Básicos',tag:'NPN',width:94,height:82,icon:'custom',pins:[['B',0,41],['C',94,22],['E',94,61]],description:'NPN como chave (2N2222/BC547): com corrente na base (Vbe ≈ 0,7 V), C–E conduz saturado.',kind:'passive'},
+  {type:'transistor',name:'Transistor NPN',category:'Básicos',tag:'NPN',width:94,height:82,icon:'custom',pins:[['B',0,41],['C',94,22],['E',94,61]],description:'NPN 2N2222: Vbe ≈ 0,7 V; satura se a base der corrente suficiente, senão limita Ic a hFE·Ib (hFE = 100).',kind:'passive'},
   {type:'ldr',name:'Sensor de luz LDR',category:'Sensores',tag:'LDR',width:100,height:68,icon:'custom',pins:[['1',0,34],['2',100,34]],description:'Fotoresistor GL5528: 8–20 kΩ a 10 lux, ~1 MΩ no escuro. Use num divisor com 10 kΩ e leia com analogRead.',kind:'sensor',controls:[['lux','Luz','lx',0,10000,1,300]]},
   {type:'ultrasonic',name:'Sensor ultrassônico',category:'Sensores',tag:'HC-SR04',width:118,height:84,icon:'custom',pins:[['VCC',0,18],['TRIG',0,40],['ECHO',118,40],['GND',118,66]],description:'Sensor de distância HC-SR04 (2–400 cm): pulso no TRIG, eco no ECHO com o tempo de ida e volta do som.',kind:'sensor',controls:[['distanceCm','Distância','cm',2,450,1,100],['temperatureC','Temperatura do ar','°C',-10,50,1,20]]},
   {type:'servo',name:'Micro servo',category:'Saídas',tag:'SG90',width:96,height:82,icon:'custom',pins:[['GND',0,18],['VCC',0,41],['SIG',96,30]],description:'Atuador de posição com alimentação e sinal PWM.',kind:'actuator'},
@@ -183,9 +183,9 @@ function modelStatus(def){
   if(k==='source'||k==='highRail'||k==='lowRail')return{sim:true,text:'Simulado: referência de 5 V ou 0 V.'};
   if(t==='ldr')return{sim:true,text:'Simulado: resistência do GL5528 pela luz (ajuste abaixo); num divisor, o analogRead lê a tensão de verdade.'};
   if(t==='ultrasonic')return{sim:true,text:'Simulado com firmware: TRIG e ECHO em pinos da placa; o eco dura o tempo de ida e volta do som (ajuste distância e temperatura).'};
-  if(t==='capacitor')return{sim:true,text:'Simulado em CC: circuito aberto. Carga, vazamento e falhas ficam na bancada física (studio).'};
+  if(t==='capacitor')return{sim:true,text:'Simulado: carga e descarga no tempo (RC); avisa polaridade invertida e sobretensão. Vazamento e ruptura ficam na bancada física (studio).'};
   if(t==='diode')return{sim:true,text:'Simulado: conduz de A para K a partir de 0,7 V.'};
-  if(t==='transistor')return{sim:true,text:'Simulado como chave: corrente na base (Vbe 0,7 V) liga C–E saturado.'};
+  if(t==='transistor')return{sim:true,text:'Simulado: corte, saturação ou região ativa com Ic = hFE·Ib (hFE 100).'};
   if(t==='relay')return{sim:true,text:'Simulado: com 5 V no VCC, IN aciona a bobina e o COM troca do NC para o NO (clique).'};
   if(t==='rgb')return{sim:true,text:'Simulado: três LEDs (R 1,9 V, G e B 3,0 V) com cátodo comum; o PWM mistura a cor.'};
   if(t==='segment')return{sim:true,text:'Simulado: sete LEDs com cátodo comum no COM; cada segmento acende com corrente.'};
@@ -214,10 +214,12 @@ function renderInspector(){
   if(part.type==='relay')controls+=`<div class="property-section"><p class="property-label">Entrada IN</p><div class="property-row"><span>Aciona com</span><select id="relayTrig"><option ${part.settings?.trigger!=='LOW'?'selected':''}>HIGH</option><option ${part.settings?.trigger==='LOW'?'selected':''}>LOW</option></select></div><p class="fw-hint">Módulos com optoacoplador costumam acionar com LOW.</p></div>`;
   if(part.settings?.warn)controls+=`<div class="property-section"><p class="model-status visual">⚠ ${safeText(part.settings.warn)}</p></div>`;
   if(part.type==='pot')controls+=`<div class="property-section"><p class="property-label">Posição</p><input id="potPos" type="range" min="0" max="1" step="0.01" value="${part.settings?.position??0.5}" style="width:100%"><div class="property-row"><span>Saída</span><b id="potVolts">${((part.settings?.position??0.5)*5).toFixed(2)} V</b></div></div>`;
+  if(part.type==='capacitor')controls+=`<div class="property-section"><p class="property-label">Capacitância e tensão</p><div class="property-row"><input id="capValue" class="property-input" value="${safeText(part.settings?.value||'100 µF')}" /><input id="capRating" class="property-input" value="${safeText(part.settings?.rating||'16')} V" /></div>${part.settings?.vc!==undefined?`<div class="property-row"><span>Carga agora</span><b>${part.settings.vc.toFixed(2).replace('.',',')} V</b></div>`:''}</div>`;
   if(part.type==='resistor')controls+=`<div class="property-section"><p class="property-label">Valor</p><input id="partValue" class="property-input" value="${safeText(part.settings?.value||'220 Ω')}" /></div>`;
   if(part.type==='led')controls+=`<div class="property-section"><p class="property-label">Cor</p><div class="property-row"><span>Cor do LED</span><input id="ledColor" type="color" value="${safeText(part.settings?.color||'#e56d5c')}" style="width:30px;height:24px;border:0;background:transparent;cursor:pointer" /></div><div class="property-row"><span>Estado</span><b>${part.settings?.lit?'Ligado':'Desligado'}</b></div></div>`;
   view.innerHTML=`<div class="property-header"><div class="property-type">${safeText(def.category)} · ${safeText(def.tag||'COMPONENTE')}</div><h2>${safeText(part.name||def.name)}</h2></div><div class="property-section"><p class="property-label">Identificação</p><label class="property-row"><span>Nome</span><input id="partName" class="property-input" style="width:130px" value="${safeText(part.name||def.name)}" /></label>${def.voltage?`<div class="property-row"><span>Tensão nominal</span><b>${safeText(def.voltage)}</b></div>`:''}</div>${controls}<div class="property-section"><p class="property-label">Terminais</p>${pins}</div><div class="property-section"><p class="property-label">Sobre</p><p style="font-size:9px;line-height:1.55;color:#77827a;margin:0">${safeText(def.description||'Componente personalizado do seu projeto.')}</p>${(()=>{const st=modelStatus(def);return st?`<p class="model-status ${st.sim?'sim':'visual'}">${st.sim?'●':'◇'} ${safeText(st.text)}</p>`:''})()}</div><div class="property-section"><button id="deleteSelectedPart" class="text-button delete-part">Remover componente</button></div>`;
   $('#partName')?.addEventListener('change',event=>{part.name=event.target.value.trim()||def.name;markChanged();renderParts();renderInspector()});
+  $('#capValue')?.addEventListener('change',e=>{part.settings.value=e.target.value;markChanged()});$('#capRating')?.addEventListener('change',e=>{part.settings.rating=String(parseFloat(e.target.value.replace(',','.'))||16);markChanged()});
   $('#partValue')?.addEventListener('change',event=>{part.settings.value=event.target.value;markChanged()});
   $('#ledColor')?.addEventListener('input',event=>{part.settings.color=event.target.value;markChanged()});
   $('#toggleButtonPart')?.addEventListener('click',()=>{part.settings.pressed=!part.settings.pressed;markChanged();if(fw){updateSimulation({quiet:true});renderInspector()}else{renderAll();if(simulationTimer)updateSimulation()}});
@@ -253,11 +255,14 @@ const isBoard=p=>!!BOARD_IO[p?.type],ioOf=p=>BOARD_IO[p.type];
 let lastNet=null;
 // Circuito em CC (src/editor/circuit.js): resistores com o valor escrito, pinos de saída com 25 Ω, pull-up interno de 35 kΩ,
 // LEDs/diodos com Vf, NPN como chave saturada, relé e porta AND. Estados que dependem da própria solução são iterados.
-let circuitStates={},lastSolve=null,lastConflict='';
-function solveCircuit(){
-  const C=window.Circuit;if(!C)return null;const node=(p,pin)=>`${p}:${pin}`;let state=circuitStates,out;
+let circuitStates={},lastSolve=null,lastConflict='',capTicker=null,lastSketchSolve=0;
+// Sketch rodando sem firmware: o tempo dos capacitores segue o relógio da parede (até 0,1 s por passo).
+function sketchDt(){const now=performance.now(),dt=simulationTimer&&simulationTimer!=='firmware'&&lastSketchSolve?Math.min(0.1,(now-lastSketchSolve)/1000):0;lastSketchSolve=now;return dt}
+// dt (s): passo de tempo da simulação; com dt > 0 os capacitores carregam e descarregam, sem dt ficam abertos (CC).
+function solveCircuit(dt=0){
+  const C=window.Circuit;if(!C)return null;const node=(p,pin)=>`${p}:${pin}`;let state=circuitStates,out;const key=st=>JSON.stringify(st,(k,v)=>typeof v==='number'?+v.toPrecision(2):v);
   for(let iter=0;iter<6;iter++){
-    const shorts=[],resistors=[],sources=[],diodes=[],tags=[];
+    const shorts=[],resistors=[],sources=[],diodes=[],tags=[],currents=[],capacitors=[],caps=[];
     for(const w of project.wires)shorts.push([node(w.a.part,w.a.pin),node(w.b.part,w.b.pin)]);
     for(const p of project.parts){const def=defFor(p.type);if(!def)continue;const n=pin=>node(p.id,pin),s=p.settings||{},led=(a,k,vf,rs,tag)=>{diodes.push({a:n(a),k:n(k),vf,rs});tags.push(tag)};
       if(p.type==='resistor')resistors.push([n(def.pins[0][0]),n(def.pins[1][0]),C.ohms(s.value||'220 Ω')]);
@@ -269,7 +274,9 @@ function solveCircuit(){
       else if(p.type==='rgb')[['R','#ff0000'],['G','#00ff00'],['B','#0000ff']].forEach(([c,col])=>led(c,'COM',C.ledVf(col),15,[p,'rgb',c]));
       else if(p.type==='segment')for(const c of 'ABCDEFG')led(c,'COM',1.9,20,[p,'seg',c]);
       else if(p.type==='diode')led('A','K',0.7,0.5,[p,'diode']);
-      else if(p.type==='transistor'){led('B','E',0.7,10,[p,'vbe']);if(state[p.id])resistors.push([n('C'),n('E'),0.5])}
+      // NPN: corte, saturação (C–E 0,5 Ω) ou região ativa (Ic = hFE·Ib, como fonte de corrente C→E).
+      else if(p.type==='transistor'){led('B','E',0.7,10,[p,'vbe']);const t=state[p.id];if(t?.mode==='sat')resistors.push([n('C'),n('E'),0.5]);else if(t?.mode==='active')currents.push({a:n('C'),b:n('E'),amps:C.HFE*t.ib})}
+      else if(p.type==='capacitor'){capacitors.push({a:n('+'),b:n('−'),farads:C.farads(s.value||'100 µF'),v0:p._vc||0,dt});caps.push(p)}
       else if(p.type==='buzzer')resistors.push([n('+'),n('−'),170]);
       else if(p.type==='motor')resistors.push([n('+'),n('−'),10]);
       else if(p.type==='relay'){if(state[p.id])resistors.push([n('VCC'),n('GND'),70]);shorts.push(state[p.id]?[n('COM'),n('NO')]:[n('COM'),n('NC')])}
@@ -281,16 +288,19 @@ function solveCircuit(){
         for(const label of ioOf(p).pins){if(!pinDef(p,label))continue;const lv=s.outputs?.[label];
           if(lv===0||lv===1)sources.push({node:n(label),volts:5*lv,r:C.PIN_R,pin:[p,label]});else if(s.modes?.[label]==='input_pullup')sources.push({node:n(label),volts:5,r:C.PULLUP_R})}}
     }
-    out=C.solve({shorts,resistors,sources,diodes});out.tags=tags;out.sources=sources;
+    out=C.solve({shorts,resistors,sources,diodes,currents,capacitors});out.tags=tags;out.sources=sources;out.caps=caps;
     const next={},V=(p,pin)=>out.volts(node(p.id,pin));
     for(const p of project.parts){
-      if(p.type==='transistor'){const i=tags.findIndex(t=>t[0]===p);next[p.id]=out.diodeCurrent[i]>20e-6}
+      if(p.type==='transistor'){const ib=out.diodeCurrent[tags.findIndex(t=>t[0]===p)],prev=state[p.id]?.mode||'off',vce=(V(p,'C')??0)-(V(p,'E')??0);
+        let mode='off';if(ib>1e-6){if(prev==='sat')mode=vce/0.5>C.HFE*ib?'active':'sat';else if(prev==='active')mode=vce<0.2?'sat':'active';else mode='sat'}
+        next[p.id]={mode,ib:mode==='off'?0:ib}}
       if(p.type==='relay'){const vcc=V(p,'VCC'),gnd=V(p,'GND'),vin=V(p,'IN'),powered=vcc!==undefined&&gnd!==undefined&&vcc-gnd>=3.5;next[p.id]=powered&&vin!==undefined&&((p.settings?.trigger||'HIGH')==='LOW'?vin-gnd<=1.5:vin-gnd>=2.5)}
       if(p.type==='gate'){const a=C.logicLevel(V(p,'A')),b=C.logicLevel(V(p,'B'));next[p.id]=a===0||b===0?0:a===1&&b===1?1:null}
     }
-    const same=Object.keys(next).every(k=>next[k]===state[k]);state=next;if(same)break;
+    const same=key(next)===key(state);state=next;if(same)break;
   }
   if(project.parts.some(p=>p.type==='relay'&&!!state[p.id]!==!!circuitStates[p.id]))relayClick();
+  if(dt>0)out.caps.forEach((p,i)=>{p._vc=out.capVolts[i]});
   circuitStates=state;out.states=state;return out;
 }
 // Clique curto do contato do relé.
@@ -308,7 +318,7 @@ function updateSimulation(opts={}){
   // NPN chaveado por PWM: o coletor segue o ciclo de trabalho da base (motor/LED no coletor giram/brilham na mesma fração).
   for(const q of project.parts)if(q.type==='transistor'){const d=netDuty.get(find(node(q.id,'B')));if(d!==undefined)netDuty.set(find(node(q.id,'C')),d)}
   // Valores elétricos pelo solver de CC; o PWM entra como fração do tempo ligado sobre a corrente com o pino em nível alto.
-  const sol=solveCircuit();lastSolve=sol;const dutyOf=(p,pins)=>{for(const pin of pins){const d=netDuty.get(find(node(p.id,pin)));if(d!==undefined)return d}return 1};
+  const sol=fw?.solve||solveCircuit(sketchDt());lastSolve=sol;if(simulationTimer&&simulationTimer!=='firmware'&&project.parts.some(p=>p.type==='capacitor')&&!capTicker)capTicker=setInterval(()=>updateSimulation({quiet:true}),50);const dutyOf=(p,pins)=>{for(const pin of pins){const d=netDuty.get(find(node(p.id,pin)));if(d!==undefined)return d}return 1};
   if(sol){const mA=i=>sol.diodeCurrent[i]*1e3,V=(p,pin)=>sol.volts(node(p.id,pin));
     for(const part of project.parts){delete part.settings.warn;if(part.type==='rgb')part.settings.rgb=[0,0,0];if(part.type==='segment')part.settings.segs=''}
     sol.tags.forEach(([part,kind,c],i)=>{const cur=mA(i);
@@ -320,7 +330,9 @@ function updateSimulation(opts={}){
     for(const part of project.parts){const st=sol.states[part.id];
       if(part.type==='rgb')part.settings.lit=part.settings.rgb.some(x=>x>0.02);
       if(part.type==='segment')part.settings.lit=!!part.settings.segs;
-      if(part.type==='transistor'||part.type==='relay')part.settings.on=!!st;
+      if(part.type==='relay')part.settings.on=!!st;
+      if(part.type==='transistor'){part.settings.on=!!st&&st.mode!=='off';part.settings.mode=st?.mode}
+      if(part.type==='capacitor'){const vc=part._vc||0,rated=parseFloat(String(part.settings.rating||'16').replace(',','.'))||16;part.settings.vc=vc;if(vc<-1)part.settings.warn=`Eletrolítico invertido: ${vc.toFixed(1)} V. No real ele aquece, vaza e pode estufar.`;else if(vc>rated)part.settings.warn=`${vc.toFixed(1)} V acima dos ${rated} V nominais do capacitor.`}
       if(part.type==='gate')part.settings.out=st;
       if(part.type==='motor'){const a=V(part,'+'),b=V(part,'−');const v=a!==undefined&&b!==undefined?a-b:0;part.settings.speed=Math.max(-1,Math.min(1,v/5))*dutyOf(part,['+','−']);part.settings.lit=Math.abs(part.settings.speed)>0.05}
       if(part.type==='buzzer'){const pos=find(node(part.id,'+')),toneHz=netTone.get(pos),a=V(part,'+'),b=V(part,'−');part.settings.tone=toneHz&&b!==undefined&&b<1?toneHz:undefined;part.settings.lit=!!part.settings.tone||(a!==undefined&&b!==undefined&&a-b>=3)}
@@ -352,7 +364,7 @@ function runSimulation(){
   if(parsed.warnings.length)toast(parsed.warnings[0]);
   renderAll();markChanged();
 }
-function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.glyphs;delete part.settings.rgb;delete part.settings.segs;delete part.settings.speed;delete part.settings.on;delete part.settings.out;delete part.settings.warn;delete part.settings.modes;delete part.settings.current;delete part.settings.angle;delete part.settings.colors}for(const part of project.parts)if(isBoard(part))part.settings.outputs={};updateSimulation();renderAll()}
+function stopSimulation(){stopFirmware();if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}clearInterval(capTicker);capTicker=null;lastSketchSolve=0;circuitStates={};for(const p of project.parts)delete p._vc;for(const part of project.parts){delete part.settings.duty;delete part.settings.tone;delete part.settings.lines;delete part.settings.glyphs;delete part.settings.rgb;delete part.settings.segs;delete part.settings.speed;delete part.settings.on;delete part.settings.out;delete part.settings.warn;delete part.settings.modes;delete part.settings.current;delete part.settings.vc;delete part.settings.mode;delete part.settings.angle;delete part.settings.colors}for(const part of project.parts)if(isBoard(part))part.settings.outputs={};updateSimulation();renderAll()}
 // ---------- Firmware real (ATmega328P emulado) ----------
 let fw=null;
 function setFirmware(part,text,name){
@@ -412,7 +424,7 @@ async function startFirmware(){
   renderAll();fw.raf=requestAnimationFrame(firmwareFrame);
 }
 function firmwareFrame(now){
-  if(!fw)return;const dt=fw.last?Math.min((now-fw.last)/1000,.05):0;fw.last=now;fw.solve=solveCircuit();
+  if(!fw)return;const dt=fw.last?Math.min((now-fw.last)/1000,.05):0;fw.last=now;fw.solve=solveCircuit(dt);
   // Placas ligadas por I²C/SPI andam juntas em fatias de 10 µs para uma responder no tempo da outra.
   if(fw.lockstep&&dt){for(const u of fw.units)feedInputs(u);const total=Math.round(dt*fw.units[0].clock),slice=160;for(let c=0;c<total;c+=slice)for(const u of fw.units)u.mcu.run(Math.min(slice,total-c))}
   for(const u of fw.units){

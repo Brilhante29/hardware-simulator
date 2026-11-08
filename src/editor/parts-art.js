@@ -131,9 +131,10 @@
       const y = part?.settings?.out; // nível da saída Y vindo do solver
       return s + T(46, 41, 'AND', 'c', 11, 'middle') + (y === 1 ? R(76, 26, 8, 6, 'ledL on') : y === 0 ? R(76, 26, 8, 6, 'ledL') : '');
     },
-    capacitor() {
+    capacitor(def, part) {
       let s = leadL(34, 28) + leadR(34, 54, 82) + R(28, 8, 26, 50, 'd') + R(28, 8, 26, 4, 'l') + R(28, 54, 26, 4, 'k') + R(46, 12, 6, 42, 'p');
-      return s + R(48, 20, 2, 4, 'd') + R(48, 30, 2, 4, 'd') + R(48, 40, 2, 4, 'd') + R(30, 14, 4, 30, 'm');
+      const f = Math.max(0, Math.min(1, (part?.settings?.vc || 0) / 5)), h = Math.round(30 * f); // carga de 0 a 5 V
+      return s + R(48, 20, 2, 4, 'd') + R(48, 30, 2, 4, 'd') + R(48, 40, 2, 4, 'd') + R(30, 14, 4, 30, 'm') + (h ? R(30, 44 - h, 4, h, 'g') : '');
     },
     diode(def, part) { return leadL(34, 24) + leadR(34, 58, 82) + R(24, 27, 34, 14, 'k') + R(26, 29, 20, 2, 'd') + R(50, 27, 4, 14, part?.settings?.lit ? 'g' : 'l'); },
     transistor(def, part) {

@@ -110,6 +110,16 @@ const cases = [
     const chain = vfs => { const nodes = ['p', ...vfs.map((_, i) => 'n' + i)]; return Circuit.solve({ sources: [{ node: 'p', volts: 5, r: 0 }, { node: nodes.at(-1), volts: 0, r: 0 }], resistors: [], diodes: vfs.map((vf, i) => ({ a: nodes[i], k: nodes[i + 1], vf, rs: 15 })) }).diodeCurrent; };
     assert.ok(chain([1.9, 1.9]).every(i => i > 0)); assert.ok(chain([1.9, 1.9, 1.9]).every(i => i === 0)); near(chain([1.9, 1.9])[0], (5 - 3.8) / 30, 1e-9);
   }],
+  ['Solver transitório: RC de 10 kΩ e 100 µF chega a 63 % em τ = 1 s e descarrega de volta', () => {
+    for (const [t, f] of [['100 µF', 100e-6], ['10n', 10e-9], ['4,7uF', 4.7e-6], ['1mF', 1e-3]]) near(Circuit.farads(t), f, f * 1e-9, t);
+    let vc = 0; const step = (vin, dt) => { const r = Circuit.solve({ sources: [{ node: 'in', volts: vin, r: 0 }, { node: 'g', volts: 0, r: 0 }], resistors: [['in', 'c', 1e4]], capacitors: [{ a: 'c', b: 'g', farads: 100e-6, v0: vc, dt }] }); vc = r.capVolts[0]; };
+    for (let i = 0; i < 100; i++) step(5, 0.01); near(vc, 5 * (1 - Math.exp(-1)), 0.03, 'carga');
+    for (let i = 0; i < 100; i++) step(0, 0.01); near(vc, 5 * (1 - Math.exp(-1)) * Math.exp(-1), 0.03, 'descarga');
+  }],
+  ['Solver: fonte de corrente (NPN na região ativa) puxa hFE·Ib pela carga', () => {
+    const r = Circuit.solve({ sources: [{ node: 'v', volts: 5, r: 0 }, { node: 'g', volts: 0, r: 0 }], resistors: [['v', 'c', 10]], currents: [{ a: 'c', b: 'g', amps: 0.0043 }] });
+    near(r.volts('c'), 5 - 0.043, 1e-9);
+  }],
   ['Solver CC: curto entre 5 V e GND é apontado', () => {
     const r = Circuit.solve({ sources: [{ node: 'a', volts: 5, r: 0 }, { node: 'b', volts: 0, r: 0 }], shorts: [['a', 'b']] });
     assert.equal(r.conflicts.length, 1);
