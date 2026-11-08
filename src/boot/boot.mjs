@@ -129,7 +129,11 @@ $('watchButton').onclick = async () => {
 };
 $('pinGrid').onclick = e => {
   const b = e.target.closest('[data-in]'); if (!b || b.disabled) return;
-  const n = b.dataset.in; if (pressed.has(n)) { pressed.delete(n); mcu?.setInput(n, null); } else { pressed.add(n); mcu?.setInput(n, 0); }
+  const n = b.dataset.in, on = !pressed.has(n); if (on) pressed.add(n); else pressed.delete(n);
+  if (!mcu) return paint();
+  // Contato real trepida: 2–5 trocas com 50–500 µs entre elas antes de assentar (desligável).
+  const final = on ? 0 : null, other = on ? null : 0; mcu.setInput(n, final);
+  if ($('bounceOn').checked) { let t = mcu.cycles, v = final; const flips = 2 + Math.floor(Math.random() * 4); for (let i = 0; i < flips; i++) { t += Math.round((50 + Math.random() * 450) * 16); v = v === final ? other : final; const x = v; mcu.schedule(t, () => mcu.setInput(n, x)); } if (v !== final) mcu.schedule(t + Math.round((50 + Math.random() * 450) * 16), () => mcu.setInput(n, final)); }
   paint();
 };
 $('a0Slider').oninput = e => { const v = Number(e.target.value); $('a0Value').textContent = fmt(v, 2) + ' V'; if (mcu) mcu.analog[+$('aPin').value.slice(1)] = v; };
