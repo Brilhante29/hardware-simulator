@@ -2,17 +2,20 @@
 import { readFileSync } from 'node:fs';
 import { ATmega328P, ATmega2560, createMcu, detectChip, parseHex } from '../src/emulator/avr.mjs';
 import { LcdI2C, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750, Dht } from '../src/emulator/devices.mjs';
-const hex = n => readFileSync(new URL(`./fixtures/avr/${n}.hex`, import.meta.url), 'utf8');
-function boot(name) { const m = new ATmega328P(hex(name)); m.out = ''; m.onSerial = b => { m.out += String.fromCharCode(b); }; return m; }
+// Segunda passada: os firmwares do Uno recompilados para o Mega (fixtures/avr/mega), com os pinos que mudam de lugar.
+let onMega = false; const pin = n => onMega ? ({ D8: 'PD4', D10: 'D53', D6: 'PE2', D7: 'D5' }[n] ?? n) : n;
+const hex = n => readFileSync(new URL(`./fixtures/avr/${onMega && !n.startsWith('mega_') ? 'mega/' : ''}${n}.hex`, import.meta.url), 'utf8');
+function boot(name) { const m = onMega ? createMcu(hex(name)) : new ATmega328P(hex(name)); m.out = ''; m.onSerial = b => { m.out += String.fromCharCode(b); }; return m; }
 // Mega: saída de cada USART em outs[0..3].
 function mega(name) { const m = createMcu(hex(name)); m.outs = ['', '', '', '']; m.onSerial = (b, i) => { m.outs[i] += String.fromCharCode(b); }; return m; }
 
-export function runAvrTests() {
-  const results = []; const test = (name, source, fn) => { try { fn(); results.push({ name, source, pass: true }); } catch (e) { results.push({ name, source, pass: false, error: e.message }); } };
+export function runAvrTests({ mega: megaPass = false } = {}) {
+  onMega = megaPass;
+  const results = []; const test = (name, source, fn) => { if (megaPass && /^(Mega|Velocidade)/.test(name)) return; name = megaPass ? `[Mega] ${name}` : name; try { fn(); results.push({ name, source, pass: true }); } catch (e) { results.push({ name, source, pass: false, error: e.message }); } };
   const ok = (x, msg = 'Condição não atendida') => { if (!x) throw Error(msg); };
   const eq = (a, b) => { if (a !== b) throw Error(`${JSON.stringify(a)} ≠ ${JSON.stringify(b)}`); };
 
-  test('Intel HEX: checksum e tamanho do blink', 'Intel HEX', () => { eq(parseHex(hex('blink')).size, 2154); let bad = false; try { parseHex(':0100000000FE'); } catch { bad = true; } ok(bad, 'checksum errado aceito'); });
+  test('Intel HEX: checksum e tamanho do blink', 'Intel HEX', () => { eq(parseHex(hex('blink')).size, onMega ? 2872 : 2154); let bad = false; try { parseHex(':0100000000FE'); } catch { bad = true; } ok(bad, 'checksum errado aceito'); });
   test('Blink: D13 alterna a cada 500 ms (±1 ms)', 'delay() via Timer0', () => {
     const m = boot('blink'), edges = []; m.onPinChange = (c, t) => { if (c.D13 && c.D13.mode === 'output') edges.push([t, c.D13.level]); };
     m.runSeconds(2.2); const highs = edges.filter(e => e[1] === 1).map(e => e[0]);
@@ -20,7 +23,7 @@ export function runAvrTests() {
   });
   test('Blink: Serial e millis() batem com o tempo simulado', 'USART0 + Timer0', () => { const m = boot('blink'); m.runSeconds(2.1); eq(m.out, 'boot ok\r\n999\r\n1999\r\n'); });
   test('Matemática de 32 bits, float, CRC32 e String', 'Núcleo AVR (avr-gcc)', () => { const m = boot('math'); m.runSeconds(0.5); eq(m.out, '-1250\r\n539\r\n370370367\r\n1.414214\r\n0.50000\r\n3141.59\r\n217C885F\r\n40320\r\nUno328P\r\n-4\r\n249\r\n142857\r\nfim\r\n'); });
-  test('analogWrite: PWM de 25 %, 75 % e 50 % em D9, D5 e D11', 'Timer0/1/2 COM e OCR', () => { const m = boot('pwm'); m.runSeconds(0.1); const p = m.pinSnapshot(); eq(p.D9.duty, 0.25); eq(p.D5.duty, 0.75); eq(p.D11.duty, 0.5); });
+  test('analogWrite: PWM de 25 %, 75 % e 50 % em D9, D5 e D11', 'Timer0/1/2 COM e OCR', () => { const m = boot('pwm'); m.runSeconds(0.1); const p = m.pinSnapshot(); eq(p.D9.duty, 0.25); eq(p.D5.duty, onMega ? 191 / 256 : 0.75); /* no Mega o D5 é do Timer3 (fase correta) */ eq(p.D11.duty, 0.5); });
   test('digitalRead com INPUT_PULLUP: botão no GND acende D13', 'GPIO PIND', () => {
     const m = boot('button'); m.runSeconds(0.05); eq(m.pinSnapshot().D13.level, 0);
     m.setInput('D2', 0); m.runSeconds(0.05); eq(m.pinSnapshot().D13.level, 1);
@@ -31,6 +34,7 @@ export function runAvrTests() {
   test('attachInterrupt (INT0) conta 3 bordas; PCINT0 conta 2 mudanças', 'EICRA/EIMSK e PCICR/PCMSK0', () => {
     const m = boot('interrupts'); m.runSeconds(0.05);
     for (let i = 0; i < 3; i++) { m.setInput('D2', 0); m.runSeconds(0.01); m.setInput('D2', null); m.runSeconds(0.01); }
+    if (onMega) { m.setInput('D53', 1); m.runSeconds(0.01); m.setInput('D53', 0); m.runSeconds(0.01); m.setInput('D53', 1); m.runSeconds(0.2); ok(m.out.trim().endsWith('3,3'), m.out); return; } // PB0 = D53, sem pull-up no sketch
     m.setInput('D8', 0); m.runSeconds(0.01); m.setInput('D8', null); m.runSeconds(0.2); ok(m.out.trim().endsWith('3,2'), m.out);
   });
   test('EEPROM.put/get e update sobrevivem ao reset', 'EECR/EEDR/EEAR', () => { const m = boot('eeprom'); m.runSeconds(0.2); eq(m.out, '1 1.50 uno 42\r\n'); m.out = ''; m.reset(); m.runSeconds(0.2); eq(m.out, '2 1.50 uno 42\r\n'); });
@@ -59,20 +63,20 @@ export function runAvrTests() {
   });
   test('DHT22 (Adafruit): −3,7 °C e 48,3 % pelo protocolo de um fio', 'AM2302: pulsos de 26/70 µs', () => { const m = boot('dht22'); const d = m.attachPinDevice('D4', new Dht({ type: 22, temperature: -3.7, humidity: 48.3 })); m.runSeconds(2.3); eq(m.out, '-3.7 48.3\r\n'); d.temperature = 31.2; m.runSeconds(2.2); ok(m.out.endsWith('31.2 48.3\r\n'), m.out); });
   test('DHT11 (Adafruit): 26 °C e 61 %', 'DHT11: start de 18 ms', () => { const m = boot('dht11'); m.attachPinDevice('D4', new Dht({ type: 11, temperature: 26, humidity: 61 })); m.runSeconds(2.3); eq(m.out, '26.0 61.0\r\n'); });
-  test('Comparador analógico: ACO e interrupção a cada cruzamento', 'ACSR, AIN0/AIN1', () => { const m = boot('comparator'); m.setAnalogPin('D6', 2.5); m.setAnalogPin('D7', 1); m.runSeconds(0.15); m.setAnalogPin('D7', 3); m.runSeconds(0.1); m.setAnalogPin('D7', 1); m.runSeconds(0.1); eq(m.out, '1,0\r\n0,1\r\n1,2\r\n'); });
-  test('Captura de entrada do Timer1 mede 1 kHz como 1000 µs', 'ICP1/ICR1/ICF1', () => { const m = boot('capture'); const half = 8000; let lvl = 0; const tick = () => { lvl ^= 1; m.setInput('D8', lvl); m.schedule(m.cycles + half, tick); }; m.schedule(half, tick); m.runSeconds(0.12); eq(m.out.trim().split('\r\n').at(-1), '1000 us'); });
+  test('Comparador analógico: ACO e interrupção a cada cruzamento', 'ACSR, AIN0/AIN1', () => { const m = boot('comparator'); m.setAnalogPin(pin('D6'), 2.5); m.setAnalogPin(pin('D7'), 1); m.runSeconds(0.15); m.setAnalogPin(pin('D7'), 3); m.runSeconds(0.1); m.setAnalogPin(pin('D7'), 1); m.runSeconds(0.1); eq(m.out, '1,0\r\n0,1\r\n1,2\r\n'); });
+  test('Captura de entrada do Timer1 mede 1 kHz como 1000 µs', 'ICP1/ICR1/ICF1', () => { const m = boot('capture'); const half = 8000; let lvl = 0; const tick = () => { lvl ^= 1; m.setInput(pin('D8'), lvl); m.schedule(m.cycles + half, tick); }; m.schedule(half, tick); m.runSeconds(0.12); eq(m.out.trim().split('\r\n').at(-1), '1000 us'); });
   test('Serial entre dois Unos: A envia, B recebe e responde', 'USART TX → RX', () => { const a = boot('uartlink'), b = boot('echo'); a.onSerial = x => b.serialByte(x); for (let i = 0; i < 10; i++) { a.runSeconds(0.05); b.runSeconds(0.05); } eq(b.out, 'pronto\r\nPING 0\r\nPING 1\r\nPING 2\r\n'); });
   test('analogReference(INTERNAL): 0,55 V lê 512 na referência de 1,1 V', 'ADMUX REFS', () => { const m = boot('aref'); m.analog[0] = 0.55; m.runSeconds(0.1); eq(m.out, '512\r\n113\r\n'); });
   test('Consumo: ~10,4 mA ativo e cai para µA no power-down', 'DS40002061 Tabela 32-4', () => {
-    const a = boot('blink'); a.runSeconds(0.5); ok(Math.abs(a.powerUsage().averageMa - 10.4) < 0.01);
-    const w = boot('watchdog'); w.runSeconds(0.5); const e = w.energy; ok(e.deep > 0, 'sem sleep'); ok(w.powerUsage().averageMa < 10.4);
+    const a = boot('blink'); a.runSeconds(0.5); ok(Math.abs(a.powerUsage().averageMa - (onMega ? 20 : 10.4)) < 0.01);
+    const w = boot('watchdog'); w.runSeconds(0.5); const e = w.energy; ok(e.deep > 0, 'sem sleep'); ok(w.powerUsage().averageMa < (onMega ? 20 : 10.4));
   });
   test('I²C entre dois Unos: Wire mestre ↔ Wire escravo (onReceive/onRequest)', 'TWI escravo com clock stretching', () => {
     const M = boot('i2cmaster'), S = boot('i2cslave'); M.linkI2C(S); for (let t = 0; t < 0.25; t += 0.0001) { M.runSeconds(0.0001); S.runSeconds(0.0001); }
     eq(S.out, 'x is 0\r\nx is 1\r\nx is 2\r\n'); ok(M.out.startsWith('tx=0 rx=hello \r\ntx=0 rx=hello '), M.out);
   });
   test('SPI entre dois Unos: escravo responde pela ISR com SS no D10', 'SPI escravo (SPCR sem MSTR)', () => {
-    const M = boot('spimaster'), S = boot('spislave'); M.linkSPI(S, 'D10'); for (let t = 0; t < 0.25; t += 0.00001) { M.runSeconds(0.00001); S.runSeconds(0.00001); }
+    const M = boot('spimaster'), S = boot('spislave'); M.linkSPI(S, pin('D10')); for (let t = 0; t < 0.25; t += 0.00001) { M.runSeconds(0.00001); S.runSeconds(0.00001); }
     ok(M.out.startsWith('A0 12 23\r\n1 12 23'), M.out); ok(S.out.includes('bytes=6'), S.out);
   });
   test('USART0 como SPI mestre (MSPIM) troca 2 bytes', 'UCSR0C UMSEL = 11', () => { const m = boot('mspim'); m.mspimDevice = b => b ^ 0xff; m.runSeconds(0.05); eq(m.out, 'A5 3C\r\n'); });
@@ -110,4 +114,4 @@ export function runAvrTests() {
   return results;
 }
 const isMain = process.argv[1] && new URL(import.meta.url).pathname === process.argv[1];
-if (isMain) { const r = runAvrTests(); for (const x of r) console.log(`${x.pass ? 'PASS' : 'FAIL'} ${x.name}${x.error ? ': ' + x.error : ''}`); console.log(`${r.filter(x => x.pass).length}/${r.length} testes do emulador passaram`); if (r.some(x => !x.pass)) process.exitCode = 1; }
+if (isMain) { const r = [...runAvrTests(), ...runAvrTests({ mega: true })]; for (const x of r) console.log(`${x.pass ? 'PASS' : 'FAIL'} ${x.name}${x.error ? ': ' + x.error : ''}`); console.log(`${r.filter(x => x.pass).length}/${r.length} testes do emulador passaram`); if (r.some(x => !x.pass)) process.exitCode = 1; }
