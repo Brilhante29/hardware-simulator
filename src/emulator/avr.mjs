@@ -64,7 +64,7 @@ export const CHIPS = {
   atmega2560: {
     id: 'atmega2560', name: 'ATmega2560', board: 'Arduino Mega 2560', flashWords: 131072, dataSize: 0x2200, ioEnd: 0x200, eeprom: 4096, pc22: true,
     ports: { A: 0x20, B: 0x23, C: 0x26, D: 0x29, E: 0x2c, F: 0x2f, G: 0x32, H: 0x100, J: 0x103, K: 0x106, L: 0x109 }, pins: MEGA_PINS,
-    pwm: { D2: ['t3', 'B'], D3: ['t3', 'C'], D4: ['t0', 'B'], D5: ['t3', 'A'], D6: ['t4', 'A'], D7: ['t4', 'B'], D8: ['t4', 'C'], D9: ['t2', 'B'], D10: ['t2', 'A'], D11: ['t1', 'A'], D12: ['t1', 'B'], D13: ['t0', 'A'], D44: ['t5', 'C'], D45: ['t5', 'B'], D46: ['t5', 'A'] },
+    pwm: { D2: ['t3', 'B'], D3: ['t3', 'C'], D4: ['t0', 'B'], D5: ['t3', 'A'], D6: ['t4', 'A'], D7: ['t4', 'B'], D8: ['t4', 'C'], D9: ['t2', 'B'], D10: ['t2', 'A'], D11: ['t1', 'A'], D12: ['t1', 'B'], D13: ['t0', 'A', 't1', 'C'], D44: ['t5', 'C'], D45: ['t5', 'B'], D46: ['t5', 'A'] },
     timers16: [
       { id: 't1', base: 0x80, tifr: 0x36, timsk: 0x6f, icp: 'PD4', ch: 'ABC', vec: { CAPT: 16, COMPA: 17, COMPB: 18, COMPC: 19, OVF: 20 } },
       { id: 't3', base: 0x90, tifr: 0x38, timsk: 0x71, icp: 'PE7', ch: 'ABC', vec: { CAPT: 31, COMPA: 32, COMPB: 33, COMPC: 34, OVF: 35 } },
@@ -257,7 +257,7 @@ export class AVR {
     for (const name in this.pins) {
       const [port, bit] = this.pins[name], p = this.ports[port], out_ = (this.data[p.ddr] >> bit) & 1, lvl = (this.data[p.port] >> bit) & 1;
       let duty = null; const pwm = pwmMap[name];
-      if (pwm && out_) duty = this.pwmDuty(pwm[0], pwm[1]);
+      if (pwm && out_) { duty = this.pwmDuty(pwm[0], pwm[1]); if (duty === null && pwm.length > 2) duty = this.pwmDuty(pwm[2], pwm[3]); } // D13 do Mega: OC0A ou OC1C
       out[name] = { mode: out_ ? 'output' : lvl ? 'input_pullup' : 'input', level: duty !== null ? (duty > 0 ? 1 : 0) : lvl, duty: duty !== null ? duty : (out_ ? lvl : null) };
     }
     return out;

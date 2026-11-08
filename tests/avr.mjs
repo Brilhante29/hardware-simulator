@@ -101,6 +101,7 @@ export function runAvrTests() {
   test('Mega: 138 KB de flash — ELPM com RAMPZ, código acima de 128 KB e ponteiro de função', 'PC de 17 bits, EICALL, .data', () => {
     const m = mega('mega_big'); m.runSeconds(0.6); eq(m.outs[0], 'dados na RAM\r\n4003243\r\n4004640\r\n4088928\r\n4081878\r\n1019200\r\ntab4 em 0x108\r\n'); eq(m.lastError, null);
   });
+  test('Mega: D13 também sai pelo OC1C (Timer1 canal C, fast PWM de 10 bits)', 'PB7 = OC0A/OC1C', () => { const m = mega('mega_oc1c'); m.runSeconds(0.05); eq(m.pinSnapshot().D13.duty, 0.25); });
   test('Mega: LCD I²C em D20/D21', 'TWI do 2560', () => { const m = mega('mega_lcd'), lcd = m.attachI2C(0x27, new LcdI2C()); m.runSeconds(1.5); eq(lcd.lines()[0], 'Mega 2560       '); eq(lcd.lines()[1], '256 KB flash    '); });
   test('Mega: consumo do 2560 (~20 mA ativo a 16 MHz) e pelo menos 1× o tempo real', 'Atmel 2549Q §31.1', () => {
     const m = mega('mega_serial'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); ok(Math.abs(m.powerUsage().averageMa - 20) < 0.01);
