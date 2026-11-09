@@ -2,6 +2,7 @@
 // resolvidos pelo solver de CC e lidos do estado visual das peças. Protege os modelos elétricos (src/parts/models.js).
 // Uso: node tests/browser.mjs   (sobe o próprio servidor; precisa do pacote playwright com Chromium)
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { startServer } from '../tools/studio-server.mjs';
 
 const require = createRequire(import.meta.url);
@@ -61,6 +62,29 @@ await test('Inspector gerado pelo catálogo: valor do resistor, tensão da fonte
   ok(base > 12 && more < 4 && lower < more, JSON.stringify([base, more, lower]));
   const bad = await page.evaluate(() => { selectedId = 'b'; renderInspector(); const el = document.querySelector('[data-setting="voltage"]'); el.value = '99'; el.dispatchEvent(new Event('input')); return project.parts.find(p => p.id === 'b').settings.voltage; });
   ok(bad === 12, `fonte deveria travar no máximo do catálogo (12 V): ${bad}`);
+});
+// Com firmware real: as saídas declaradas no catálogo (view.pulse, view.ws2812) e as telas pintadas pelo próprio dispositivo.
+const fx = name => readFileSync(new URL(`./fixtures/avr/${name}.hex`, import.meta.url), 'utf8');
+const runFw = async (hex, parts, wires, ms = 1200) => {
+  await page.evaluate(() => { if (simulationTimer) runSimulation(); });
+  await page.evaluate(([hex, parts, wires]) => { project = { version: 1, title: 'fw', parts: [{ id: 'u', type: 'uno', name: 'Uno', x: 300, y: 200, settings: { firmware: hex, firmwareName: 't' } }, ...parts.map(([id, type, settings = {}], i) => ({ id, type, name: id, x: 600, y: 100 + i * 120, settings }))], wires: wires.map((w, i) => { const [a, b] = w.split('-'), [pa, ia] = a.split('.'), [pb, ib] = b.split('.'); return { id: 'w' + i, a: { part: pa, pin: ia }, b: { part: pb, pin: ib } }; }), code: '' }; renderAll(); runSimulation(); }, [hex, parts, wires]);
+  await page.waitForTimeout(ms);
+  const r = await page.evaluate(() => ({ parts: Object.fromEntries(project.parts.map(p => [p.id, { ...p.settings, firmware: undefined }])), oled: project.parts.filter(p => p.type === 'oled').map(p => { const c = document.querySelector(`[data-part="${p.id}"] canvas`); const d = c.getContext('2d').getImageData(0, 0, 128, 64).data; let lit = 0; for (let i = 0; i < d.length; i += 4) lit += d[i + 1] > 150; return lit; }) }));
+  await page.evaluate(() => runSimulation()); return r;
+};
+await test('Firmware: servo pelo pulso (view.pulse), NeoPixels pela cadeia DIN→DOUT (view.ws2812), OLED pintado pelo dispositivo', async () => {
+  const s = await runFw(fx('servo'), [['sv', 'servo', {}]], ['sv.SIG-u.D9'], 1500); ok(Math.abs(s.parts.sv.angle - 90) <= 2, `servo ${s.parts.sv.angle}`);
+  const n = await runFw(fx('neopixel'), [['n1', 'neopixel', {}], ['n2', 'neostrip', {}]], ['n1.DIN-u.D6', 'n1.DOUT-n2.DIN'], 600);
+  // 2º quadro do firmware (degradê de 8 LEDs): o 1º vai para o NeoPixel avulso, os 7 seguintes para a fita, o 8º da fita fica apagado.
+  ok(n.parts.n1.colors?.[0] === '#0064ff' && n.parts.n2.colors?.[0] === '#1e64e1' && n.parts.n2.colors.length === 8 && n.parts.n2.colors[7] === '#000000', JSON.stringify([n.parts.n1.colors, n.parts.n2.colors]));
+  const o = await runFw(fx('oled'), [['o', 'oled', {}]], ['o.SDA-u.A4', 'o.SCL-u.A5'], 1500); ok(o.oled[0] > 300, `OLED com ${o.oled[0]} pontos acesos`);
+});
+await test('Chip nu: requisitos do catálogo (board.requires) recusam o boot sem cristal e deixam com cristal', async () => {
+  const check = withXtal => page.evaluate(withXtal => { project = { version: 1, title: 'c', parts: [{ id: 'c', type: 'atmega328', name: 'U1', x: 300, y: 200, settings: {} }, { id: 'v', type: 'vcc', name: 'v', x: 0, y: 0, settings: {} }, { id: 'g', type: 'gnd', name: 'g', x: 0, y: 0, settings: {} }, ...(withXtal ? [{ id: 'y', type: 'crystal', name: 'Y1', x: 0, y: 0, settings: {} }] : [])],
+    wires: [['c', 'VCC', 'v', 'VCC'], ['c', 'AVCC', 'v', 'VCC'], ['c', 'GND', 'g', 'GND'], ...(withXtal ? [['y', '1', 'c', 'XTAL1'], ['y', '2', 'c', 'XTAL2']] : [])].map(([a, pa, b, pb], i) => ({ id: 'w' + i, a: { part: a, pin: pa }, b: { part: b, pin: pb } })), code: '' };
+    solveCircuit(0); updateSimulation({ quiet: true }); return bareChipCheck(project.parts[0], lastNet.find, lastNet.node); }, withXtal);
+  const no = await check(false), yes = await check(true);
+  ok(no.problems.some(p => /cristal/.test(p)), JSON.stringify(no)); ok(!yes.problems.length && yes.notes.some(n => /22 pF/.test(n)) && yes.notes.some(n => /desacoplamento/.test(n)), JSON.stringify(yes));
 });
 await test('Sem erros de JavaScript na página', async () => ok(!errors.length, errors.join(' | ')));
 

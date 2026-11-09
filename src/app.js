@@ -122,8 +122,8 @@ function renderParts(){
       if(event.button!==0)return;
       const part=project.parts.find(item=>item.id===id);if(!part)return;
       // Com a simulação rodando, o botão é momentâneo como o real: conduz só enquanto está apertado.
-      if(simulationTimer&&part.type==='button'){const set=v=>{part.settings.pressed=v;part._toggledAt=performance.now();el.classList.toggle('pressed',v);updateSimulation({quiet:true})};set(true);window.addEventListener('pointerup',()=>set(false),{once:true});event.preventDefault();return}
-      if(event.detail===2&&['button','switch'].includes(part.type)){part.settings.pressed=!part.settings.pressed;part._toggledAt=performance.now();renderAll();if(simulationTimer)updateSimulation();return}
+      if(simulationTimer&&defFor(part.type)?.momentary){const set=v=>{part.settings.pressed=v;part._toggledAt=performance.now();el.classList.toggle('pressed',v);updateSimulation({quiet:true})};set(true);window.addEventListener('pointerup',()=>set(false),{once:true});event.preventDefault();return}
+      if(event.detail===2&&defFor(part.type)?.kind==='switch'){part.settings.pressed=!part.settings.pressed;part._toggledAt=performance.now();renderAll();if(simulationTimer)updateSimulation();return}
       selectedId=id;selectedWire=null;el.classList.add('selected');renderInspector();
       const startX=event.clientX,startY=event.clientY,originalX=part.x,originalY=part.y;
       const move=e=>{part.x=Math.max(8,Math.min(1680,originalX+(e.clientX-startX)/zoom));part.y=Math.max(8,Math.min(1080,originalY+(e.clientY-startY)/zoom));el.style.left=part.x+'px';el.style.top=part.y+'px';renderWires();renderInspector()};
@@ -148,35 +148,15 @@ function renderAll(){
   updateHistoryButtons();
 }
 function modelStatus(def){
-  if(!def)return null;const k=def.kind,t=def.type;
-  if(t==='uno')return{sim:true,text:'Simulado: saídas D0–D13 vêm do sketch ou do firmware (.hex).'};
-  if(t==='atmega328')return{sim:true,text:'Simulado: executa o firmware do Uno quando tem alimentação (1,8–5,5 V), AVCC ligado e cristal de 16 MHz; avisa o que falta para a placa real funcionar.'};
-  if(t==='crystal')return{sim:true,text:'Simulado: libera o boot do ATmega quando está no XTAL1/XTAL2.'};
-  if(t==='nano')return{sim:true,text:'Simulado: ATmega328P com firmware (.hex) — D0–D13, A0–A7 (A6/A7 só analógicos), I²C no A4/A5.'};
-  if(t==='mega')return{sim:true,text:'Simulado: ATmega2560 com firmware (.hex) — 54 digitais, A0–A15, Serial1–3, I²C no D20/D21, SPI no D50–D53.'};
-  if(t==='led'||t==='buzzer')return{sim:true,text:t==='led'?'Simulado: liga quando há tensão no sentido certo. Com firmware, o PWM (analogWrite) controla o brilho.':'Simulado: liga com tensão; com firmware, tone() toca a frequência real no alto-falante.'};
-  if(k==='conductor')return{sim:true,text:'Simulado como condutor ideal: liga os dois terminais, sem queda de tensão.'};
+  if(!def)return null;const k=def.kind;
+  // Texto do catálogo (def.status); sem ele, um texto gerado pelo modelo ou pela ligação de firmware.
+  if(def.status)return{sim:true,text:def.status};
+  if(k==='conductor')return{sim:true,text:'Simulado como condutor ideal: liga os dois terminais.'};
   if(k==='switch')return{sim:true,text:'Simulado: abre e fecha o contato.'};
   if(k==='source'||k==='highRail'||k==='lowRail')return{sim:true,text:'Simulado: referência de 5 V ou 0 V.'};
-  if(t==='ldr')return{sim:true,text:'Simulado: resistência do GL5528 pela luz (ajuste abaixo); num divisor, o analogRead lê a tensão de verdade.'};
-  if(t==='ultrasonic')return{sim:true,text:'Simulado com firmware: TRIG e ECHO em pinos da placa; o eco dura o tempo de ida e volta do som (ajuste distância e temperatura).'};
-  if(t==='capacitor')return{sim:true,text:'Simulado: carga e descarga no tempo (RC); avisa polaridade invertida e sobretensão. Vazamento e ruptura ficam na bancada física (studio).'};
-  if(t==='diode')return{sim:true,text:'Simulado: conduz de A para K a partir de 0,7 V.'};
-  if(t==='transistor')return{sim:true,text:'Simulado: corte, saturação ou região ativa com Ic = hFE·Ib (hFE 100).'};
-  if(t==='relay')return{sim:true,text:'Simulado: com 5 V no VCC, IN aciona a bobina e o COM troca do NC para o NO (clique).'};
-  if(t==='rgb')return{sim:true,text:'Simulado: três LEDs (R 1,9 V, G e B 3,0 V) com cátodo comum; o PWM mistura a cor.'};
-  if(t==='segment')return{sim:true,text:'Simulado: sete LEDs com cátodo comum no COM; cada segmento acende com corrente.'};
-  if(t==='motor')return{sim:true,text:'Simulado: ~10 Ω; gira com a tensão (PWM controla a velocidade, polaridade o sentido).'};
-  if(t==='gate')return{sim:true,text:'Simulado: Y = A·B (alto ≥ 3 V, baixo ≤ 1,5 V).'};
   if(def.fw?.bus==='pin'&&def.fw.attach==='DATA')return{sim:true,text:`Simulado com firmware: ${def.tag} responde no fio DATA com o protocolo temporizado do datasheet.`};
-  if(def.fw?.bus==='i2c'&&def.kind==='sensor')return{sim:true,text:`Simulado com firmware: ${def.tag} no I²C 0x${def.fw.address.toString(16).toUpperCase()}${def.fw.addressSetting?` (0x${Object.values(def.fw.addressSetting).find(v=>typeof v==='number').toString(16).toUpperCase()} com ${def.fw.addressSetting.key.toUpperCase()} no VCC)`:''} (SDA/SCL da placa: A4/A5 no Uno, D20/D21 no Mega). Ajuste as leituras abaixo.`};
-  if(t==='neopixel'||t==='neostrip')return{sim:true,text:'Simulado com firmware: as cores são decodificadas do sinal WS2812 no DIN (DOUT segue para o próximo).'};
-  if(t==='pot')return{sim:true,text:'Simulado com firmware: a posição vira tensão no pino analógico ligado ao SIG (analogRead).'};
-  if(t==='servo')return{sim:true,text:'Simulado com firmware: o ângulo vem da largura do pulso no SIG (biblioteca Servo).'};
-  if(t==='lcd1602')return{sim:true,text:'Simulado com firmware: HD44780 em 4 bits; RS, E e D4–D7 em quaisquer pinos da placa (LiquidCrystal).'};
-  if(t==='display')return{sim:true,text:'Simulado com firmware: LCD HD44780 com PCF8574 no I²C 0x27 (SDA/SCL da placa: A4/A5 no Uno, D20/D21 no Mega).'};
-  if(t==='gc9a01')return{sim:true,text:'Simulado com firmware: 240 × 240 RGB565 pelo SPI da placa (SCK/MOSI: D13/D11 no Uno e Nano, D52/D51 no Mega); CS, DC e RES em quaisquer pinos.'};
-  if(t==='oled')return{sim:true,text:'Simulado com firmware: SSD1306 128×64 no I²C 0x3C (SDA/SCL da placa: A4/A5 no Uno, D20/D21 no Mega).'};
+  if(def.fw?.bus==='i2c')return{sim:true,text:`Simulado com firmware: ${def.tag} no I²C 0x${def.fw.address.toString(16).toUpperCase()}${def.fw.addressSetting?` (0x${Object.values(def.fw.addressSetting).find(v=>typeof v==='number').toString(16).toUpperCase()} com ${def.fw.addressSetting.key.toUpperCase()} no VCC)`:''} (SDA/SCL da placa: A4/A5 no Uno, D20/D21 no Mega).${def.controls?' Ajuste as leituras abaixo.':''}`};
+  if(window.HSModels?.modelFor(def))return{sim:true,text:'Simulado pelo modelo elétrico da peça.'};
   return{sim:false,text:'Só visual: ainda não tem modelo elétrico. Ela entra no desenho e nas conexões, mas não reage à simulação.'};
 }
 // Um campo de ajuste do catálogo → HTML; o valor salvo em part.settings[key] ou o padrão.
@@ -196,7 +176,7 @@ function renderInspector(){
   const def=defFor(part.type);if(!def)return;
   const pins=def.pins.map(pin=>`<div class="property-row"><span>${safeText(pin[0])}</span><b>${project.wires.filter(w=>[w.a,w.b].some(end=>end.part===part.id&&end.pin===pin[0])).length?'Conectado':'Livre'}</b></div>`).join('');
   let controls='';
-  if(def.kind==='switch')controls=`<div class="property-section"><p class="property-label">Estado do contato</p><div class="switch-row"><span>${part.settings?.pressed?(part.type==='switch'?'Fechado':'Pressionado'):'Aberto'}</span><button id="toggleButtonPart" class="toggle ${part.settings?.pressed?'on':''}" aria-label="Alternar botão"></button></div></div>`;
+  if(def.kind==='switch')controls=`<div class="property-section"><p class="property-label">Estado do contato</p><div class="switch-row"><span>${(def.states||['Aberto','Fechado'])[part.settings?.pressed?1:0]}</span><button id="toggleButtonPart" class="toggle ${part.settings?.pressed?'on':''}" aria-label="Alternar botão"></button></div></div>`;
   if(isBoard(part))controls+=`<div class="property-section"><p class="property-label">Firmware (PlatformIO)</p><div class="property-row"><span>${part.settings?.firmware?safeText(part.settings.firmwareName||'firmware.hex'):'Sketch do editor'}</span><b>${part.settings?.firmware?Math.round(part.settings.firmware.length/1024)+' KB':'—'}</b></div><div class="fw-actions"><button id="fwLoad" class="button button-quiet">Carregar .hex</button><button id="fwProject" class="button button-quiet" title="Envia a pasta do projeto PlatformIO (platformio.ini, src/, lib/…) para compilar e rodar">Compilar pasta…</button>${part._projectDir?'<button id="fwRebuild" class="button button-quiet" title="Lê a pasta de novo e recompila">Recompilar</button>':''}${window.showOpenFilePicker?'<button id="fwWatch" class="button button-quiet" title="Recarrega a cada pio run">Vigiar</button>':''}${part.settings?.firmware?'<button id="fwClear" class="text-button">Remover</button>':''}</div><p class="fw-hint">Arquivo: <code>.pio/build/${ioOf(part).env}/firmware.hex</code> (board = ${ioOf(part).env}). Com firmware, a placa roda o código real do ${ioOf(part).chip}; I²C no ${ioOf(part).sda}/${ioOf(part).scl}.</p></div>`;
   if(def.controls)controls+=`<div class="property-section"><p class="property-label">Leituras do sensor</p>${def.controls.map(([k,label,unit,min,max,step,dflt])=>`<label class="sensor-row"><span>${safeText(label)}</span><b data-sv="${k}">${(part.settings?.sensor?.[k]??dflt)} ${safeText(unit)}</b><input type="range" data-sensor="${k}" min="${min}" max="${max}" step="${step}" value="${part.settings?.sensor?.[k]??dflt}"></label>`).join('')}</div>`;
   // Editores e leituras declarados no catálogo (def.settings, def.readouts): o inspector não conhece peças pelo nome.
@@ -272,7 +252,8 @@ function boardForBuild(r){
   let board=project.parts.find(p=>isBoard(p)&&ioOf(p).mcu===r.mcu&&p.settings?.firmwareName?.startsWith(r.project+' ·'))||project.parts.find(p=>isBoard(p)&&ioOf(p).mcu===r.mcu);
   if(board||project.parts.some(isBoard))return board;
   // Projeto sem placa: põe a placa do platformio.ini (Nano, Uno ou Mega) no circuito.
-  const type=r.mcu==='atmega2560'?'mega':/nano/i.test(r.board||'')?'nano':'uno';addPart(type);return project.parts[project.parts.length-1];
+  // Projeto sem placa: a placa do catálogo com o mesmo board do PlatformIO, senão a primeira com o mesmo chip.
+  const boards=catalog.filter(d=>d.board&&!d.board.bare),type=(boards.find(d=>d.board.env===r.board)||boards.find(d=>d.board.mcu===r.mcu))?.type;if(!type)return null;addPart(type);return project.parts[project.parts.length-1];
 }
 // Circuito da pasta do projeto (hardware-studio.json): peças, fios e ajustes; o firmware vem sempre da compilação.
 const CIRCUIT_FILE='hardware-studio.json',KEEP_SETTINGS=['value','color','position','bounce','trigger','voltage','sensor','rating','ohms'];
@@ -384,18 +365,18 @@ function serialLog(text,unit,port=0){const el=$('#serialOut');if(!el)return;cons
   // Uma placa só: a Serial0 sai crua; linhas da Serial1–3 esperam a Serial0 fechar a linha dela.
   if(unit&&!many&&!port){el.textContent=(el.textContent+text).slice(-12000);if(unit.pend&&/\n$/.test(el.textContent)){el.textContent+=unit.pend;unit.pend=''}el.scrollTop=el.scrollHeight;return}
   if(unit&&(many||port)){const k='buf'+port;unit[k]=(unit[k]||'')+text;const cut=unit[k].lastIndexOf('\n');if(cut<0)return;const tag=[many?unit.board.name:'',port?'Serial'+port:''].filter(Boolean).join(' ');text=unit[k].slice(0,cut+1).split('\n').map(l=>l.replace(/\r$/,'')).filter(l=>l.length).map(l=>'['+tag+'] '+l+'\n').join('');unit[k]=unit[k].slice(cut+1);if(!many&&el.textContent&&!/\n$/.test(el.textContent)){unit.pend=(unit.pend||'')+text;return}}el.textContent=(el.textContent+text).slice(-12000);el.scrollTop=el.scrollHeight}
-// O que uma placa própria com o ATmega328P precisa para dar boot como o Uno (datasheet DS40002061, §29 e §9.2).
+// O que um chip nu precisa para dar boot (board.supply e board.requires no catálogo; ATmega328P: DS40002061 §29 e §9.2).
 function bareChipCheck(p,find,node){
-  const net=l=>find(node(p.id,l)),v=p._supply||0,problems=[],notes=[];
-  if(v<1.8)problems.push(`sem alimentação: VCC−GND = ${v.toFixed(2).replace('.',',')} V (mínimo 1,8 V)`);
-  else if(v>5.5)problems.push(`${v.toFixed(1).replace('.',',')} V no VCC passa do máximo de 5,5 V (absoluto 6 V): o chip queima`);
-  else if(v<4.5)notes.push(`${v.toFixed(1).replace('.',',')} V com cristal de 16 MHz está fora da especificação (16 MHz exige 4,5–5,5 V); use 8 MHz ou 5 V`);
-  if(net('AVCC')!==net('VCC'))problems.push('AVCC (pino 20) desligado: precisa ir ao VCC mesmo sem usar o ADC');
-  const xt=project.parts.filter(q=>q.type==='crystal').some(q=>{const a=find(node(q.id,'1')),b=find(node(q.id,'2'));return(a===net('XTAL1')&&b===net('XTAL2'))||(a===net('XTAL2')&&b===net('XTAL1'))});
-  if(!xt)problems.push('sem cristal de 16 MHz no XTAL1/XTAL2: com os fuses do Arduino o chip fica parado esperando o clock');
-  const caps=project.parts.filter(q=>q.type==='capacitor'),across=(a,b)=>caps.some(c=>{const x=find(node(c.id,'+')),y=find(node(c.id,'−'));return(x===a&&y===b)||(x===b&&y===a)});
-  if(!across(net('VCC'),net('GND')))notes.push('sem capacitor de desacoplamento (100 nF) entre VCC e GND perto do chip');
-  if(xt&&!(across(net('XTAL1'),net('GND'))&&across(net('XTAL2'),net('GND'))))notes.push('faltam os 2 × 22 pF do XTAL1/XTAL2 para o GND: o cristal pode não oscilar');
+  const io=ioOf(p),sup=io.supply||{},net=l=>find(node(p.id,l)),v=p._supply||0,problems=[],notes=[],fmt=(x,d=1)=>x.toFixed(d).replace('.',',');
+  if(v<sup.min)problems.push(`sem alimentação: VCC−GND = ${fmt(v,2)} V (mínimo ${fmt(sup.min)} V)`);
+  else if(v>sup.max)problems.push(`${fmt(v)} V no VCC passa do máximo de ${fmt(sup.max)} V: o chip queima`);
+  else if(sup.fullSpeed&&v<sup.fullSpeed)notes.push(`${fmt(v)} V está abaixo dos ${fmt(sup.fullSpeed)} V que o clock de ${sup.clock} exige; baixe o clock ou suba a tensão`);
+  // Uma peça do tipo pedido com os dois primeiros pinos nas redes indicadas (em qualquer ordem).
+  const across=(type,[x,y])=>project.parts.some(q=>{if(q.type!==type)return false;const pins=defFor(q.type).pins,a=find(node(q.id,pins[0][0])),b=find(node(q.id,pins[1][0]));return(a===net(x)&&b===net(y))||(a===net(y)&&b===net(x))});
+  const met={};
+  for(const r of io.requires||[]){if(r.when&&!met[r.when])continue;
+    const ok=r.same?net(r.same[0])===net(r.same[1]):across(r.part,r.between)&&(!r.and||across(r.part,r.and));met[r.id]=ok;
+    if(!ok)(r.problem?problems:notes).push(r.problem||r.note)}
   return{problems,notes};
 }
 async function startFirmware(){
@@ -442,7 +423,7 @@ function firmwareFrame(now){
     for(const label of ioOf(u.board).pins){const p=pins[label];if(p&&p.mode!=='output')modes[label]=p.mode;if(!p||p.mode!=='output')continue;const pulse=u.mcu.pulseInfo(label);
       if(pulse&&pulse.hz>20&&pulse.hz<20000&&(p.duty===null||p.duty===0||p.duty===1)){tone[label]=pulse.hz;out[label]=1}else{out[label]=p.level;if(p.duty!==null&&p.duty>0&&p.duty<1)duty[label]=p.duty}}
     u.board.settings.outputs=out;u.board.settings.duty=duty;u.board.settings.tone=tone;u.board.settings.modes=modes;
-    for(const[p,d]of u.devices){if(p.type==='display'||p.type==='lcd1602'){p.settings.lines=d.lines();p.settings.glyphs=d.glyphs();p.settings.backlight=d.backlight}else p._oled=d}
+    for(const[p,d]of u.devices)if(typeof d.lines==='function'){p.settings.lines=d.lines();p.settings.glyphs=d.glyphs?.();p.settings.backlight=d.backlight}
   }
   if(now-fw.paint>45){fw.paint=now;const pw=$('#powerInfo');if(pw)pw.textContent=fw.units.map(u=>`≈ ${u.mcu.powerUsage().averageMa.toFixed(1).replace('.',',')} mA`).join(' · ');servoAngles();neopixels();updateSimulation({quiet:true});paintOleds();buzzerAudio()}
   fw.raf=requestAnimationFrame(firmwareFrame);
@@ -453,7 +434,7 @@ function applySensor(p){const d=p._device,def=defFor(p.type);if(d&&def?.controls
 // Entradas do firmware pelo solver: nível lógico pelos limiares do ATmega e tensão real nos pinos analógicos.
 function feedInputs(u){
   const sol=fw?.solve||lastSolve;if(!sol)return;const pins=u.mcu.pinSnapshot(),n=l=>`${u.board.id}:${l}`,fed=(u.fed||={});
-  const bouncing=project.parts.some(p=>(p.type==='button'||p.type==='switch')&&p.settings?.bounce!==false&&p._toggledAt&&performance.now()-p._toggledAt<300);
+  const bouncing=project.parts.some(p=>defFor(p.type)?.settings?.some(f=>f.key==='bounce')&&p.settings?.bounce!==false&&p._toggledAt&&performance.now()-p._toggledAt<300);
   for(const label of ioOf(u.board).pins){const p=pins[label];if(!p||p.mode==='output'||u.mcu.pinDevices.has(label)||u.driven?.has(label))continue;
     const lv=window.Circuit.logicLevel(sol.volts(n(label))),prev=fed[label];fed[label]=lv;
     if(bouncing&&lv!==null&&prev!==undefined&&prev!==null&&lv!==prev)bounce(u.mcu,label,lv);else if(lv!==prev||!bouncing)u.mcu.setInput(label,lv)}
@@ -461,29 +442,30 @@ function feedInputs(u){
 }
 // Contato mecânico trepida: alterna 2 a 5 vezes, com 50–500 µs entre trocas, antes de assentar no nível novo.
 function bounce(mcu,label,lv){let t=mcu.cycles,v=lv;const flips=2+Math.floor(Math.random()*4);mcu.setInput(label,lv);for(let i=0;i<flips;i++){t+=Math.round((50+Math.random()*450)*16);v=1-v;const x=v;mcu.schedule(t,()=>mcu.setInput(label,x))}if(v!==lv){t+=Math.round((50+Math.random()*450)*16);mcu.schedule(t,()=>mcu.setInput(label,lv))}}
+// Peças com view.pulse (servo): a largura do pulso no pino vira ângulo, andando até o alvo na velocidade do modelo.
 function servoAngles(){
   if(!fw||!lastNet)return;const{find,node}=lastNet;
-  for(const s of project.parts.filter(p=>p.type==='servo')){const sig=find(node(s.id,'SIG'));
-    for(const u of fw.units)for(const label of ioOf(u.board).pins)if(find(node(u.board.id,label))===sig){const p=u.mcu.pulseInfo(label);if(p&&p.highUs>400&&p.highUs<2600){const target=Math.max(0,Math.min(180,(p.highUs-544)/(2400-544)*180)),now=performance.now(),dt=s._t?Math.min(0.1,(now-s._t)/1000):0;s._t=now;
-      // SG90 a 4,8 V: 0,1 s por 60° → no máximo 600°/s; o braço anda até o alvo em vez de saltar.
-      const cur=s._angle??target,step=600*dt;s._angle=Math.abs(target-cur)<=step?target:cur+Math.sign(target-cur)*step;s.settings.angle=Math.round(s._angle)}}}
+  for(const s of project.parts){const v=defFor(s.type)?.view?.pulse;if(!v)continue;const sig=find(node(s.id,v.pin));
+    for(const u of fw.units)for(const label of ioOf(u.board).pins)if(find(node(u.board.id,label))===sig){const p=u.mcu.pulseInfo(label);if(p&&p.highUs>400&&p.highUs<2600){const target=Math.max(0,Math.min(v.degrees,(p.highUs-v.minUs)/(v.maxUs-v.minUs)*v.degrees)),now=performance.now(),dt=s._t?Math.min(0.1,(now-s._t)/1000):0;s._t=now;
+      const cur=s._angle??target,step=v.slew*dt;s._angle=Math.abs(target-cur)<=step?target:cur+Math.sign(target-cur)*step;s.settings.angle=Math.round(s._angle)}}}
 }
-// NeoPixel: segue a corrente DIN→DOUT a partir do pino do Uno e distribui as cores pela ordem dos LEDs.
+// Peças com view.ws2812: segue a corrente DIN→DOUT a partir do pino da placa e distribui as cores pela ordem dos LEDs.
 function neopixels(){
   if(!fw||!lastNet)return;const{find,node}=lastNet;const hex=c=>'#'+c.map(v=>v.toString(16).padStart(2,'0')).join('');
   for(const u of fw.units)for(const label of ioOf(u.board).pins){
     const frame=u.mcu.neopixel(label);if(!frame)continue;let net=find(node(u.board.id,label)),idx=0,guard=0;
-    while(guard++<64){const next=project.parts.find(p=>(p.type==='neopixel'||p.type==='neostrip')&&find(node(p.id,'DIN'))===net);if(!next)break;
-      const n=next.type==='neostrip'?8:1,cols=[];for(let i=0;i<n;i++)cols.push(hex(frame[idx+i]||[0,0,0]));idx+=n;next.settings.colors=cols;net=find(node(next.id,'DOUT'))}
+    while(guard++<64){const next=project.parts.find(p=>{const w=defFor(p.type)?.view?.ws2812;return w&&find(node(p.id,w.din))===net});if(!next)break;
+      const w=defFor(next.type).view.ws2812,cols=[];for(let i=0;i<w.leds;i++)cols.push(hex(frame[idx+i]||[0,0,0]));idx+=w.leds;next.settings.colors=cols;net=find(node(next.id,w.dout))}
   }
 }
+// Telas: o dispositivo diz o que sabe mostrar (rgba() colorido ou pixel() monocromático) e o tamanho; o canvas da peça recebe.
 function paintOleds(){
-  for(const p of project.parts.filter(p=>p.type==='gc9a01'&&p._device)){const d=p._device;if(d._painted===d.version)continue;const c=document.querySelector(`[data-part="${p.id}"] canvas`);if(!c)continue;d._painted=d.version;const ctx=c.getContext('2d');ctx.putImageData(new ImageData(d.rgba(),240,240),0,0)}
-  for(const p of project.parts.filter(p=>p.type==='oled'&&p._oled)){const c=document.querySelector(`[data-part="${p.id}"] canvas`);if(!c)continue;const ctx=c.getContext('2d'),img=ctx.createImageData(128,64),d=p._oled;
-    for(let y=0;y<64;y++)for(let x=0;x<128;x++){const on=d.on&&d.pixel(x,y),i=(y*128+x)*4;img.data[i]=on?140:6;img.data[i+1]=on?220:12;img.data[i+2]=on?255:28;img.data[i+3]=255}ctx.putImageData(img,0,0)}
+  for(const p of project.parts){const d=p._device,c=d&&(d.rgba||d.pixel)&&document.querySelector(`[data-part="${p.id}"] canvas`);if(!c||d._painted===d.version)continue;d._painted=d.version;const ctx=c.getContext('2d'),w=d.width,h=d.height;
+    if(d.rgba){ctx.putImageData(new ImageData(d.rgba(),w,h),0,0);continue}
+    const img=ctx.createImageData(w,h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const on=d.on&&d.pixel(x,y),i=(y*w+x)*4;img.data[i]=on?140:6;img.data[i+1]=on?220:12;img.data[i+2]=on?255:28;img.data[i+3]=255}ctx.putImageData(img,0,0)}
 }
 function buzzerAudio(){
-  if(!fw)return;const hz=project.parts.find(p=>p.type==='buzzer'&&p.settings?.tone)?.settings.tone;
+  if(!fw)return;const hz=project.parts.find(p=>p.settings?.tone)?.settings.tone;   // qualquer peça cujo modelo marca um tom
   try{if(hz&&!fw.audio){const ac=new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type='square';g.gain.value=.04;o.connect(g).connect(ac.destination);o.start();fw.audio={ac,o}}
     if(fw.audio){if(hz)fw.audio.o.frequency.setTargetAtTime(hz,fw.audio.ac.currentTime,.01);else{fw.audio.o.stop();fw.audio.ac.close();fw.audio=null}}}catch{}
 }

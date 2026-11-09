@@ -41,6 +41,10 @@ A visão de longo prazo (variantes de SoC, KiCad, SPICE) está em [SIMULATOR_ARC
 | `events` | botões de evento `[método, rótulo, dica]` (ex.: queda no MPU6050) | inspector → método do dispositivo |
 | `settings`, `readouts` | ajustes da peça (faixa, lista, texto, cor, caixa) e leituras | inspector, validação de importação |
 | `limits` | limites que viram aviso (ex.: `icMax` do transistor) | modelo elétrico |
+| `status` | o que é simulado (texto do inspector) | inspector |
+| `view` | o que a peça mostra com o firmware rodando: `pulse` (servo) ou `ws2812` (NeoPixel); telas e LCD vêm do dispositivo (`lines`, `rgba`, `pixel`) | editor |
+| `momentary`, `states` | botão que conduz só enquanto é segurado; rótulos do contato | editor, inspector |
+| `board.supply`, `board.requires` | faixa de alimentação do chip nu e o que ele exige no circuito (cristal, AVCC, capacitores) | checagem de boot |
 | `pcb` | `{ fp, ref, value, lcsc, merge }`, `{ header }`, `{ net }` ou `{ refuse }` | `pcb/footprints.mjs` |
 
 **Dispositivo** (`src/emulator/devices.mjs`): I²C implementa `address`, `start(read) → ack`, `write(byte) → ack`, `read() → byte`, `stop()`; de pino implementa `attach(mcu, pin)` e `onDrive({ output, level })`; SPI se encadeia em `mcu.spiDevice`. Opcionais: `setControl(chave, valor)`, métodos de evento. O tempo é sempre o do chip (`this.mcu.time`), nunca o relógio da parede.
@@ -75,6 +79,6 @@ A visão de longo prazo (variantes de SoC, KiCad, SPICE) está em [SIMULATOR_ARC
 | `tests/build.mjs`, `vscode/` `npm test` | compilação de pastas e extensão |
 | `tools/a11y-audit.cjs` | zero violações de acessibilidade em todas as páginas |
 
-## Onde ainda há código por tipo
+## Código por tipo de peça
 
-No `src/app.js` sobram 14 desvios por tipo de peça, de 54 que havia: as saídas visuais durante o firmware (texto do LCD, ângulo do servo, cadeia de NeoPixels, telas OLED/TFT, som do buzzer), a checagem de cristal e desacoplamento do chip nu e o botão momentâneo. Funcionam e estão cobertos pelos testes de navegador e de projeto.
+Nenhum. O `src/app.js` não testa o tipo de nenhuma peça (eram 54 desvios no começo da refatoração, mais 25 nos textos de status): o que muda de uma peça para outra está no catálogo, no modelo elétrico, no dispositivo ou na arte. Os únicos nomes de tipo no editor são os dos exemplos embutidos, que são dados.

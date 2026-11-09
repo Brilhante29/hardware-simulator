@@ -27,6 +27,10 @@ for (const d of catalog.parts) {
     for (const c of d.controls || []) { const [k, , , min, max, step, dflt] = c; ok(typeof k === 'string' && min <= dflt && dflt <= max && step > 0, `controle ${k} malformado`); }
     const svg = art.art(d, { settings: {} }); ok(/^<svg[\s\S]*<\/svg>$/.test(svg) && svg.includes(`viewBox="0 0 ${d.width} ${d.height}"`), 'arte não renderiza');
     for (const f of d.settings || []) { ok(['range', 'select', 'text', 'color', 'check'].includes(f.kind) && f.key && f.label, `ajuste ${f.key} malformado`); if (f.kind === 'range') ok(f.min <= f.default && f.default <= f.max && f.step > 0, `faixa de ${f.key}`); if (f.kind === 'select') ok(f.options.includes(f.default), `padrão de ${f.key}`); }
+    const v = d.view || {}; if (v.pulse) ok(pins.includes(v.pulse.pin) && v.pulse.minUs < v.pulse.maxUs && v.pulse.degrees > 0, 'view.pulse'); if (v.ws2812) ok(pins.includes(v.ws2812.din) && pins.includes(v.ws2812.dout) && v.ws2812.leds > 0, 'view.ws2812');
+    if (d.momentary || d.states) ok(d.kind === 'switch' && (!d.states || d.states.length === 2), 'momentary/states só em chaves, com 2 rótulos');
+    for (const r of d.board?.requires || []) { ok(r.problem || r.note, `requisito ${r.id} sem texto`); if (r.same) ok(r.same.every(x => pins.includes(x)), `requisito ${r.id}`); else { ok(catalog.get(r.part), `requisito ${r.id}: peça ${r.part} não existe`); ok([...r.between, ...(r.and || [])].every(x => pins.includes(x)), `requisito ${r.id}: pino`); } if (r.when) ok(d.board.requires.some(x => x.id === r.when), `requisito ${r.id}: when`); }
+    if (d.board?.bare) ok(d.board.supply?.min < d.board.supply?.max, 'chip nu sem faixa de alimentação');
     if (d.board) for (const l of d.board.pins) ok(pins.includes(l), `pino de placa ${l} não existe na peça`);
     if (d.fw) {
       ok(typeof devices[d.fw.device] === 'function', `dispositivo ${d.fw.device} não existe em devices.mjs`);
