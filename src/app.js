@@ -47,6 +47,7 @@ const categories = [
   ['Todos','◈'],['Placas','▦'],['Básicos','◉'],['Sensores','⌁'],['Displays','▤'],['Saídas','◖'],['Energia','ϟ'],['Lógica','⋈'],['Customizados','✳']
 ];
 const examples = [
+  {id:'pulseira-avc',folder:true,title:'HS-Pulse: triagem de FA',category:'Saúde · Firmware real',description:'PPG do pulso → intervalos RR → irregularidade (fibrilação atrial, risco de AVC) com descarte por movimento; telemetria JSON para o edge (avc.html).',icon:'♥'},
   {id:'queda',folder:true,title:'Pulseira detectora de queda',category:'Saúde · Firmware real',description:'MPU6050 reconhece queda livre, impacto e imobilidade; 10 s para cancelar no botão, depois alerta com sirene. Use “Simular queda” no MPU6050.',icon:'⚠'},
   {id:'bengala',folder:true,title:'Bengala inteligente',category:'Acessibilidade · Firmware real',description:'Ultrassom HC-SR04 vira vibração e bipes proporcionais à distância do obstáculo; botão alterna o modo silencioso.',icon:'◠'},
   {id:'estacao',folder:true,title:'Estação de conforto',category:'Ambiente · Firmware real',description:'BME280 e BH1750: índice de calor e iluminação em uma barra de NeoPixels, OLED e aviso de calor perigoso.',icon:'☀'},

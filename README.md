@@ -17,6 +17,7 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 - `editor.html`: editor livre com peças em pixel art, fios, sketch Arduino simplificado e projetos JSON.
 - `lab/sn74hc595.html`: registrador digital interativo.
 - `boot.html`: dá boot no `firmware.hex` do PlatformIO num Arduino Uno, Nano ou Mega 2560 emulado (o chip é detectado pelo arquivo).
+- `avc.html`: HS-Pulse, pulseira de triagem de FA emulada + edge com CHA₂DS₂-VASc e pré-laudo (RAG/LLM local opcional).
 - `watch.html`: vitrine do relógio inteligente rodando firmware real, em 3D, com a PCB redonda por dentro.
 - `pcb.html`: placa de circuito impresso do circuito (redonda de relógio ou retangular), roteamento, DRC e Gerbers.
 - `node tools/studio-server.mjs`: o mesmo Studio, compilando projetos PlatformIO inteiros (ver abaixo).
@@ -84,6 +85,16 @@ node tools/studio-server.mjs                               # sem pasta: no edito
 - O servidor só escuta em 127.0.0.1 e recusa pedidos de páginas de outra origem.
 
 Exemplo: [`examples/firmware/relogio`](examples/firmware/relogio) é um relógio de pulso (Arduino Nano, OLED SSD1306, RTC DS3231, passos pelo MPU6050 em 0x69, botão de tela, vibracall com transistor e bateria Li-ion num divisor). No editor, **Exemplos → Relógio de pulso**; no controle **Caminhada** do MPU6050 o relógio conta passos e vibra na meta.
+
+## HS-Pulse: triagem de fibrilação atrial e risco de AVC (`avc.html`)
+
+Inspirado no *Wearable Stroke Alert System* (Health of Things + edge + IA generativa, SBESC 2024) e no Pulse-PPG (Saha et al., IMWUT 2025), que aprende com o ruído de PPG de campo. O hardware mede o que um pulso consegue medir de verdade: o ritmo. A fibrilação atrial multiplica o risco de AVC e muitas vezes não dá sintoma.
+
+- **Pulseira** (`examples/firmware/pulseira-avc`, ATmega328P, 21 KB): MAX30102 no pulso, MPU6050 para qualidade do sinal, tela GC9A01, vibracall e SOS. Cada batimento vira um intervalo RR contado em amostras do sensor; batimentos com o braço em movimento são descartados; a irregularidade é a mediana das diferenças sucessivas dividida pela mediana dos RR (a ideia do nRMSSD com medianas: com RMSSD, um único batimento detectado errado gerava falso alerta, achado no simulador); 3 janelas acima de 0,08 = suspeita de FA. A telemetria sai em JSON pela serial, onde ficaria o BLE.
+- **Emulador:** o MAX30102 gera ritmo sinusal com variabilidade de ~3 %, FA com intervalos irregularmente irregulares (±35 %) e artefato de movimento.
+- **Edge (`avc.html`):** recebe a telemetria, desenha Poincaré e tacograma, calcula CHA₂DS₂-VASc/CHA₂DS₂-VA com o risco anual aproximado (Friberg 2012) e escreve um pré-laudo: modelo determinístico ou Llama 3 local via Ollama (`ollama run llama3`) com trechos de diretrizes recuperados por palavra-chave (RAG).
+- **Avaliação:** `node tools/eval-af.mjs` roda o firmware emulado em janelas de 40 s (sinusal 50–110 bpm, FA 70–140 bpm). Resultado atual em 24 janelas: sensibilidade 12/12, especificidade 12/12. Isso vale para sinais sintéticos e mostra que o firmware faz o que foi desenhado para fazer; não é evidência clínica. Para isso: dados reais rotulados (ex.: bases públicas de PPG com FA), divisão por paciente e balanceamento só no treino.
+- **PCB:** `pcb.html?example=pulseira-avc-placa` (Ø40 mm, ATmega328P em TQFP, DRC limpo).
 
 ## Projetos prontos (pasta PlatformIO + circuito + firmware + PCB)
 

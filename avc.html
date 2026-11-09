@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR" data-surface="avc">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HS-Pulse · triagem de FA e risco de AVC · Hardware Studio</title>
+<meta name="description" content="Pulseira emulada com firmware real detecta ritmo irregular pelo PPG; o edge cruza com o perfil clínico (CHA₂DS₂-VASc) e gera um pré-laudo com RAG e LLM local opcional.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23111'/%3E%3Cpath d='M2 9h3l1.5-4 2 7 1.5-3H14' stroke='%23ff5d5d' fill='none' stroke-width='1.6'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./src/watch/watch.css">
+<link rel="stylesheet" href="./src/avc/avc.css">
+<script type="module" src="./src/avc/avc.mjs"></script>
+</head>
+<body>
+<a class="skip" href="#painel">Pular para o painel</a>
+<header class="top">
+  <a class="brand" href="./">hardware<b>studio</b></a>
+  <nav aria-label="Páginas"><a href="./watch.html">Relógio</a><a href="./editor.html?example=pulseira-avc">Editor</a><a href="./pcb.html?example=pulseira-avc-placa">PCB</a></nav>
+</header>
+<main class="avc">
+  <section class="intro">
+    <p class="kicker">Health of Things · edge · firmware real</p>
+    <h1>Pulseira que percebe o ritmo <span>irregular</span> antes do AVC.</h1>
+    <p class="lead">A fibrilação atrial multiplica o risco de AVC e muitas vezes não dá sintoma. A HS-Pulse lê o PPG do pulso, descarta batimentos medidos em movimento e mede a irregularidade dos intervalos no próprio ATmega328P (emulado aqui, com o firmware compilado). O celular/edge recebe a telemetria por BLE, cruza com o perfil clínico e escreve um pré-laudo para o médico, sem substituir o ECG que confirma o diagnóstico.</p>
+  </section>
+
+  <section class="grid" id="painel" aria-label="Painel da pulseira">
+    <div class="card device">
+      <h2>Pulseira (firmware real)</h2>
+      <div class="face"><canvas id="screen" width="240" height="240" role="img" aria-label="Tela da pulseira"></canvas></div>
+      <div class="ctl"><span class="lbl">Ritmo simulado</span><div class="seg" role="group" aria-label="Ritmo simulado"><button data-rhythm="sinus" aria-pressed="true">Sinusal</button><button data-rhythm="af" aria-pressed="false">Fibrilação atrial</button></div></div>
+      <div class="ctl"><label for="bpm">Frequência <output id="bpmOut">72 bpm</output></label><input id="bpm" type="range" min="45" max="150" value="72"></div>
+      <div class="ctl"><label for="spo2">SpO₂ real <output id="spo2Out">97 %</output></label><input id="spo2" type="range" min="85" max="100" value="97"></div>
+      <div class="ctl check"><label><input id="walk" type="checkbox"> Andando (ruído de movimento)</label><label><input id="finger" type="checkbox" checked> Pulseira no braço</label></div>
+      <button id="sos" class="ghost">Botão SOS (D2)</button>
+    </div>
+
+    <div class="card edge">
+      <h2>Edge: telemetria por BLE</h2>
+      <div class="kpis" role="group" aria-label="Últimos valores">
+        <div><span>FC</span><b id="kHr">--</b></div><div><span>SpO₂</span><b id="kSpo2">--</b></div><div><span>Irregularidade</span><b id="kIrr">--</b></div><div><span>Qualidade</span><b id="kQ">--</b></div>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite">Aguardando a pulseira…</p>
+      <div class="charts">
+        <figure><canvas id="poincare" width="300" height="300" role="img" aria-label="Gráfico de Poincaré dos intervalos RR"></canvas><figcaption>Poincaré: RRₙ × RRₙ₊₁ (ms). Sinusal forma um aglomerado na diagonal; FA, uma nuvem.</figcaption></figure>
+        <figure><canvas id="tacho" width="420" height="300" role="img" aria-label="Tacograma: intervalos RR ao longo do tempo"></canvas><figcaption>Tacograma: cada batimento aceito, em ms.</figcaption></figure>
+      </div>
+      <pre id="log" class="serial" tabindex="0" aria-label="Telemetria recebida"></pre>
+    </div>
+
+    <div class="card clinic">
+      <h2>Perfil clínico</h2>
+      <form id="profile" class="profile">
+        <label>Idade <input id="age" type="number" min="18" max="110" value="68"></label>
+        <label>Sexo <select id="sex"><option value="m">Masculino</option><option value="f">Feminino</option></select></label>
+        <label><input type="checkbox" id="htn" checked> Hipertensão</label>
+        <label><input type="checkbox" id="dm"> Diabetes</label>
+        <label><input type="checkbox" id="chf"> Insuficiência cardíaca</label>
+        <label><input type="checkbox" id="vasc"> Doença vascular (infarto, DAP)</label>
+        <label><input type="checkbox" id="stroke"> AVC/AIT prévio</label>
+      </form>
+      <div class="score"><b id="score">–</b><div><span id="scoreName">CHA₂DS₂-VASc</span><small id="scoreRisk"></small></div></div>
+      <h2>Pré-laudo</h2>
+      <div class="actions"><button id="report" class="primary">Gerar pré-laudo</button><button id="llm" class="ghost" title="Usa o Ollama local (llama3) se estiver rodando em localhost:11434">Com LLM local</button></div>
+      <article id="out" class="report" aria-live="polite"></article>
+      <details class="rag"><summary>Trechos recuperados (RAG)</summary><ol id="ragList"></ol></details>
+    </div>
+  </section>
+
+  <section class="how">
+    <h2>O que é medido e o que não é</h2>
+    <ol>
+      <li><b>Na pulseira:</b> intervalos RR do PPG (contados em amostras do sensor), descarte dos batimentos com o braço em movimento, irregularidade = mediana das diferenças sucessivas ÷ mediana dos RR, alerta após 3 janelas seguidas acima de 0,08.</li>
+      <li><b>No edge:</b> o perfil clínico vira o escore CHA₂DS₂-VASc, que estima o risco anual de AVC em quem tem FA; o pré-laudo junta evidências e trechos de diretrizes recuperados por palavra-chave.</li>
+      <li><b>Não é diagnóstico:</b> FA se confirma com ECG (12 derivações ou registro de 30 s). O desempenho do detector aqui é medido em sinais sintéticos (veja <code>tools/eval-af.mjs</code>), não em pacientes.</li>
+    </ol>
+  </section>
+</main>
+</body>
+</html>

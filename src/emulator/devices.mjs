@@ -309,17 +309,25 @@ export class Gc9a01 {
 // AC/DC de 0,6 % no infravermelho (dedo, faixa típica 0,5–2 %); R = (AC/DC vermelho)/(AC/DC infravermelho) segue
 // SpO2 ≈ 110 − 25·R, a aproximação usada nas notas de aplicação. Testado com o checkForBeat da SparkFun de 50 a 150 bpm.
 export class Max30102 extends RegisterDevice {
-  constructor({ address = 0x57, bpm = 72, spo2 = 98, finger = true } = {}) { super(address); Object.assign(this, { bpm, spo2, finger }); this.boot(); }
+  // rhythm: 'sinus' (variabilidade normal, ~3 % entre batimentos) ou 'af' (fibrilação atrial: intervalos irregularmente
+  // irregulares, ±35 % sorteados batimento a batimento). motion: 0–1, artefato de movimento do pulso (o ruído de campo
+  // que modelos como o Pulse-PPG aprendem a tolerar): componente lenta + saltos, centenas de vezes o sinal cardíaco.
+  constructor({ address = 0x57, bpm = 72, spo2 = 98, finger = true, rhythm = 'sinus', motion = 0, seed = 1 } = {}) { super(address); Object.assign(this, { bpm, spo2, finger, rhythm, motion }); this.rng = seed >>> 0 || 1; this.boot(); }
   boot() { this.reg.fill(0); this.reg[0xff] = 0x15; this.reg[0xfe] = 0x03; this.reg[0x00] = 0x01; this.fifo = []; this.wr = 0; this.rd = 0; this.ovf = 0; this.t0 = null; this.byteIdx = 0; this.made = 0; }
+  rand() { this.rng ^= this.rng << 13; this.rng >>>= 0; this.rng ^= this.rng >>> 17; this.rng ^= this.rng << 5; this.rng >>>= 0; return this.rng / 4294967296; }
   get rate() { const sr = [50, 100, 200, 400, 800, 1000, 1600, 3200][(this.reg[0x0a] >> 2) & 7], avg = 1 << Math.min(5, (this.reg[0x08] >> 5) & 7); return sr / avg; }
   get leds() { const m = this.reg[0x09] & 7; return m === 2 ? 1 : m === 3 ? 2 : m === 7 ? [this.reg[0x11] & 7, (this.reg[0x11] >> 4) & 7, this.reg[0x12] & 7, (this.reg[0x12] >> 4) & 7].filter(Boolean).length : 0; }
+  nextInterval() { const base = 60 / this.bpm; if (this.rhythm === 'af') return base * (0.65 + 0.7 * this.rand()); const g = (this.rand() + this.rand() + this.rand() - 1.5) * 2; return base * (1 + 0.03 * g); }
   ppg(t, red) {
-    if (!this.finger) return 900 + Math.round(200 * Math.random());
-    // Fase integrada amostra a amostra: mudar o bpm muda o ritmo daqui em diante, sem pular para outro ponto do ciclo.
-    if (this.lastT === undefined || t < this.lastT) { this.lastT = t; this.phase = (t * this.bpm / 60) % 1; } else if (t > this.lastT) { this.phase = (this.phase + (t - this.lastT) * this.bpm / 60) % 1; this.lastT = t; }
+    if (!this.finger) return 900 + Math.round(200 * this.rand());
+    // Fase integrada amostra a amostra; cada batimento sorteia a duração do próximo (ritmo e variabilidade).
+    if (this.lastT === undefined || t < this.lastT) { this.lastT = t; this.phase = 0; this.beatLen = this.nextInterval(); this.beats = 0; }
+    else if (t > this.lastT) { this.phase += (t - this.lastT) / this.beatLen; this.lastT = t; while (this.phase >= 1) { this.phase -= 1; this.beatLen = this.nextInterval(); this.beats++; } }
     const phase = this.phase, shape = Math.exp(-(((phase - 0.15) / 0.06) ** 2)) + 0.2 * Math.exp(-(((phase - 0.42) / 0.1) ** 2));
     const R = (110 - this.spo2) / 25, dc = red ? 80000 : 110000, ac = red ? dc * 0.006 * R : dc * 0.006;
-    const bits = 15 + (this.reg[0x0a] & 3), v = Math.round(dc - ac * shape + (Math.random() - 0.5) * 40);
+    let art = 0;
+    if (this.motion > 0) { if (this.artT !== t) { this.artT = t; this.artV = this.motion * (2500 * Math.sin(2 * Math.PI * 1.6 * t) + 1500 * Math.sin(2 * Math.PI * 0.7 * t + 1) + (this.rand() < 0.02 ? 4000 * (this.rand() - 0.5) : 0)); } art = this.artV * (red ? 0.8 : 1); }
+    const bits = 15 + (this.reg[0x0a] & 3), v = Math.round(dc - ac * shape + art + (this.rand() - 0.5) * 40);
     return Math.max(0, Math.min(0x3ffff, v)) >> (18 - bits) << (18 - bits);
   }
   produce() {

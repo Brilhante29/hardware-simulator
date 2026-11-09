@@ -193,6 +193,14 @@ export function runAvrTests({ mega: megaPass = false } = {}) {
     bme.temperature = 34; bme.humidity = 75; lx.lux = 90; m.runSeconds(2.2); const last = m.out.trim().split('\n').pop(); ok(/termico=2 luz=2/.test(last) && +/hi=([\d.]+)/.exec(last)[1] > 41, last);
     ok(m.neopixel('D6').every(c => c[0] > c[1]), JSON.stringify(m.neopixel('D6')));
   });
+  test('HS-Pulse: ritmo sinusal sem alerta, fibrilação atrial com alerta e telemetria, movimento descarta batimentos', 'MAX30102 com ritmo/ruído + mediana das diferenças RR', () => {
+    const run = (rhythm, bpm, secs, walk) => { const m = boot('proj_pulseira_avc'); m.attachPinDevice('D10', new Gc9a01({ cs: 'D10', dc: 'D9', rst: 'D8' })); const ppg = m.attachI2C(0x57, new Max30102({ bpm, rhythm, seed: 11 })), imu = m.attachI2C(0x68, new Mpu6050()); m.setInput('D2', 1);
+      for (let t = 0; t < secs; t += 0.05) { if (walk) { imu.accel = [0, 0, 1 + 0.5 * Math.max(0, Math.sin(2 * Math.PI * 1.8 * t))]; ppg.motion = 0.8; } m.runSeconds(0.05); }
+      return { m, last: m.out.trim().split('\n').filter(l => l.startsWith('{"t"')).map(l => JSON.parse(l)).at(-1) }; };
+    const s = run('sinus', 72, 30); ok(s.last.af === 0 && s.last.irr < 0.08 && Math.abs(s.last.hr - 72) <= 4, JSON.stringify(s.last));
+    const a = run('af', 110, 30); ok(a.last.af === 1 && a.last.irr > 0.08 && a.m.out.includes('af_suspeita'), JSON.stringify(a.last)); ok(/\{"b":\d+\}/.test(a.m.out), 'sem RR por batimento');
+    const w = run('sinus', 72, 12, true); ok(w.last.mov === 1 && w.last.rr === 0, JSON.stringify(w.last));
+  });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;
 }
