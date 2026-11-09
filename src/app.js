@@ -662,6 +662,7 @@ $('#propertiesTab').addEventListener('click',()=>showInspectorTab('properties'))
 $('#codeTab').addEventListener('click',()=>showInspectorTab('code'));
 $('#runButton').addEventListener('click',runSimulation);
 connectLocalProject();
+{const ex=new URLSearchParams(location.search).get('example');if(ex&&examples.some(e=>e.id===ex))loadExample(ex)}
 $('#saveButton').addEventListener('click',()=>saveProject(true));
 $('#undoButton').addEventListener('click',undo);$('#redoButton').addEventListener('click',redo);
 $('#exportButton').addEventListener('click',exportProject);$('#importButton').addEventListener('click',()=>$('#importFile').click());$('#importFile').addEventListener('change',event=>{const file=event.target.files?.[0];if(file)importProject(file);event.target.value=''});

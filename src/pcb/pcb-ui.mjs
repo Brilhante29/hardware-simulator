@@ -2,10 +2,10 @@
 // em 2D/3D/por baixo, deixa mover componentes com mouse, toque ou teclado e exporta o .zip de fabricação.
 import { RULES, padsOf, courtyard, boardBox, designBoard } from './pcb.mjs';
 import { fabricationModel, fabricationZip } from './gerber.mjs';
+import { bodySvg, MASKS } from './render.mjs';
 
 const $ = s => document.querySelector(s);
 const STORE = 'hs-pcb-v1', EDITOR_KEY = 'hardware-simulator-project-v1';
-const MASKS = { green: ['#1f6f4a', '#17583a'], black: ['#1c1d1f', '#0e0f10'], purple: ['#4b2a7a', '#371f5b'], blue: ['#1d4f91', '#153a6c'], white: ['#e9ece8', '#c9cdc8'] };
 const state = { circuit: null, title: 'Placa', board: { shape: 'round', d: 40 }, design: null, mode: '2d', layers: { bodies: true, top: true, bottom: true, silk: true, rats: true }, mask: 'green', selected: null, marker: null };
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const f2 = v => +v.toFixed(3);
@@ -32,24 +32,6 @@ function saved() { try { const s = JSON.parse(localStorage.getItem(STORE)); retu
 function persist() { try { const d = state.design; localStorage.setItem(STORE, JSON.stringify({ key: keyOf(state.circuit), board: d.board, mask: state.mask, placements: Object.fromEntries(d.nl.comps.map((c, i) => [c.id, d.placements[i]])) })); } catch {} }
 
 // ---------- desenho ----------
-function bodySvg(c) {
-  const t = c.fp.name, [bw, bh] = c.fp.body;
-  const R = (x, y, w, h, fill, extra = '') => `<rect x="${f2(x)}" y="${f2(y)}" width="${f2(w)}" height="${f2(h)}" fill="${fill}" ${extra}/>`;
-  if (/TQFP/.test(t)) return R(-3.5, -3.5, 7, 7, '#1d1d1f', 'rx=".3"') + `<circle cx="-2.6" cy="-2.6" r=".35" fill="#555"/><text x="0" y=".4" font-size="1.1" text-anchor="middle" fill="#cfcfcf">${esc(c.value.replace('-AU', ''))}</text>`;
-  if (/^R_0805/.test(t)) return R(-1, -.62, 2, 1.25, '#1b1b1b') + R(-1, -.62, .35, 1.25, '#c9c9c9') + R(.65, -.62, .35, 1.25, '#c9c9c9');
-  if (/^C_0805/.test(t)) return R(-1, -.62, 2, 1.25, '#b98a4f') + R(-1, -.62, .35, 1.25, '#d8d8d8') + R(.65, -.62, .35, 1.25, '#d8d8d8');
-  if (/LED/.test(t)) return R(-1, -.62, 2, 1.25, '#f5f5f5') + R(-.4, -.4, .8, .8, '#ff5a4f');
-  if (/SOD-123/.test(t)) return R(-1.35, -.8, 2.7, 1.6, '#1b1b1b') + R(-1.35, -.8, .5, 1.6, '#9a9a9a');
-  if (/SOT-23/.test(t)) return R(-1.45, -.65, 2.9, 1.3, '#1b1b1b');
-  if (/Crystal/.test(t)) return R(-1.6, -1.25, 3.2, 2.5, '#c8ccd0', 'rx=".25"') + R(-1.2, -.15, 2.4, .3, '#9aa0a6');
-  if (/SW_PUSH/.test(t)) return R(-3, -3, 6, 6, '#232323', 'rx=".4"') + `<circle r="1.75" fill="#8a8f96"/>`;
-  if (/JST/.test(t)) return R(-3, -2.25, 6, 4.5, '#efe3c6', 'rx=".2"') + R(-2.2, -1.6, 4.4, 2.2, '#d8caa4');
-  if (/Vibration/.test(t)) return `<circle r="5" fill="none" stroke="#c0c4c9" stroke-width=".25" stroke-dasharray=".8 .5"/>`;
-  if (/Buzzer/.test(t)) return `<circle r="6" fill="#1d1d1f"/><circle r="1" fill="#444"/>`;
-  if (/Arduino_Nano/.test(t)) return R(-9, -21.6, 18, 43.2, '#1d5fa8', 'rx=".6" opacity=".9"');
-  if (/PinHeader/.test(t)) return R(-bw / 2, -bh / 2, bw, bh, '#151515', 'rx=".2"') + c.fp.pads.map(p => R(p.x - .32, p.y - .32, .64, .64, '#d4a94a')).join('');
-  return R(-bw / 2, -bh / 2, bw, bh, '#2a2a2a');
-}
 function render() {
   const d = state.design, scene = $('#scene'); if (!d) return;
   const { w, h } = boardBox(d.board), vb = `-2 -2 ${f2(w + 4)} ${f2(h + 4)}`, [maskC, edgeC] = MASKS[state.mask];

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR" data-surface="watch">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Relógio aberto · Hardware Studio</title>
+<meta name="description" content="Um relógio inteligente que ainda não existe, rodando: firmware real emulado num ATmega328P no navegador, tela redonda, batimento, passos e a placa de circuito pronta para fabricar.">
+<meta property="og:title" content="Relógio aberto · Hardware Studio">
+<meta property="og:description" content="Firmware real, tela redonda, batimento e a PCB redonda pronta para fabricar — tudo simulado no navegador.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23111'/%3E%3Ccircle cx='8' cy='8' r='5' fill='%2307e0a0'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./src/watch/watch.css">
+<script type="module" src="./src/watch/watch.mjs"></script>
+</head>
+<body>
+<a class="skip" href="#controls">Pular para os controles</a>
+<header class="top">
+  <a class="brand" href="./">hardware<b>studio</b></a>
+  <nav aria-label="Páginas"><a href="./editor.html?example=relogio-cor">Editor</a><a href="./pcb.html?example=relogio-cor-placa">PCB</a><a href="https://github.com/Brilhante29/hardware-simulator" rel="noopener">Código</a></nav>
+</header>
+<main>
+  <section class="hero">
+    <div class="copy">
+      <p class="kicker">ATmega328P · 16 MHz · firmware real</p>
+      <h1>Um relógio que ainda não existe, <span>rodando.</span></h1>
+      <p class="lead">O código abaixo foi compilado pelo PlatformIO e roda instrução por instrução num ATmega328P emulado no seu navegador: tela redonda de 240 × 240, batimento pelo MAX30102, passos pelo acelerômetro e vibracall. A placa redonda logo atrás foi posicionada, roteada e conferida aqui mesmo, e já sai com os Gerbers para fabricar.</p>
+      <div class="cta"><button id="explode" class="primary" aria-pressed="false">Abrir em camadas</button><a class="ghost" href="./pcb.html?example=relogio-cor-placa">Ver a placa</a><button id="gerbers" class="ghost">Baixar Gerbers</button></div>
+      <p id="facts" class="facts" aria-live="polite">Carregando o firmware…</p>
+    </div>
+    <div class="stage" id="stage" aria-label="Relógio em 3D: arraste para girar">
+      <div class="watch" id="watch">
+        <div class="layer strap top" aria-hidden="true"></div>
+        <div class="layer strap bottom" aria-hidden="true"></div>
+        <div class="layer back" aria-hidden="true"><span>HS-1 · protótipo aberto</span></div>
+        <div class="layer battery" aria-hidden="true"><b>LiPo</b><span>3,7 V · 200 mAh</span></div>
+        <div class="layer pcb" id="pcb" aria-hidden="true"></div>
+        <div class="layer case" aria-hidden="true"></div><button id="crown" class="crown" aria-label="Botão lateral do relógio (D2)"></button>
+        <div class="layer screen"><canvas id="screen" width="240" height="240" role="img" aria-label="Tela do relógio"></canvas></div>
+        <div class="layer glass" aria-hidden="true"></div>
+      </div>
+      <ol class="labels" aria-hidden="true"><li data-l="glass">Vidro safira</li><li data-l="screen">Tela GC9A01 240×240</li><li data-l="case">Caixa + botão D2</li><li data-l="pcb">PCB Ø40 mm, 2 camadas</li><li data-l="battery">Bateria Li-ion</li><li data-l="back">Tampa</li></ol>
+    </div>
+  </section>
+  <section class="panel" id="controls" aria-label="Controles da simulação">
+    <div class="ctl"><label for="bpm">Batimento <output id="bpmOut">72 bpm</output></label><input id="bpm" type="range" min="40" max="180" value="72"></div>
+    <div class="ctl"><label for="walk">Caminhada <output id="walkOut">0 passos/min</output></label><input id="walk" type="range" min="0" max="160" step="10" value="0"></div>
+    <div class="ctl"><label for="bat">Bateria <output id="batOut">3,90 V</output></label><input id="bat" type="range" min="3.0" max="4.2" step="0.01" value="3.9"></div>
+    <div class="ctl check"><label><input id="finger" type="checkbox" checked> Dedo no sensor</label><button id="press">Apertar o botão (D2)</button></div>
+    <pre id="serial" class="serial" aria-label="Monitor serial do relógio" tabindex="0"></pre>
+  </section>
+  <section class="how">
+    <h2>Como isso é feito</h2>
+    <ol>
+      <li><b>Firmware de verdade.</b> <code>examples/firmware/relogio-cor</code> usa Adafruit_GC9A01A, RTClib e a biblioteca da SparkFun para o MAX30102, e cabe em 22,6 KB do ATmega328P.</li>
+      <li><b>Chip emulado.</b> O .hex roda no emulador AVR do Hardware Studio, com timers, SPI, I²C e ADC como no datasheet; a tela e os sensores respondem no nível do protocolo.</li>
+      <li><b>Placa verificada.</b> O mesmo circuito, com o chip nu, cristal e desacoplamento, vira uma PCB redonda: autorroteador, DRC independente e Gerbers que um leitor de outro projeto abre sem erro.</li>
+    </ol>
+    <p class="fine">Simulação não é certificação: confira pinagens dos módulos que comprar e teste o primeiro protótipo em bancada.</p>
+  </section>
+</main>
+</body>
+</html>

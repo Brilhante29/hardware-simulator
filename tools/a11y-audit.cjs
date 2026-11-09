@@ -3,7 +3,7 @@
 const { chromium, devices } = require('playwright'); const fs = require('fs');
 const axe = fs.readFileSync(require.resolve('axe-core/axe.min.js', { paths: [process.cwd(), __dirname] }), 'utf8');
 const base = (process.argv[2] || 'http://localhost:8090').replace(/\/$/, '');
-const pages = ['index.html', 'studio.html', 'editor.html', 'boot.html', 'pcb.html?example=relogio-placa', 'lab/sn74hc595.html'];
+const pages = ['index.html', 'studio.html', 'editor.html', 'boot.html', 'pcb.html?example=relogio-placa', 'watch.html', 'lab/sn74hc595.html'];
 (async () => {
   const b = await chromium.launch(); let total = 0;
   for (const [label, ctx] of [['desktop', { viewport: { width: 1440, height: 900 } }], ['celular', devices['iPhone 13']]]) {

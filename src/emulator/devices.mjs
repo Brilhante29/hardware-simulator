@@ -315,7 +315,9 @@ export class Max30102 extends RegisterDevice {
   get leds() { const m = this.reg[0x09] & 7; return m === 2 ? 1 : m === 3 ? 2 : m === 7 ? [this.reg[0x11] & 7, (this.reg[0x11] >> 4) & 7, this.reg[0x12] & 7, (this.reg[0x12] >> 4) & 7].filter(Boolean).length : 0; }
   ppg(t, red) {
     if (!this.finger) return 900 + Math.round(200 * Math.random());
-    const phase = (t * this.bpm / 60) % 1, shape = Math.exp(-(((phase - 0.15) / 0.06) ** 2)) + 0.2 * Math.exp(-(((phase - 0.42) / 0.1) ** 2));
+    // Fase integrada amostra a amostra: mudar o bpm muda o ritmo daqui em diante, sem pular para outro ponto do ciclo.
+    if (this.lastT === undefined || t < this.lastT) { this.lastT = t; this.phase = (t * this.bpm / 60) % 1; } else if (t > this.lastT) { this.phase = (this.phase + (t - this.lastT) * this.bpm / 60) % 1; this.lastT = t; }
+    const phase = this.phase, shape = Math.exp(-(((phase - 0.15) / 0.06) ** 2)) + 0.2 * Math.exp(-(((phase - 0.42) / 0.1) ** 2));
     const R = (110 - this.spo2) / 25, dc = red ? 80000 : 110000, ac = red ? dc * 0.006 * R : dc * 0.006;
     const bits = 15 + (this.reg[0x0a] & 3), v = Math.round(dc - ac * shape + (Math.random() - 0.5) * 40);
     return Math.max(0, Math.min(0x3ffff, v)) >> (18 - bits) << (18 - bits);

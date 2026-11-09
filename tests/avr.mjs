@@ -168,6 +168,8 @@ export function runAvrTests({ mega: megaPass = false } = {}) {
     ok(Math.abs(bpm - 90) <= 4, last); ok(tft.on && !tft.sleep && tft.invert, 'tela não ligada como a biblioteca faz');
     const white = (x, y) => tft.rgb(x, y).every(c => c > 200); let lit = 0; for (let y = 72; y < 120; y++) for (let x = 30; x < 210; x++) lit += white(x, y);
     ok(lit > 1500, `${lit} pontos brancos na hora`); ok(tft.rgb(120, 2).every(c => c < 30), 'fundo deveria ser preto');
+    ppg.bpm = 140; m.runSeconds(8); const after = m.out.trim().split('\n').slice(-8).map(l => +(/bpm=(\d+)/.exec(l) || [])[1]);
+    ok(Math.max(...after) <= 142 && Math.abs(after.at(-1) - 140) <= 3, `90→140 bpm sem passar do alvo: ${after}`);
     ppg.finger = false; m.runSeconds(3); ok(/bpm=0 /.test(m.out.trim().split('\n').pop()), 'sem dedo deveria zerar');
   });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });

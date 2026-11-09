@@ -17,6 +17,7 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 - `editor.html`: editor livre com peças em pixel art, fios, sketch Arduino simplificado e projetos JSON.
 - `lab/sn74hc595.html`: registrador digital interativo.
 - `boot.html`: dá boot no `firmware.hex` do PlatformIO num Arduino Uno, Nano ou Mega 2560 emulado (o chip é detectado pelo arquivo).
+- `watch.html`: vitrine do relógio inteligente rodando firmware real, em 3D, com a PCB redonda por dentro.
 - `pcb.html`: placa de circuito impresso do circuito (redonda de relógio ou retangular), roteamento, DRC e Gerbers.
 - `node tools/studio-server.mjs`: o mesmo Studio, compilando projetos PlatformIO inteiros (ver abaixo).
 
@@ -83,6 +84,10 @@ node tools/studio-server.mjs                               # sem pasta: no edito
 - O servidor só escuta em 127.0.0.1 e recusa pedidos de páginas de outra origem.
 
 Exemplo: [`examples/firmware/relogio`](examples/firmware/relogio) é um relógio de pulso (Arduino Nano, OLED SSD1306, RTC DS3231, passos pelo MPU6050 em 0x69, botão de tela, vibracall com transistor e bateria Li-ion num divisor). No editor, **Exemplos → Relógio de pulso**; no controle **Caminhada** do MPU6050 o relógio conta passos e vibra na meta.
+
+## Vitrine: relógio aberto (`watch.html`)
+
+Um relógio inteligente que ainda não existe, rodando: o firmware `examples/firmware/relogio-cor` (tela redonda GC9A01, batimento e SpO2 no MAX30102, passos, hora, vibracall) roda no ATmega328P emulado direto no navegador, dentro de um relógio em 3D feito só de CSS. **Abrir em camadas** separa vidro, tela, caixa, a PCB redonda gerada e verificada na hora, bateria e tampa; arraste para girar. Os controles mudam o batimento, a caminhada e a tensão da bateria; o botão lateral é o D2 do firmware e o relógio treme quando o vibracall liga. **Baixar Gerbers** entrega a placa para fabricar. Vídeo: [docs/media/relogio-hs1.mp4](docs/media/relogio-hs1.mp4).
 
 ## PCB: do circuito à placa para fabricar
 
