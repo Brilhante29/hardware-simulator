@@ -48,6 +48,19 @@
       s += R(140, 62, 10, 6, on ? 'ledL on' : 'ledL') + T(152, 69, 'L', 'p', 7) + R(140, 80, 10, 6, 'g') + T(152, 87, 'ON', 'p', 7);
       return s;
     },
+    // ATmega328P em DIP-28 (pino 1 = RESET no alto à esquerda, 15–28 sobem pela direita), com o chanfro do pino 1.
+    atmega328(def, part) {
+      let s = R(14, 4, 68, 196, 'k') + R(16, 6, 64, 192, 'ic') + R(40, 4, 16, 6, 'k') + disc(26, 18, 3, 'mt2');
+      for (let i = 0; i < 14; i++) { const y = 26 + i * 12; s += R(0, y - 1, 16, 2, 'mt') + R(80, y - 1, 16, 2, 'mt'); }
+      s += T(48, 96, 'ATMEGA', 'mt2', 8, 'middle') + T(48, 108, '328P', 'mt2', 8, 'middle') + T(48, 120, '-PU', 'mt2', 7, 'middle');
+      const ok = part?.settings?.firmware && !part?.settings?.warn;
+      return s + R(42, 170, 12, 6, ok ? 'g' : 'k');
+    },
+    crystal() {
+      let s = R(0, 21, 14, 2, 'mt') + R(58, 21, 14, 2, 'mt');
+      s += R(12, 8, 48, 28, 'mt') + R(14, 10, 44, 24, 'mt2') + R(16, 12, 40, 4, 'hl');
+      return s + T(36, 28, '16.000', 'p', 8, 'middle');
+    },
     // Nano: 18 × 45 mm, em pé; D1/D0/D2–D12 à esquerda, D13/A0–A7/5V/GND à direita, mini-USB em cima.
     nano(def, part) {
       let s = R(6, 2, 80, 192, 'k') + R(8, 4, 76, 188, 'ub');

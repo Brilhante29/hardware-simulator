@@ -98,7 +98,7 @@ export function buildProject(dir, { env, preferMcu, pio = findPio(), timeoutMs =
       const base = { env: chosen, envs: names, platform: cfg.platform, board: cfg.board, boardName: info.name, mcu: info.mcu, fcpu: info.fcpu, log };
       if (code !== 0) return resolve({ ok: false, ...base, error: `pio run terminou com código ${code} (veja o log).` });
       const hex = pick('firmware.hex'), bin = pick('firmware.bin'), elf = pick('firmware.elf');
-      resolve({ ok: true, ...base, ...runnability(info), hex: hex ? readFileSync(hex, 'utf8') : null, bin: bin ? readFileSync(bin).toString('base64') : null,
+      resolve({ ok: true, ...base, ...runnability({ ...info, platform: cfg.platform }), hex: hex ? readFileSync(hex, 'utf8') : null, bin: bin ? readFileSync(bin).toString('base64') : null,
         size: statSync(hex || bin || elf).size, artifact: hex || bin || elf });
     });
   });
