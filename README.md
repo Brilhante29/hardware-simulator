@@ -17,6 +17,7 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 - `editor.html`: editor livre com peças em pixel art, fios, sketch Arduino simplificado e projetos JSON.
 - `lab/sn74hc595.html`: registrador digital interativo.
 - `boot.html`: dá boot no `firmware.hex` do PlatformIO num Arduino Uno, Nano ou Mega 2560 emulado (o chip é detectado pelo arquivo).
+- `pcb.html`: placa de circuito impresso do circuito (redonda de relógio ou retangular), roteamento, DRC e Gerbers.
 - `node tools/studio-server.mjs`: o mesmo Studio, compilando projetos PlatformIO inteiros (ver abaixo).
 
 ## Tour em vídeo
@@ -83,6 +84,16 @@ node tools/studio-server.mjs                               # sem pasta: no edito
 
 Exemplo: [`examples/firmware/relogio`](examples/firmware/relogio) é um relógio de pulso (Arduino Nano, OLED SSD1306, RTC DS3231, passos pelo MPU6050 em 0x69, botão de tela, vibracall com transistor e bateria Li-ion num divisor). No editor, **Exemplos → Relógio de pulso**; no controle **Caminhada** do MPU6050 o relógio conta passos e vibra na meta.
 
+## PCB: do circuito à placa para fabricar
+
+`pcb.html` (botão **PCB** no editor) transforma o circuito numa placa de 2 camadas: cada peça ganha um footprint real (ATmega328P em TQFP-32, resistores e capacitores 0805, MMBT3904 em SOT-23, 1N4148W em SOD-123, cristal 3225, botão 6 × 6, JST-PH para a bateria; módulos como OLED, RTC e IMU entram como conectores 1×4), o posicionamento automático cabe tudo numa placa **redonda de relógio** (ou retangular) e cresce o diâmetro se precisar, e o autorroteador (A* em grade de 0,2 mm, 45°, vias) liga todas as redes num Web Worker. Arraste peças com mouse ou toque, ou selecione com Tab e use as setas (Shift = 1 mm, R gira): a placa é roteada de novo a cada movimento. Vistas 2D, 3D (arraste para girar) e por baixo; máscara verde, preta, roxa, azul ou branca.
+
+O **DRC** é independente do roteador: mede a geometria exata (trilha × trilha, trilha × pad, pad × pad, vias) contra a isolação de 0,2 mm, a distância da borda, sobreposição de componentes e redes abertas. **Baixar fabricação** gera um .zip com Gerber RS-274X X2 (GTL, GBL, GTS, GBS, GTO, GTP, GKO), furação Excellon, BOM e posição para montagem (CSV) com sugestões de peças LCSC. Os arquivos do exemplo foram abertos por um leitor independente (gerbonara), que reconheceu todas as camadas, os 24 furos e o contorno de 40 mm.
+
+Exemplo: **Exemplos → Relógio em placa própria** no editor (ATmega328P, cristal de 16 MHz com 22 pF, 100 nF de desacoplamento, sensores, vibracall e leitura da bateria) e depois **PCB**, ou `pcb.html?example=relogio-placa`. O chip só dá boot no editor com alimentação, AVCC ligado e cristal, como na placa real.
+
+O que o software não garante: um DRC limpo diz que a placa respeita as regras de fabricação e que cada rede está ligada; não substitui conferir o esquema, a pinagem dos módulos que você vai comprar, a corrente que a bateria aguenta e o primeiro protótipo em bancada.
+
 ## Aparência
 
 Use **Claro** ou **Escuro** para mudar a oficina e as telas de simulação. A escolha inicial acompanha o sistema. O ajuste **Cores** é independente do tema:
@@ -138,6 +149,7 @@ Veja [modelos elétricos e evidências](docs/ELECTRICAL_MODELS.md) e [primeira v
 node tests/all.mjs
 node tests/avr.mjs
 node tests/editor.mjs
+node tests/pcb.mjs          # netlist, roteamento, DRC e arquivos de fabricação
 node tests/build.mjs        # compila o relógio de exemplo com o PlatformIO (pulado sem pio)
 node tests/display-contrast.mjs
 cd vscode && npm test       # extensão com um VS Code simulado
