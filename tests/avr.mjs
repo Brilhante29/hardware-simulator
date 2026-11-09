@@ -172,6 +172,27 @@ export function runAvrTests({ mega: megaPass = false } = {}) {
     ok(Math.max(...after) <= 142 && Math.abs(after.at(-1) - 140) <= 3, `90→140 bpm sem passar do alvo: ${after}`);
     ppg.finger = false; m.runSeconds(3); ok(/bpm=0 /.test(m.out.trim().split('\n').pop()), 'sem dedo deveria zerar');
   });
+  test('Pulseira de queda: queda livre → impacto → deitado dispara contagem; sem resposta vira alerta com sirene; botão cancela; balançar não dispara', 'MPU6050 ±8 g', () => {
+    const fall = cancel => { const m = boot('proj_queda'); m.attachI2C(0x3c, new Ssd1306()); const imu = m.attachI2C(0x68, new Mpu6050()); m.setInput('D2', 1);
+      m.runSeconds(2); imu.accel = [0, 0, 0.1]; m.runSeconds(0.3); imu.accel = [0, 2.5, 2.5]; m.runSeconds(0.05); imu.accel = [1, 0, 0]; m.runSeconds(3);
+      if (cancel) { m.runSeconds(2); m.setInput('D2', 0); m.runSeconds(0.2); m.setInput('D2', 1); m.runSeconds(1); } else m.runSeconds(11); return m; };
+    const a = fall(false); ok(a.out.includes('queda detectada') && a.out.includes('ALERTA'), a.out); const hz = a.pulseInfo('D6')?.hz; ok(hz > 1100 && hz < 1900, `sirene ${hz}`);
+    const b = fall(true); ok(b.out.includes('cancelado pelo usuario') && !b.out.includes('ALERTA'), b.out);
+    const c = boot('proj_queda'); c.attachI2C(0x3c, new Ssd1306()); const imu = c.attachI2C(0x68, new Mpu6050()); c.setInput('D2', 1); c.runSeconds(1);
+    for (let i = 0; i < 20; i++) { imu.accel = [0, 0, i % 2 ? 2.8 : 0.6]; c.runSeconds(0.1); } imu.accel = [0, 0, 1]; c.runSeconds(4); ok(!c.out.includes('queda'), c.out);
+  });
+  test('Bengala: vibração (PWM) e bipes crescem conforme o obstáculo se aproxima; botão deixa mudo', 'HC-SR04 + analogWrite + tone', () => {
+    const m = boot('proj_bengala'); m.attachI2C(0x3c, new Ssd1306()); const s = m.attachPinDevice('D9', new HcSr04({ echo: 'D10', distanceCm: 300 })); m.setInput('D2', 1);
+    const duty = d => { s.distanceCm = d; m.runSeconds(1.2); return m.pinSnapshot().D5.duty ?? 0; };
+    const far = duty(300), mid = duty(150), near = duty(25); ok(far === 0 && mid > 0.3 && mid < 0.6 && near > 0.9, `${far} ${mid} ${near}`); ok(m.pulseInfo('D6')?.hz > 1900, 'tom contínuo perto');
+    m.setInput('D2', 0); m.runSeconds(0.2); m.setInput('D2', 1); m.runSeconds(1); ok(m.out.trim().endsWith('mudo'), m.out.slice(-40));
+  });
+  test('Estação de conforto: BME280 + BH1750 → índice de calor e NeoPixels verde/vermelho por faixa', 'Rothfusz (NWS), 500 lx', () => {
+    const m = boot('proj_estacao'); m.attachI2C(0x3c, new Ssd1306()); const bme = m.attachI2C(0x76, new Bme280({ temperature: 23, humidity: 50 })), lx = m.attachI2C(0x23, new Bh1750({ lux: 520 }));
+    m.runSeconds(2.2); ok(/termico=0 luz=0/.test(m.out.trim().split('\n').pop()), m.out.slice(-80)); const green = m.neopixel('D6'); ok(green.length === 8 && green.every(c => c[1] > c[0]), JSON.stringify(green));
+    bme.temperature = 34; bme.humidity = 75; lx.lux = 90; m.runSeconds(2.2); const last = m.out.trim().split('\n').pop(); ok(/termico=2 luz=2/.test(last) && +/hi=([\d.]+)/.exec(last)[1] > 41, last);
+    ok(m.neopixel('D6').every(c => c[0] > c[1]), JSON.stringify(m.neopixel('D6')));
+  });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;
 }

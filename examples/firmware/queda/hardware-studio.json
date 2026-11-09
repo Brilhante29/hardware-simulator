@@ -1,0 +1,329 @@
+{
+  "version": 1,
+  "title": "Pulseira detectora de queda",
+  "parts": [
+    {
+      "id": "n1",
+      "type": "nano",
+      "name": "Arduino Nano",
+      "x": 430,
+      "y": 200,
+      "settings": {}
+    },
+    {
+      "id": "g1",
+      "type": "gnd",
+      "name": "GND",
+      "x": 80,
+      "y": 320,
+      "settings": {}
+    },
+    {
+      "id": "v1",
+      "type": "vcc",
+      "name": "5 V",
+      "x": 80,
+      "y": 450,
+      "settings": {}
+    },
+    {
+      "id": "o1",
+      "type": "oled",
+      "name": "OLED 128×64",
+      "x": 700,
+      "y": 80,
+      "settings": {}
+    },
+    {
+      "id": "m1",
+      "type": "mpu6050",
+      "name": "MPU6050",
+      "x": 720,
+      "y": 240,
+      "settings": {}
+    },
+    {
+      "id": "sw1",
+      "type": "button",
+      "name": "Botão estou bem",
+      "x": 200,
+      "y": 190,
+      "settings": {}
+    },
+    {
+      "id": "bz1",
+      "type": "buzzer",
+      "name": "Buzzer",
+      "x": 700,
+      "y": 380,
+      "settings": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "name": "R1 · 1 kΩ",
+      "x": 160,
+      "y": 540,
+      "settings": {
+        "value": "1 kΩ"
+      }
+    },
+    {
+      "id": "q1",
+      "type": "transistor",
+      "name": "Q1 · BC547",
+      "x": 320,
+      "y": 520,
+      "settings": {}
+    },
+    {
+      "id": "mo1",
+      "type": "motor",
+      "name": "Vibracall",
+      "x": 470,
+      "y": 520,
+      "settings": {}
+    },
+    {
+      "id": "d1",
+      "type": "diode",
+      "name": "D1 · 1N4148",
+      "x": 470,
+      "y": 630,
+      "settings": {}
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "a": {
+        "part": "n1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w2",
+      "a": {
+        "part": "v1",
+        "pin": "VCC"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w3",
+      "a": {
+        "part": "o1",
+        "pin": "VCC"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w4",
+      "a": {
+        "part": "o1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w5",
+      "a": {
+        "part": "o1",
+        "pin": "SDA"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A4"
+      }
+    },
+    {
+      "id": "w6",
+      "a": {
+        "part": "o1",
+        "pin": "SCL"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A5"
+      }
+    },
+    {
+      "id": "w7",
+      "a": {
+        "part": "m1",
+        "pin": "VCC"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w8",
+      "a": {
+        "part": "m1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w9",
+      "a": {
+        "part": "m1",
+        "pin": "SDA"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A4"
+      }
+    },
+    {
+      "id": "w10",
+      "a": {
+        "part": "m1",
+        "pin": "SCL"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A5"
+      }
+    },
+    {
+      "id": "w11",
+      "a": {
+        "part": "sw1",
+        "pin": "2"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "D2"
+      }
+    },
+    {
+      "id": "w12",
+      "a": {
+        "part": "sw1",
+        "pin": "1"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w13",
+      "a": {
+        "part": "bz1",
+        "pin": "+"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "D6"
+      }
+    },
+    {
+      "id": "w14",
+      "a": {
+        "part": "bz1",
+        "pin": "−"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w15",
+      "a": {
+        "part": "n1",
+        "pin": "D5"
+      },
+      "b": {
+        "part": "r1",
+        "pin": "2"
+      }
+    },
+    {
+      "id": "w16",
+      "a": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "b": {
+        "part": "q1",
+        "pin": "B"
+      }
+    },
+    {
+      "id": "w17",
+      "a": {
+        "part": "q1",
+        "pin": "E"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w18",
+      "a": {
+        "part": "q1",
+        "pin": "C"
+      },
+      "b": {
+        "part": "mo1",
+        "pin": "−"
+      }
+    },
+    {
+      "id": "w19",
+      "a": {
+        "part": "mo1",
+        "pin": "+"
+      },
+      "b": {
+        "part": "v1",
+        "pin": "VCC"
+      }
+    },
+    {
+      "id": "w20",
+      "a": {
+        "part": "d1",
+        "pin": "A"
+      },
+      "b": {
+        "part": "mo1",
+        "pin": "−"
+      }
+    },
+    {
+      "id": "w21",
+      "a": {
+        "part": "d1",
+        "pin": "K"
+      },
+      "b": {
+        "part": "mo1",
+        "pin": "+"
+      }
+    }
+  ]
+}

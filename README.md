@@ -85,6 +85,17 @@ node tools/studio-server.mjs                               # sem pasta: no edito
 
 Exemplo: [`examples/firmware/relogio`](examples/firmware/relogio) é um relógio de pulso (Arduino Nano, OLED SSD1306, RTC DS3231, passos pelo MPU6050 em 0x69, botão de tela, vibracall com transistor e bateria Li-ion num divisor). No editor, **Exemplos → Relógio de pulso**; no controle **Caminhada** do MPU6050 o relógio conta passos e vibra na meta.
 
+## Projetos prontos (pasta PlatformIO + circuito + firmware + PCB)
+
+| Projeto | O que faz | Peças |
+| --- | --- | --- |
+| `examples/firmware/queda` | Pulseira detectora de queda: queda livre → impacto → imobilidade deitada; 10 s para cancelar no botão, depois sirene e alerta | Nano, MPU6050 (±8 g), OLED, botão, buzzer, vibracall |
+| `examples/firmware/bengala` | Bengala inteligente: vibração e bipes proporcionais à distância do obstáculo (até 2 m), modo silencioso | Nano, HC-SR04, vibracall PWM, buzzer, OLED, botão |
+| `examples/firmware/estacao` | Estação de conforto: índice de calor (Rothfusz/NWS) e iluminação (500 lx) numa barra de NeoPixels, aviso de calor perigoso | Nano, BME280, BH1750, NeoPixel ×8, OLED, buzzer |
+| `examples/firmware/relogio-cor` | Relógio redondo colorido com batimento, SpO2 e passos | Nano/ATmega328P, GC9A01, MAX30102, DS3231, MPU6050 |
+
+Cada pasta abre direto no editor (**Exemplos**), no VS Code ou com `node tools/studio-server.mjs --project examples/firmware/<nome>`, e vira PCB em `pcb.html`. Os testes rodam o firmware compilado de cada um e o roteamento da placa. Escrever os testes achou dois bugs reais no firmware da pulseira (`ms - since` negativo em `unsigned long` pulava estados), corrigidos no código.
+
 ## Vitrine: relógio aberto (`watch.html`)
 
 Um relógio inteligente que ainda não existe, rodando: o firmware `examples/firmware/relogio-cor` (tela redonda GC9A01, batimento e SpO2 no MAX30102, passos, hora, vibracall) roda no ATmega328P emulado direto no navegador, dentro de um relógio em 3D feito só de CSS. **Abrir em camadas** separa vidro, tela, caixa, a PCB redonda gerada e verificada na hora, bateria e tampa; arraste para girar. Os controles mudam o batimento, a caminhada e a tensão da bateria; o botão lateral é o D2 do firmware e o relógio treme quando o vibracall liga. **Baixar Gerbers** entrega a placa para fabricar. Vídeo: [docs/media/relogio-hs1.mp4](docs/media/relogio-hs1.mp4).

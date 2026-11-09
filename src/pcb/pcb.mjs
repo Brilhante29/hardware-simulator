@@ -101,7 +101,7 @@ export function placeGrowing(nl, board, rules = RULES, max = 120) {
 class Heap { constructor() { this.k = []; this.v = []; } push(k, v) { const a = this.k, b = this.v; let i = a.length; a.push(k); b.push(v); while (i) { const p = (i - 1) >> 1; if (a[p] <= k) break; a[i] = a[p]; b[i] = b[p]; i = p; } a[i] = k; b[i] = v; }
   pop() { const a = this.k, b = this.v, top = b[0], lk = a.pop(), lv = b.pop(), n = a.length; if (n) { let i = 0; for (;;) { let c = 2 * i + 1; if (c >= n) break; if (c + 1 < n && a[c + 1] < a[c]) c++; if (a[c] >= lk) break; a[i] = a[c]; b[i] = b[c]; i = c; } a[i] = lk; b[i] = lv; } return top; } get size() { return this.k.length; } }
 
-export function route(nl, placements, board, rules = RULES) {
+export function route(nl, placements, board, rules = RULES, first = []) {
   const g = rules.grid, { w, h } = boardBox(board), nx = Math.floor(w / g) + 1, ny = Math.floor(h / g) + 1, N = nx * ny;
   const netId = new Map(nl.nets.map((n, i) => [n.name, i + 1])); let lone = nl.nets.length + 1;
   const pads = []; nl.comps.forEach((c, ci) => { if (placements[ci]) for (const p of padsOf(c, placements[ci])) pads.push({ ...p, ci, id: p.net ? netId.get(p.net) : lone++ }); });
@@ -161,7 +161,7 @@ export function route(nl, placements, board, rules = RULES) {
   // Ordem: redes de sinal curtas primeiro; GND e +5V por último (são as que mais se espalham).
   const padCells = p => { const out = []; for (const L of p.drill ? [0, 1] : [0]) for (let idx = 0; idx < N; idx++) if (land[L][idx] === p.id && Math.abs((idx % nx) * g - p.x) <= p.w / 2 + g && Math.abs(Math.floor(idx / nx) * g - p.y) <= p.h / 2 + g) out.push(L * N + idx); return out; };
   const work = nl.nets.map(n => { const ps = pads.filter(p => p.net === n.name); let len = 0; for (let a = 1; a < ps.length; a++) len += Math.min(...ps.slice(0, a).map(q => Math.abs(q.x - ps[a].x) + Math.abs(q.y - ps[a].y))); return { n, ps, len, power: n.name === 'GND' || n.name === '+5V' }; })
-    .filter(x => x.ps.length > 1).sort((a, b) => (a.power - b.power) || (a.len - b.len));
+    .filter(x => x.ps.length > 1).sort((a, b) => (first.indexOf(b.n.name) - first.indexOf(a.n.name)) || (a.power - b.power) || (a.len - b.len));
   const paths = [], vias = [], unrouted = [];
   for (const { n, ps } of work) {
     const id = netId.get(n.name), tree = new Set(padCells(ps[0])), done = [ps[0]], todo = ps.slice(1);
@@ -259,11 +259,13 @@ export function designBoard(circuit, board = { shape: 'round', d: 40 }, rules = 
   if (nl.errors.length) return { nl, errors: nl.errors };
   let placed = given ? { board, placements: given } : placeGrowing(nl, board, rules);
   if (!placed.placements) return { nl, errors: [`Os componentes não cabem numa placa de até ${board.shape === 'round' ? 'Ø' : ''}120 mm.`] };
-  let best = null;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const r = route(nl, placed.placements, placed.board, { ...rules, viaCost: rules.viaCost + attempt * 4 });
+  // Rasga e refaz: as redes que ficaram sem rota passam para o começo da fila na tentativa seguinte.
+  let best = null, first = [];
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const r = route(nl, placed.placements, placed.board, { ...rules, viaCost: rules.viaCost + (attempt % 3) * 4 }, first);
     if (!best || r.unrouted.length < best.unrouted.length) best = r;
     if (!r.unrouted.length) break;
+    for (const u of r.unrouted) { first = first.filter(n => n !== u.net); first.push(u.net); }
   }
   const check = drc(nl, placed.placements, placed.board, best, rules);
   return { nl, board: placed.board, placements: placed.placements, routed: best, drc: check, errors: [] };
