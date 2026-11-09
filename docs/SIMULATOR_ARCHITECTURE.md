@@ -1,6 +1,6 @@
 # Arquitetura para experimentar hardware ponta a ponta
 
-O simulador deve aceitar desde uma lista de materiais sobre protoboard até uma PCB desenhada pelo usuário e firmware compilado. Isso é uma direção de produto e uma arquitetura-alvo; não é capacidade entregue no simulador atual.
+O simulador deve aceitar desde uma lista de materiais sobre protoboard até uma PCB desenhada pelo usuário e firmware compilado. Isso é uma direção de produto e uma arquitetura-alvo; o que já está construído, com contratos e receitas, está em [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## O mesmo projeto, várias implementações
 

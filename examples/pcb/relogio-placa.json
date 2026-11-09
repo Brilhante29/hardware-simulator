@@ -125,7 +125,9 @@
       "name": "M1 · vibracall",
       "x": 900,
       "y": 420,
-      "settings": {}
+      "settings": {
+        "ohms": 40
+      }
     },
     {
       "id": "d1",

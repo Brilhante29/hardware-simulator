@@ -39,29 +39,22 @@ export const FOOTPRINTS = {
 };
 export const headerFootprint = pins => ({ name: `PinHeader_1x${String(pins.length).padStart(2, '0')}_P2.54mm`, body: [2.54, pins.length * 2.54], court: [3.2, pins.length * 2.54 + 0.6], pads: header(pins), header: true });
 
-// Peça do editor → footprint, prefixo de referência e sugestão de peça LCSC (confira o estoque antes de pedir).
-const MODULE_PINS = { oled: ['GND', 'VCC', 'SCL', 'SDA'], display: ['GND', 'VCC', 'SDA', 'SCL'], ds3231: ['VCC', 'GND', 'SCL', 'SDA'], mpu6050: ['VCC', 'GND', 'SCL', 'SDA'], bme280: ['VCC', 'GND', 'SCL', 'SDA'], bh1750: ['VCC', 'GND', 'SCL', 'SDA'], gc9a01: ['GND', 'VCC', 'SCL', 'SDA', 'RES', 'DC', 'CS', 'BLK'], max30102: ['VIN', 'SDA', 'SCL', 'INT', 'GND'] };
-export function footprintFor(part, usedPins) {
-  const t = part.type, v = String(part.settings?.value || '');
-  switch (t) {
-    case 'atmega328': return { fp: FOOTPRINTS.TQFP32, ref: 'U', value: 'ATmega328P-AU', lcsc: 'C14877' };
-    case 'nano': return { fp: FOOTPRINTS.NANO, ref: 'A', value: 'Arduino Nano', lcsc: '' };
-    case 'resistor': return { fp: FOOTPRINTS.R_0805, ref: 'R', value: v || '220 Ω', lcsc: { '10 kΩ': 'C17414', '1 kΩ': 'C17513', '220 Ω': 'C17557', '4,7 kΩ': 'C17673' }[v] || '' };
-    case 'capacitor': return { fp: FOOTPRINTS.C_0805, ref: 'C', value: v || '100 µF', lcsc: { '100 nF': 'C49678', '22 pF': 'C1804', '10 µF': 'C15850' }[v] || '' };
-    case 'led': return { fp: FOOTPRINTS.LED_0805, ref: 'D', value: 'LED', lcsc: '' };
-    case 'diode': return { fp: FOOTPRINTS.SOD123, ref: 'D', value: '1N4148W', lcsc: 'C81598' };
-    case 'transistor': return { fp: FOOTPRINTS.SOT23, ref: 'Q', value: 'MMBT3904', lcsc: 'C20526' };
-    case 'crystal': return { fp: FOOTPRINTS.XTAL_3225, ref: 'Y', value: '16 MHz', lcsc: '' };
-    case 'button': return { fp: FOOTPRINTS.SW_6x6, ref: 'SW', value: 'Tactile 6×6', lcsc: '' };
-    case 'motor': return { fp: FOOTPRINTS.MOTOR_PADS, ref: 'M', value: 'Motor de vibração 10 mm', lcsc: '' };
-    case 'source': return { fp: FOOTPRINTS.JST_PH2, ref: 'BT', value: 'Bateria Li-ion (JST-PH)', lcsc: 'C131337' };
-    case 'buzzer': return { fp: FOOTPRINTS.BUZZER_12, ref: 'BZ', value: 'Buzzer', lcsc: '' };
-    default: {
-      // Módulo ou peça sem footprint próprio: vira conector 1×N para a placa do módulo (placa filha), na ordem dos pinos dele.
-      const pins = MODULE_PINS[t] || usedPins; if (!pins.length) return null;
-      return { fp: headerFootprint(pins), ref: 'J', value: `Conector ${part.name || t}`, lcsc: '', module: true };
-    }
+// Peça do editor → footprint. O mapeamento mora no catálogo (campo `pcb` de cada peça, src/parts/catalog.js):
+//   { fp, ref, value: '$value|padrão', lcsc: 'Cxxxx' | { valor: 'Cxxxx' } }  footprint da biblioteca acima
+//   { header: [ordem dos pinos] }                                          módulo pronto → conector 1×N
+//   { net: 'GND' }                                                          trilho: vira nome de rede, sem peça
+//   { refuse: 'motivo' }                                                    não cabe numa placa própria
+// Sem `pcb`, a peça vira conector com os pinos que estão ligados (placa filha), para nada ficar de fora da netlist.
+export function footprintFor(part, usedPins, def) {
+  const p = def?.pcb;
+  if (p?.net) return { net: p.net };
+  if (p?.refuse) return { refuse: p.refuse };
+  if (p?.header) return { fp: headerFootprint(p.header), ref: 'J', value: `Conector ${part.name || part.type}`, lcsc: '', module: true };
+  if (p?.fp) {
+    const [, field, dflt] = /^\$(\w+)\|?(.*)$/.exec(p.value || '') || [], value = field ? (part.settings?.[field] || dflt) : p.value;
+    const lcsc = typeof p.lcsc === 'object' ? p.lcsc[value] || '' : p.lcsc || '';
+    return { fp: FOOTPRINTS[p.fp], ref: p.ref, value, lcsc };
   }
+  if (!usedPins.length) return null;
+  return { fp: headerFootprint(usedPins), ref: 'J', value: `Conector ${part.name || part.type}`, lcsc: '', module: true };
 }
-export const NO_FOOTPRINT = new Set(['vcc', 'gnd']); // trilhos viram nomes de rede (+5V, GND)
-export const NEEDS_MODULE = new Set(['uno', 'mega']);

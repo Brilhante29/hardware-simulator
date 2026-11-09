@@ -1,21 +1,19 @@
 // HS-Pulse: o firmware examples/firmware/pulseira-avc roda no ATmega328P emulado; cada linha JSON que ele escreve na
 // serial chega aqui como se viesse do módulo BLE. O "edge" desenha Poincaré e tacograma, calcula o CHA₂DS₂-VASc e escreve
 // o pré-laudo (modelo determinístico, ou o Llama 3 do Ollama local com os trechos recuperados, como no artigo).
-import { createMcu, CLOCK } from '../emulator/avr.mjs';
-import { Gc9a01, Max30102, Mpu6050 } from '../emulator/devices.mjs';
+import { CLOCK } from '../emulator/avr.mjs';
+import { createRig } from '../core/rig.mjs';
 import { retrieve, chads, templateReport } from './knowledge.mjs';
 
 const $ = s => document.querySelector(s);
 const st = { mcu: null, tft: null, ppg: null, imu: null, walk: false, rr: [], last: null, afSince: null, sos: false, painted: -1, t: 0 };
 
 async function boot() {
-  const hex = await (await fetch('examples/firmware/pulseira-avc/pulseira-avc-nano.hex')).text();
-  const m = createMcu(hex, 'atmega328p'); let line = '';
+  const base = 'examples/firmware/pulseira-avc/', [hex, circuit] = await Promise.all([fetch(base + 'pulseira-avc-nano.hex').then(r => r.text()), fetch(base + 'hardware-studio.json').then(r => r.json())]);
+  const rig = createRig({ hex, circuit, catalog: window.HSCatalog }), m = rig.mcu; let line = '';
   m.onSerial = b => { if (b === 10) { receive(line.trim()); line = ''; } else line += String.fromCharCode(b); };
-  st.tft = m.attachPinDevice('D10', new Gc9a01({ cs: 'D10', dc: 'D9', rst: 'D8' }));
-  st.ppg = m.attachI2C(0x57, new Max30102({ bpm: 72, spo2: 97, seed: Date.now() & 0xffff }));
-  st.imu = m.attachI2C(0x68, new Mpu6050());
-  m.setInput('D2', 1); st.mcu = m; requestAnimationFrame(frame);
+  [st.tft] = rig.byType('gc9a01'); [st.ppg] = rig.byType('max30102'); [st.imu] = rig.byType('mpu6050'); st.ppg.rng = (Date.now() & 0xffff) || 1;
+  st.sosPin = rig.boardPin('sw1', '2'); m.setInput(st.sosPin, 1); st.mcu = m; requestAnimationFrame(frame);
 }
 const logLines = [];
 function receive(text) {
@@ -37,7 +35,7 @@ let dirty = false, logDirty = false;
 const sctx = $('#screen').getContext('2d');
 function frame(now) {
   const m = st.mcu, dt = st.t ? Math.min(0.05, (now - st.t) / 1000) : 0; st.t = now;
-  if (dt) { if (st.walk) { const k = 1 + 0.5 * Math.max(0, Math.sin(2 * Math.PI * 1.8 * m.time)); st.imu.accel = [0, 0, k]; } m.run(Math.round(dt * CLOCK)); }
+  if (dt) m.run(Math.round(dt * CLOCK));
   if (st.tft.version !== st.painted) { st.painted = st.tft.version; sctx.putImageData(new ImageData(st.tft.rgba(), 240, 240), 0, 0); }
   if (dirty) { dirty = false; charts(); }
   if (logDirty) { logDirty = false; const el = $('#log'); el.textContent = logLines.join('\n'); el.scrollTop = el.scrollHeight; }
@@ -81,7 +79,7 @@ document.querySelectorAll('[data-rhythm]').forEach(b => b.onclick = () => { docu
 const bind = (id, fn) => { const el = $(id); el.oninput = () => fn(el.value); };
 bind('#bpm', v => { $('#bpmOut').textContent = `${v} bpm`; if (st.ppg) st.ppg.bpm = +v; });
 bind('#spo2', v => { $('#spo2Out').textContent = `${v} %`; if (st.ppg) st.ppg.spo2 = +v; });
-$('#walk').onchange = e => { st.walk = e.target.checked; if (st.ppg) st.ppg.motion = st.walk ? 0.8 : 0; if (!st.walk && st.imu) st.imu.accel = [0, 0, 1]; };
+$('#walk').onchange = e => { const on = e.target.checked; st.ppg && (st.ppg.motion = on ? 0.8 : 0); st.imu?.setControl('walk', on ? 108 : 0); };
 $('#finger').onchange = e => { if (st.ppg) st.ppg.finger = e.target.checked; };
-$('#sos').onclick = () => { if (!st.mcu) return; st.mcu.setInput('D2', 0); setTimeout(() => st.mcu.setInput('D2', 1), 200); };
+$('#sos').onclick = () => { if (!st.mcu) return; st.mcu.setInput(st.sosPin, 0); setTimeout(() => st.mcu.setInput(st.sosPin, 1), 200); };
 boot();

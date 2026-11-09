@@ -92,7 +92,9 @@
       "name": "Vibracall",
       "x": 470,
       "y": 500,
-      "settings": {}
+      "settings": {
+        "ohms": 40
+      }
     },
     {
       "id": "d1",

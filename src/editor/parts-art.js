@@ -275,5 +275,5 @@
     const warn = part?.settings?.warn; if (warn) body += `<g class="px-warn"><title>${esc(warn)}</title>${F(def.width - 14, 0, 14, 14, '#e5484d')}${T(def.width - 7, 11, '!', 'c', 11, 'middle')}</g>`;
     return `<svg class="px-art ${cls || ''}" viewBox="0 0 ${def.width} ${def.height}" width="${def.width}" height="${def.height}" shape-rendering="crispEdges" aria-hidden="true">${body}</svg>`;
   }
-  window.PixelParts = { art: (def, part) => svg(def, part), thumb: def => svg(def, { settings: {} }, 'px-thumb') };
+  window.PixelParts = { art: (def, part) => svg(def, part), thumb: def => svg(def, { settings: {} }, 'px-thumb'), has: type => !!ART[type] };
 })();

@@ -22,6 +22,10 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 - `pcb.html`: placa de circuito impresso do circuito (redonda de relógio ou retangular), roteamento, DRC e Gerbers.
 - `node tools/studio-server.mjs`: o mesmo Studio, compilando projetos PlatformIO inteiros (ver abaixo).
 
+## Arquitetura
+
+Peças, projetos e chips são unidades declarativas: uma peça nova é uma entrada em `src/parts/catalog.js` (pinos, como o firmware a enxerga, footprint, ajustes); um projeto novo é uma pasta listada em `examples/index.json`; o circuito vira dispositivos emulados por um único caminho (`src/core/bind.mjs`), usado pelo editor, pelas vitrines (`src/core/rig.mjs`), pela linha de comando e pelos testes. Detalhes, contratos e receitas em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Tour em vídeo
 
 [docs/media/hardware-studio-tour.mp4](docs/media/hardware-studio-tour.mp4) (1min48, 1080p, com trilha chiptune original) mostra as animações da oficina, a bancada, o editor com três projetos que combinam placas, o registrador e os testes. O roteiro em [tools/demo-video](tools/demo-video/README.md) regrava o vídeo.
@@ -59,6 +63,7 @@ pio run -t simulate                                       # compila e roda em te
 SIM_ARGS="--seconds 5 --pins --lcd --oled" pio run -t simulate
 node tools/avr-run.mjs .pio/build/uno/firmware.hex --lcd --eeprom eeprom.bin
 node tools/avr-run.mjs .pio/build/megaatmega2560/firmware.hex   # Serial1–3 aparecem como [Serial1] …
+node tools/avr-run.mjs firmware.hex --circuit hardware-studio.json --seconds 3   # com as peças do circuito do projeto
 ```
 
 O `simulate.py` passa o `build.mcu` da placa do `platformio.ini` para o emulador.
@@ -176,6 +181,9 @@ Veja [modelos elétricos e evidências](docs/ELECTRICAL_MODELS.md) e [primeira v
 node tests/all.mjs
 node tests/avr.mjs
 node tests/editor.mjs
+node tests/parts.mjs        # contrato de cada peça do catálogo (+ prova de extensão com o TMP117)
+node tests/projects.mjs     # cada projeto do manifesto: boot pelo rig e placa sem violações
+node tests/browser.mjs      # modelos elétricos e inspector no editor real (Playwright)
 node tests/pcb.mjs          # netlist, roteamento, DRC e arquivos de fabricação
 node tests/build.mjs        # compila o relógio de exemplo com o PlatformIO (pulado sem pio)
 node tests/display-contrast.mjs

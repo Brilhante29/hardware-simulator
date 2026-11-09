@@ -1,44 +1,50 @@
 // Placa de circuito impresso a partir do circuito do editor: netlist → posicionamento → roteamento em 2 camadas → DRC.
 // Tudo em milímetros, y para baixo, origem no canto de cima à esquerda da placa. Sem dependências: roda no navegador e no Node.
-import { footprintFor, headerFootprint, NO_FOOTPRINT, NEEDS_MODULE } from './footprints.mjs';
+import { footprintFor, headerFootprint } from './footprints.mjs';
 
 // Regras padrão de fabricação de baixo custo (2 camadas, 1 oz): trilha e isolação de 0,2 mm já são o mínimo comum (≈ 0,127 mm);
 // usamos 0,25/0,2 para sobrar margem. Via 0,6 mm com furo 0,3 mm.
 export const RULES = { grid: 0.2, trace: 0.25, clearance: 0.2, via: 0.6, drill: 0.3, edge: 0.5, gap: 0.4, viaCost: 14 };
 
 // ---------- netlist ----------
-export function buildNetlist(circuit) {
+// catalog: { get(type) } — o catálogo de peças (src/parts/catalog.js); no navegador, o global HSCatalog.
+export function buildNetlist(circuit, catalog = globalThis.HSCatalog) {
+  if (!catalog) throw Error('buildNetlist precisa do catálogo de peças (src/parts/catalog.js).');
+  const defFor = t => catalog.get(t);
   const parent = new Map(), find = x => { if (!parent.has(x)) parent.set(x, x); while (parent.get(x) !== x) { parent.set(x, parent.get(parent.get(x))); x = parent.get(x); } return x; };
   const key = (part, pin) => `${part}:${pin}`;
   for (const w of circuit.wires || []) { const a = find(key(w.a.part, w.a.pin)), b = find(key(w.b.part, w.b.pin)); if (a !== b) parent.set(a, b); }
   const errors = [], warnings = [], comps = [], refs = new Set(), counters = {};
   const used = id => [...new Set((circuit.wires || []).flatMap(w => [w.a, w.b]).filter(e => e.part === id).map(e => e.pin))];
-  // Nome da rede: GND/+5V pelos trilhos; senão o rótulo do pino da placa/chip (A4, D5…); senão N1, N2…
+  // Nome da rede: o de um trilho (pcb.net: GND, +5V…); senão o rótulo do pino da placa/chip (A4, D5…); senão N1, N2…
   const groups = new Map(); for (const k of parent.keys()) { const r = find(k); (groups.get(r) || groups.set(r, []).get(r)).push(k); }
-  const typeOf = new Map((circuit.parts || []).map(p => [p.id, p.type])), netName = new Map(); let auto = 0; const taken = new Set();
+  const defOf = new Map((circuit.parts || []).map(p => [p.id, defFor(p.type)])), netName = new Map(); let auto = 0; const taken = new Set();
   for (const [root, members] of groups) {
-    const types = members.map(m => typeOf.get(m.split(':')[0]));
-    let name = types.includes('gnd') ? 'GND' : types.includes('vcc') ? '+5V' : null;
-    if (!name) { const m = members.find(x => ['atmega328', 'nano', 'uno', 'mega'].includes(typeOf.get(x.split(':')[0]))); if (m) name = m.split(':')[1]; }
-    if (!name || taken.has(name)) name = name && !taken.has(name) ? name : `N${++auto}`;
+    const rail = members.map(m => defOf.get(m.split(':')[0])?.pcb?.net).find(Boolean);
+    let name = rail || null;
+    if (!name) { const m = members.find(x => defOf.get(x.split(':')[0])?.board); if (m) name = m.split(':')[1]; }
+    if (!name || (taken.has(name) && !rail)) name = `N${++auto}`;
     taken.add(name); netName.set(root, name);
   }
   const netOfPin = (partId, pin) => parent.has(key(partId, pin)) ? netName.get(find(key(partId, pin))) : null;
+  const rails = new Set();
   for (const part of circuit.parts || []) {
-    if (NO_FOOTPRINT.has(part.type)) continue;
-    if (NEEDS_MODULE.has(part.type)) { errors.push(`${part.name}: uma placa Arduino ${part.type === 'uno' ? 'Uno' : 'Mega'} não cabe numa PCB própria; use o ATmega328P (SoC) ou o Nano como módulo.`); continue; }
-    const f = footprintFor(part, used(part.id)); if (!f) continue;
+    const def = defFor(part.type), f = footprintFor(part, used(part.id), def);
+    if (!f) continue;
+    if (f.net) { rails.add(f.net); continue; }
+    if (f.refuse) { errors.push(`${part.name}: ${f.refuse}`); continue; }
     let ref = (String(part.name || '').match(/^([A-Z]{1,3}\d{1,3})\b/) || [])[1];
     if (!ref || refs.has(ref)) { const n = (counters[f.ref] || 0) + 1; counters[f.ref] = n; ref = `${f.ref}${n}`; while (refs.has(ref)) ref = `${f.ref}${++counters[f.ref]}`; }
     refs.add(ref);
-    // Pinos repetidos no chip (GND/GND2, VCC/AVCC são pads separados no TQFP): GND usa a rede do GND2 se só ele foi ligado.
-    const netOf = pin => netOfPin(part.id, pin) ?? (part.type === 'atmega328' && pin === 'GND' ? netOfPin(part.id, 'GND2') : null);
+    // pcb.merge: pinos da peça que viram o mesmo pad no footprint (GND2 do DIP-28 → pads GND do TQFP-32).
+    const merged = Object.entries(def?.pcb?.merge || {}), netOf = pin => netOfPin(part.id, pin) ?? merged.filter(([, to]) => to === pin).map(([from]) => netOfPin(part.id, from)).find(Boolean) ?? null;
     comps.push({ id: part.id, ref, value: f.value, lcsc: f.lcsc, fp: f.fp, type: part.type, module: !!f.module, padNets: f.fp.pads.map(p => netOf(p.pin)) });
     if (f.module) warnings.push(`${ref} (${part.name}) entra como conector de ${f.fp.pads.length} pinos para o módulo pronto.`);
   }
-  if ((circuit.parts || []).some(p => p.type === 'vcc')) {
-    comps.push({ id: '__pwr', ref: 'J0', value: 'Entrada +5 V (boost/USB)', lcsc: '', fp: headerFootprint(['+5V', 'GND']), type: 'power', module: false, padNets: ['+5V', 'GND'] });
-    warnings.push('J0: o trilho de +5 V do circuito vira um conector de entrada; numa placa real ele vem de um conversor boost ou do USB.');
+  // Trilho de alimentação do circuito (não o GND) vira conector de entrada: na placa real vem de um regulador, boost ou USB.
+  for (const net of [...rails].filter(n => n !== 'GND')) {
+    comps.push({ id: `__pwr_${net}`, ref: 'J0', value: `Entrada ${net}`, lcsc: '', fp: headerFootprint([net, 'GND']), type: 'power', module: false, padNets: [net, 'GND'] });
+    warnings.push(`J0: o trilho ${net} do circuito vira um conector de entrada; numa placa real ele vem de um conversor boost ou do USB.`);
   }
   const names = [...new Set(comps.flatMap(c => c.padNets).filter(Boolean))].sort();
   const nets = names.map(name => ({ name, pads: comps.flatMap((c, ci) => c.padNets.map((n, pi) => n === name ? [ci, pi] : null).filter(Boolean)) }));
@@ -254,8 +260,8 @@ export function drc(nl, placements, board, routed, rules = RULES) {
 }
 
 // Tudo de uma vez: netlist, posição (aumentando a placa se precisar), roteamento com novas tentativas e DRC.
-export function designBoard(circuit, board = { shape: 'round', d: 40 }, rules = RULES, given = null) {
-  const nl = buildNetlist(circuit);
+export function designBoard(circuit, board = { shape: 'round', d: 40 }, rules = RULES, given = null, catalog = globalThis.HSCatalog) {
+  const nl = buildNetlist(circuit, catalog);
   if (nl.errors.length) return { nl, errors: nl.errors };
   let placed = given ? { board, placements: given } : placeGrowing(nl, board, rules);
   if (!placed.placements) return { nl, errors: [`Os componentes não cabem numa placa de até ${board.shape === 'round' ? 'Ø' : ''}120 mm.`] };

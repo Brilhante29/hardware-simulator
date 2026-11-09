@@ -9,9 +9,13 @@
 //    (LiquidCrystal lcd(12, 11, 5, 4, 3, 2)); --oled liga um SSD1306 (0x3C) e desenha no fim.
 //  - --sonar 120 liga um HC-SR04 com TRIG no D9 e ECHO no D10, com o obstáculo a 120 cm.
 //  - --eeprom guarda a EEPROM do chip num arquivo entre execuções.
+//  - --circuit hardware-studio.json liga as peças do circuito do projeto (mesmo caminho do editor: src/core/rig.mjs);
+//    no fim mostra as telas OLED/LCD que estiverem nele.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createMcu, CLOCK } from '../src/emulator/avr.mjs';
 import { LcdI2C, LcdParallel, HcSr04, Ssd1306 } from '../src/emulator/devices.mjs';
+import { createRig } from '../src/core/rig.mjs';
+import { createRequire } from 'node:module';
 
 const args = process.argv.slice(2);
 const file = args.find(a => !a.startsWith('--'));
@@ -21,8 +25,12 @@ const seconds = args.includes('--seconds') ? Number(args[args.indexOf('--seconds
 const showPins = args.includes('--pins');
 const eepromFile = args.includes('--eeprom') ? args[args.indexOf('--eeprom') + 1] : null;
 
-let mcu;
-try { mcu = createMcu(readFileSync(file, 'utf8'), chip); } catch (e) { console.error(`Não foi possível carregar ${file}: ${e.message}`); process.exit(1); }
+let mcu, rig = null;
+const circuitFile = args.includes('--circuit') ? args[args.indexOf('--circuit') + 1] : null;
+try {
+  if (circuitFile) { rig = createRig({ hex: readFileSync(file, 'utf8'), circuit: JSON.parse(readFileSync(circuitFile, 'utf8')), catalog: createRequire(import.meta.url)('../src/parts/catalog.js') }); mcu = rig.mcu; for (const n of rig.notes) process.stderr.write(`\x1b[33m${n}\x1b[0m\n`); process.stderr.write(`\x1b[36m● ${rig.bound.map(b => `${b.part.name} (${b.def.fw.device})`).join(', ')}\x1b[0m\n`); }
+  else mcu = createMcu(readFileSync(file, 'utf8'), chip);
+} catch (e) { console.error(`Não foi possível carregar ${file}: ${e.message}`); process.exit(1); }
 const extra = [[], [], [], []]; // Serial1..3 do Mega, por linha
 mcu.onSerial = (b, i = 0) => {
   if (!i) { process.stdout.write(Buffer.from([b])); return; }
@@ -35,7 +43,7 @@ if (eepromFile && existsSync(eepromFile)) mcu.eeprom.set(readFileSync(eepromFile
 const saveEeprom = () => { if (eepromFile) writeFileSync(eepromFile, Buffer.from(mcu.eeprom)); };
 let lastLcd = '';
 const showLcd = () => { if (!lcd) return; const now = lcd.lines().join('|'); if (now === lastLcd) return; lastLcd = now; process.stderr.write(`\x1b[32m┌────────────────┐\n${lcd.lines().map(l => '│' + l + '│').join('\n')}\n└────────────────┘ t=${mcu.time.toFixed(2)} s\x1b[0m\n`); };
-const showOled = () => { if (oled) process.stderr.write('\x1b[36m' + oled.ascii(2) + '\x1b[0m\n'); };
+const showOled = () => { for (const o of [oled, ...(rig ? rig.byType('oled') : [])].filter(Boolean)) process.stderr.write('\x1b[36m' + o.ascii(2) + '\x1b[0m\n'); };
 if (showPins) mcu.onPinChange = (changed, t) => {
   const list = Object.entries(changed).map(([k, p]) => `${k}=${p.mode === 'output' ? (p.duty !== null && p.duty !== 0 && p.duty !== 1 ? `PWM ${(p.duty * 100).toFixed(0)}%` : p.level ? 'HIGH' : 'LOW') : p.mode}`).join(' ');
   process.stderr.write(`\x1b[2m[${t.toFixed(4)} s] ${list}\x1b[0m\n`);

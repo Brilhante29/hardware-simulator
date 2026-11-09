@@ -177,12 +177,26 @@ export class Bme280 extends RegisterDevice {
 export class Mpu6050 extends RegisterDevice {
   constructor({ address = 0x68, accel = [0, 0, 1], gyro = [0, 0, 0], temperature = 25 } = {}) { super(address); Object.assign(this, { accel, gyro, temperature }); this.resetRegs(); }
   resetRegs() { this.reg.fill(0); this.reg[0x6b] = 0x40; this.reg[0x75] = 0x68; }
+  // Controles do catálogo: inclinação X/Y (°) vira o vetor da gravidade, giro Z em °/s, caminhada em passos/min.
+  setControl(key, v) {
+    this.ctl = { tiltX: 0, tiltY: 0, ...this.ctl, [key]: v };
+    if (key === 'tiltX' || key === 'tiltY') { const tx = this.ctl.tiltX * Math.PI / 180, ty = this.ctl.tiltY * Math.PI / 180; this.accel = [Math.sin(ty), -Math.sin(tx), Math.cos(tx) * Math.cos(ty)]; this.fallAt = null; }
+    else if (key === 'gyroZ') this.gyro = [0, 0, v]; else if (key === 'walk') this.walk = v; else this[key] = v;
+  }
+  // Evento de queda no tempo do chip: 0,3 s em queda livre, impacto de 3,5 g e o pulso deitado até a inclinação mudar.
+  fall() { this.fallAt = this.time; }
+  // Aceleração no instante da leitura: queda em andamento, caminhada (pico de ~1,6 g a cada passo) ou o vetor parado.
+  motion() {
+    if (this.fallAt != null) { const e = this.time - this.fallAt; return e < 0.3 ? [0, 0, 0.1] : e < 0.35 ? [0, 2.5, 2.5] : [1, 0, 0]; }
+    if (this.walk) { const ph = (this.time * this.walk / 60) % 1, k = 1 + 0.6 * Math.max(0, Math.sin(2 * Math.PI * ph)); return this.accel.map(a => a * k); }
+    return this.accel;
+  }
   writeReg(r, v) { if (r === 0x6b && (v & 0x80)) { this.resetRegs(); return; } if (r === 0x75) return; this.reg[r] = v; }
   prepareRead() {
     const aScale = [16384, 8192, 4096, 2048][(this.reg[0x1c] >> 3) & 3], gScale = [131, 65.5, 32.8, 16.4][(this.reg[0x1b] >> 3) & 3];
     const s16 = (a, v) => { const x = Math.max(-32768, Math.min(32767, Math.round(v))) & 0xffff; this.reg[a] = x >> 8; this.reg[a + 1] = x & 0xff; };
     const sleeping = this.reg[0x6b] & 0x40;
-    this.accel.forEach((g, i) => s16(0x3b + i * 2, sleeping ? 0 : g * aScale));
+    this.motion().forEach((g, i) => s16(0x3b + i * 2, sleeping ? 0 : g * aScale));
     s16(0x41, sleeping ? 0 : (this.temperature - 36.53) * 340);
     this.gyro.forEach((d, i) => s16(0x43 + i * 2, sleeping ? 0 : d * gScale));
   }
@@ -361,4 +375,15 @@ export class Max30102 extends RegisterDevice {
     if (r === 0x04) { this.produce(); return this.wr; } if (r === 0x05) return this.ovf; if (r === 0x06) return this.rd;
     return this.reg[r];
   }
+}
+
+// TMP117 (Texas Instruments, 0x48–0x4B): termômetro de ±0,1 °C. Registradores de 16 bits em big-endian; o ponteiro não
+// avança na leitura (lê-se MSB e LSB do mesmo registrador). 0x00 temperatura (7,8125 m°C/LSB), 0x01 configuração
+// (bit 13 = dado pronto), 0x02/0x03 limites, 0x0F identificação 0x0117.
+export class Tmp117 {
+  constructor({ address = 0x48, temperature = 36.6 } = {}) { this.address = address; this.temperature = temperature; this.ptr = 0; this.regs = { 0x01: 0x0220, 0x02: 0x6000, 0x03: 0x8000, 0x0f: 0x0117 }; this.out = []; this.first = true; this.version = 0; }
+  start(read) { if (read) { const v = this.ptr === 0 ? Math.round(this.temperature / 0.0078125) & 0xffff : this.ptr === 0x01 ? this.regs[1] | 0x2000 : this.regs[this.ptr] ?? 0; this.out = [v >> 8 & 0xff, v & 0xff]; } else { this.first = true; this.buf = []; } return true; }
+  write(b) { if (this.first) { this.ptr = b; this.first = false; return true; } this.buf.push(b); if (this.buf.length === 2 && this.ptr !== 0 && this.ptr !== 0x0f) { this.regs[this.ptr] = (this.buf[0] << 8) | this.buf[1]; this.version++; } return true; }
+  read() { return this.out.shift() ?? 0; }
+  stop() {}
 }

@@ -16,7 +16,7 @@ try { worker = new Worker(new URL('./worker.mjs', import.meta.url), { type: 'mod
 function design(placements) {
   const msg = { circuit: state.circuit, board: state.board, placements };
   if (!worker) { const t = performance.now(); return Promise.resolve({ design: designBoard(msg.circuit, msg.board, RULES, placements), ms: performance.now() - t }); }
-  return new Promise(res => { const id = ++seq; waiting.set(id, res); worker.postMessage({ ...msg, id }); });
+  return new Promise(res => { const id = ++seq; waiting.set(id, res); worker.postMessage({ ...msg, id, parts: window.HSCatalog.parts }); });
 }
 
 // ---------- carregar ----------

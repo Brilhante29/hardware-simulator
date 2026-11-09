@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "projects": [
+    {
+      "id": "pulseira-avc",
+      "title": "HS-Pulse: triagem de FA",
+      "category": "Saúde · Firmware real",
+      "description": "PPG do pulso → intervalos RR → irregularidade (fibrilação atrial, risco de AVC) com descarte por movimento; telemetria JSON para o edge (avc.html).",
+      "icon": "♥",
+      "circuit": "examples/firmware/pulseira-avc/hardware-studio.json",
+      "firmware": "examples/firmware/pulseira-avc/pulseira-avc-nano.hex",
+      "source": "examples/firmware/pulseira-avc",
+      "ready": "\"evt\":\"pronta\"",
+      "pcb": "examples/pcb/pulseira-avc-placa.json"
+    },
+    {
+      "id": "queda",
+      "title": "Pulseira detectora de queda",
+      "category": "Saúde · Firmware real",
+      "description": "MPU6050 reconhece queda livre, impacto e imobilidade; 10 s para cancelar no botão, depois alerta com sirene. Use “Simular queda” no MPU6050.",
+      "icon": "⚠",
+      "circuit": "examples/firmware/queda/hardware-studio.json",
+      "firmware": "examples/firmware/queda/queda-nano.hex",
+      "source": "examples/firmware/queda",
+      "ready": "pulseira pronta"
+    },
+    {
+      "id": "bengala",
+      "title": "Bengala inteligente",
+      "category": "Acessibilidade · Firmware real",
+      "description": "Ultrassom HC-SR04 vira vibração e bipes proporcionais à distância do obstáculo; botão alterna o modo silencioso.",
+      "icon": "◠",
+      "circuit": "examples/firmware/bengala/hardware-studio.json",
+      "firmware": "examples/firmware/bengala/bengala-nano.hex",
+      "source": "examples/firmware/bengala",
+      "ready": "bengala pronta"
+    },
+    {
+      "id": "estacao",
+      "title": "Estação de conforto",
+      "category": "Ambiente · Firmware real",
+      "description": "BME280 e BH1750: índice de calor e iluminação em uma barra de NeoPixels, OLED e aviso de calor perigoso.",
+      "icon": "☀",
+      "circuit": "examples/firmware/estacao/hardware-studio.json",
+      "firmware": "examples/firmware/estacao/estacao-nano.hex",
+      "source": "examples/firmware/estacao",
+      "ready": "estacao pronta"
+    },
+    {
+      "id": "relogio-cor",
+      "title": "Relógio colorido",
+      "category": "Arduino Nano · Firmware real",
+      "description": "Tela redonda GC9A01 240×240, batimento e SpO2 no MAX30102, passos, hora, vibracall e bateria. Projeto em examples/firmware/relogio-cor.",
+      "icon": "⌚",
+      "circuit": "examples/firmware/relogio-cor/hardware-studio.json",
+      "firmware": "examples/firmware/relogio-cor/relogio-cor-nano.hex",
+      "source": "examples/firmware/relogio-cor",
+      "ready": "relogio cor pronto",
+      "pcb": "examples/pcb/relogio-cor-placa.json"
+    },
+    {
+      "id": "relogio-pcb",
+      "title": "Relógio em placa própria",
+      "category": "SoC · Pronto para PCB",
+      "description": "O mesmo relógio sem Arduino: ATmega328P, cristal de 16 MHz, desacoplamento, sensores e vibracall. Abra em PCB para gerar a placa redonda.",
+      "icon": "◎",
+      "circuit": "examples/pcb/relogio-placa.json",
+      "firmware": "examples/firmware/relogio/relogio-nano.hex",
+      "source": "examples/firmware/relogio",
+      "ready": "relogio pronto",
+      "pcb": "examples/pcb/relogio-placa.json"
+    },
+    {
+      "id": "relogio",
+      "title": "Relógio de pulso",
+      "category": "Arduino Nano · Firmware real",
+      "description": "OLED, RTC DS3231, passos no MPU6050, botão de tela, vibracall e bateria. Projeto PlatformIO em examples/firmware/relogio.",
+      "icon": "⌚",
+      "circuit": "examples/firmware/relogio/hardware-studio.json",
+      "firmware": "examples/firmware/relogio/relogio-nano.hex",
+      "source": "examples/firmware/relogio",
+      "ready": "relogio pronto"
+    }
+  ]
+}
