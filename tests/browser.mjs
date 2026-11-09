@@ -86,6 +86,16 @@ await test('Chip nu: requisitos do catálogo (board.requires) recusam o boot sem
   const no = await check(false), yes = await check(true);
   ok(no.problems.some(p => /cristal/.test(p)), JSON.stringify(no)); ok(!yes.problems.length && yes.notes.some(n => /22 pF/.test(n)) && yes.notes.some(n => /desacoplamento/.test(n)), JSON.stringify(yes));
 });
+await test('Página de boot gerada pelo catálogo: LCD da bancada mostra o texto e o TMP117 entra só por ser ligado', async () => {
+  const b = await browser.newPage(); const errs = []; b.on('pageerror', e => errs.push(e.message));
+  await b.goto(`http://127.0.0.1:${srv.port}/boot.html`); await b.waitForSelector('[data-bench="tmp117"]');
+  const types = await b.$$eval('[data-bench]', els => els.map(e => e.dataset.bench)); ok(['display', 'oled', 'gc9a01', 'max30102', 'tmp117', 'dht22', 'ultrasonic'].every(t => types.includes(t)), types.join());
+  await b.setInputFiles('#fileInput', new URL('./fixtures/avr/lcd.hex', import.meta.url).pathname); await b.waitForTimeout(1600);
+  const lcd = await b.textContent('[data-view="display"]'); ok(/\S/.test(lcd), `LCD vazio: ${JSON.stringify(lcd)}`);
+  await b.check('[data-bench="tmp117"]'); await b.setInputFiles('#fileInput', new URL('./fixtures/avr/tmp117.hex', import.meta.url).pathname); await b.waitForTimeout(1500);
+  const serial = await b.textContent('#serial'); ok(serial.includes('id=117') && serial.includes('t=36.60'), serial.slice(-160));
+  ok(!errs.length, errs.join(' | ')); await b.close();
+});
 await test('Sem erros de JavaScript na página', async () => ok(!errors.length, errors.join(' | ')));
 
 await browser.close(); srv.close();

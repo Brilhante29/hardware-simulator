@@ -42,6 +42,7 @@ A visão de longo prazo (variantes de SoC, KiCad, SPICE) está em [SIMULATOR_ARC
 | `settings`, `readouts` | ajustes da peça (faixa, lista, texto, cor, caixa) e leituras | inspector, validação de importação |
 | `limits` | limites que viram aviso (ex.: `icMax` do transistor) | modelo elétrico |
 | `status` | o que é simulado (texto do inspector) | inspector |
+| `bench` | fiação padrão na página de boot (`on`, `wires`; I²C liga sozinho) | `boot.html` |
 | `view` | o que a peça mostra com o firmware rodando: `pulse` (servo) ou `ws2812` (NeoPixel); telas e LCD vêm do dispositivo (`lines`, `rgba`, `pixel`) | editor |
 | `momentary`, `states` | botão que conduz só enquanto é segurado; rótulos do contato | editor, inspector |
 | `board.supply`, `board.requires` | faixa de alimentação do chip nu e o que ele exige no circuito (cristal, AVCC, capacitores) | checagem de boot |
@@ -59,7 +60,7 @@ A visão de longo prazo (variantes de SoC, KiCad, SPICE) está em [SIMULATOR_ARC
 
 | Quero… | Faço | Ganho sem mais nada |
 | --- | --- | --- |
-| peça com protocolo que já existe | uma entrada no catálogo (+ arte, se quiser) | biblioteca, inspector, firmware, netlist, footprint (conector), testes de contrato |
+| peça com protocolo que já existe | uma entrada no catálogo (+ arte, se quiser) | biblioteca, inspector, firmware, netlist, footprint (conector), bancada do boot, testes de contrato |
 | sensor com protocolo novo | uma classe em `devices.mjs` + a entrada | o mesmo; exemplo: TMP117 (`tests/parts.mjs`) |
 | comportamento elétrico novo | um modelo em `models.js` | solver, avisos, estado visual |
 | footprint novo | `FOOTPRINTS` + `pcb.fp` na peça | PCB, Gerber, BOM, posição |

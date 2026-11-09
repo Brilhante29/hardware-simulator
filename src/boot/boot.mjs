@@ -1,14 +1,18 @@
 // Página de boot: carrega um firmware.hex e roda no chip certo (Uno ou Mega 2560, pela tabela de vetores) em tempo real.
 import { createMcu, CLOCK } from '../emulator/avr.mjs';
-import { LcdI2C, LcdParallel, HcSr04, Ssd1306, Bme280, Mpu6050, Bh1750, Ds3231, Dht } from '../emulator/devices.mjs';
+import * as devices from '../emulator/devices.mjs';
+import { bindCircuit, applyControls, wireNets } from '../core/bind.mjs';
+const catalog = window.HSCatalog;
 const $ = id => document.getElementById(id);
-// Mesmas posições de pino das placas do editor.
-const BOARDS = {
-  atmega328p: { def: { type: 'uno', width: 182, height: 220, pins: [] }, digital: 14, analog: 6, pos: { ...Object.fromEntries([...Array(14)].map((_, i) => [`D${i}`, [0, 26 + i * 12]])), ...Object.fromEntries([0, 1, 2, 3, 4, 5].map(i => [`A${i}`, [182, 38 + i * 20]])) } },
-  atmega2560: { def: { type: 'mega', width: 182, height: 340, pins: [] }, digital: 54, analog: 16, serials: 4, pos: { ...Object.fromEntries([...Array(22)].map((_, i) => [`D${i}`, [0, 26 + i * 12]])), ...Object.fromEntries([...Array(16)].map((_, i) => [`A${i}`, [182, 30 + i * 12]])), ...Object.fromEntries([...Array(32)].map((_, i) => [`D${22 + i}`, [16 + (i >> 1) * 10, i & 1 ? 328 : 340]])) } },
-};
+// Placas do catálogo (a mesma arte e os mesmos pinos do editor): a primeira placa (não chip nu) de cada microcontrolador.
+const BOARDS = Object.fromEntries(['atmega328p', 'atmega2560'].map(mcu => { const def = catalog.parts.find(d => d.board?.mcu === mcu && !d.board.bare);
+  return [mcu, { def, digital: def.board.pins.filter(p => p[0] === 'D').length, analog: def.board.analog, serials: def.board.serial.length > 1 ? def.board.serial.length : 0, pos: Object.fromEntries(def.pins.filter(([n]) => def.board.pins.includes(n)).map(([n, x, y]) => [n, [x, y]])) }]; }));
+// Bancada: toda peça do catálogo com `fw` e `bench` (fiação padrão) aparece aqui, ligada pelo mesmo core/bind.mjs do editor.
+const BENCH = catalog.parts.filter(d => d.fw && d.bench);
+const benchOn = new Map(BENCH.map(d => [d.type, !!d.bench.on])), benchValues = new Map(BENCH.map(d => [d.type, Object.fromEntries((d.controls || []).map(c => [c[0], c[6]]))]));
+let bound = [];
 let board = null;
-let lineBufs = ['', '', '', ''], sensors = {}, lcd = null, oled = null, audio = null, mcu = null, running = false, raf = 0, last = 0, hexText = '', fileName = '', fileHandle = null, lastModified = 0, watchTimer = 0, perf = 1, pressed = new Set();
+let lineBufs = ['', '', '', ''], audio = null, mcu = null, running = false, raf = 0, last = 0, hexText = '', fileName = '', fileHandle = null, lastModified = 0, watchTimer = 0, perf = 1, pressed = new Set();
 
 // Placa em pixel art + indicadores de pino; troca quando o firmware é de outro chip.
 function showBoard(id) {
@@ -41,18 +45,7 @@ function load(text, name) {
   mcu.onPinChange = () => {}; // estado lido a cada quadro
   mcu.analog[+$('aPin').value.slice(1)] = Number($('a0Slider').value);
   for (const p of pressed) mcu.setInput(p, 0);
-  // LCD paralelo (fiação do exemplo da LiquidCrystal) tem preferência na tela quando os dois estão ligados.
-  lcd = $('lcdParOn').checked ? mcu.attachPinDevice('D11', new LcdParallel()) : null;
-  const lcdI2c = $('lcdOn').checked ? mcu.attachI2C(0x27, new LcdI2C()) : null; lcd ||= lcdI2c; oled = $('oledOn').checked ? mcu.attachI2C(0x3c, new Ssd1306()) : null;
-  sensors = {};
-  const on = k => document.querySelector(`[data-dev="${k}"]`).checked;
-  if (on('bme')) sensors.bme = mcu.attachI2C(0x76, new Bme280());
-  if (on('rtc')) sensors.rtc = mcu.attachI2C(0x68, new Ds3231({ start: Date.now() }));
-  else if (on('mpu')) sensors.mpu = mcu.attachI2C(0x68, new Mpu6050());
-  if (on('bh')) sensors.bh = mcu.attachI2C(0x23, new Bh1750());
-  if (on('dht')) sensors.dht = mcu.attachPinDevice('D4', new Dht({ type: 22 }));
-  if (on('sonar')) sensors.sonar = mcu.attachPinDevice('D9', new HcSr04({ echo: 'D10' }));
-  applySensors();
+  bench();
   const key = 'hs-boot-eeprom-' + (name || 'firmware.hex');
   try { const saved = localStorage.getItem(key); if (saved) mcu.eeprom.set(saved.match(/../g).map(h => parseInt(h, 16))); } catch {}
   mcu.onEeprom = () => { clearTimeout(mcu._ee); mcu._ee = setTimeout(() => { try { localStorage.setItem(key, Array.from(mcu.eeprom, b => b.toString(16).padStart(2, '0')).join('')); } catch {} }, 300); };
@@ -60,6 +53,31 @@ function load(text, name) {
   $('chipInfo').textContent = `${mcu.chip.name} · ${mcu.chip.board} · 16 MHz · ${fileName} · ${mcu.programSize.toLocaleString('pt-BR')} bytes`; document.title = `Boot · ${mcu.chip.board}`;
   paint(); return true;
 }
+// Monta um circuito virtual (placa + peças ligadas na fiação de bancada) e liga pelo binder; endereço I²C repetido não entra.
+function bench() {
+  const io = board.def.board, boardPart = { id: 'board', type: board.def.type, name: board.def.name, settings: {} }, parts = [boardPart], wires = [], used = new Map(), notes = [];
+  const pinOf = v => v === '$sck' ? io.sck : v === '$mosi' ? io.mosi : v;
+  for (const d of BENCH) { if (!benchOn.get(d.type)) continue;
+    if (d.fw.bus === 'i2c') { const who = used.get(d.fw.address); if (who) { notes.push(`${d.name}: 0x${d.fw.address.toString(16)} já é do ${who} (mesmo endereço no barramento)`); continue; } used.set(d.fw.address, d.name); wires.push([d.type, 'SDA', io.sda], [d.type, 'SCL', io.scl]); }
+    for (const [pin, to] of Object.entries(d.bench.wires || {})) wires.push([d.type, pin, pinOf(to)]);
+    parts.push({ id: d.type, type: d.type, name: d.name, settings: { sensor: benchValues.get(d.type) } }); }
+  const circuit = { parts, wires: wires.map(([p, pin, to], i) => ({ id: 'w' + i, a: { part: p, pin }, b: { part: 'board', pin: to } })) };
+  const r = bindCircuit({ mcu, board: boardPart, io, parts, defFor: t => catalog.get(t), net: wireNets(circuit), devices, now: Date.now() - new Date().getTimezoneOffset() * 60e3 });
+  for (const n of [...notes, ...r.notes]) serialPrint(`[bancada] ${n}\n`);
+  for (const b of r.bound) applyControls(b.def, b.part, b.device);
+  bound = r.bound; views();
+}
+// Uma janela por peça que mostra algo: texto (lines, LCD) ou imagem (pixel monocromático ou rgba colorido).
+function views() {
+  $('benchViews').innerHTML = bound.filter(({ device: d }) => d.lines || d.pixel || d.rgba).map(({ part, device: d }) => `<div class="dev"><span class="label">${part.name}</span>${d.lines ? `<pre class="lcd-view" data-view="${part.id}"></pre>` : `<canvas data-view="${part.id}" width="${d.width}" height="${d.height}" class="${d.rgba ? 'round' : ''}" role="img" aria-label="Tela: ${part.name}"></canvas>`}</div>`).join('');
+}
+function renderBench() {
+  $('benchList').innerHTML = BENCH.map(d => { const on = benchOn.get(d.type), where = d.fw.bus === 'i2c' ? `I²C 0x${d.fw.address.toString(16).toUpperCase()}` : Object.entries(d.bench.wires || {}).map(([a, b]) => `${a}→${b.replace('$sck', 'SCK').replace('$mosi', 'MOSI')}`).join(' ');
+    return `<div class="bench-item"><label><input type="checkbox" data-bench="${d.type}" ${on ? 'checked' : ''}> ${d.name} <small>${where}</small></label>${on ? (d.controls || []).map(([k, label, unit, min, max, step]) => `<label class="bench-ctl">${label} <input type="number" data-ctl="${d.type}:${k}" min="${min}" max="${max}" step="${step}" value="${benchValues.get(d.type)[k]}"> ${unit}</label>`).join('') : ''}</div>`; }).join('');
+}
+renderBench();
+$('benchList').addEventListener('change', e => { const t = e.target.dataset.bench; if (!t) return; benchOn.set(t, e.target.checked); renderBench(); if (hexText) reboot('bancada alterada'); });
+$('benchList').addEventListener('input', e => { const c = e.target.dataset.ctl; if (!c) return; const [t, k] = c.split(':'); benchValues.get(t)[k] = Number(e.target.value); const b = bound.find(x => x.part.type === t); if (b) { b.part.settings.sensor = benchValues.get(t); applyControls(b.def, b.part, b.device); } });
 function boot() { if (!mcu) return; running = true; last = 0; $('runButton').textContent = '⏸ Pausar'; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); }
 function pause() { running = false; sound(0); $('runButton').textContent = '▶ Continuar'; cancelAnimationFrame(raf); }
 function reboot(note) { if (!hexText) return; const was = running || !mcu; load(hexText, fileName); serialPrint(`\n── ${note || 'reset'} ──\n`); if (was) boot(); }
@@ -81,14 +99,15 @@ function paint() {
   document.querySelector('#boardWrap .ledL')?.classList.toggle('on', pins.D13.mode === 'output' && pins.D13.level === 1);
   for (const b of document.querySelectorAll('[data-in]')) { const p = pins[b.dataset.in]; b.disabled = p.mode === 'output'; b.classList.toggle('on', pressed.has(b.dataset.in)); b.title = p.mode === 'output' ? 'Saída' : p.mode === 'input_pullup' ? 'Entrada com pull-up' : 'Entrada'; }
   $('clock').textContent = `t = ${fmt(mcu.time)} s · ≈ ${fmt(mcu.powerUsage().averageMa, 1)} mA · ${running ? fmt(perf, 1) + '× folga' : 'pausado'}`;
-  if (lcd) { // caracteres criados (CGRAM) viram os 5×8 pontos de verdade
-    const g = lcd.glyphs(), esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-    const cell = rows => `<svg class="lcd-glyph" viewBox="0 0 5 8">${rows.map((bits, y) => [0, 1, 2, 3, 4].filter(x => (bits >> (4 - x)) & 1).map(x => `<rect x="${x}" y="${y}" width=".9" height=".9"/>`).join('')).join('')}</svg>`;
-    const html = lcd.lines().map((l, r) => [...l].map((ch, c) => g[`${r},${c}`] ? cell(g[`${r},${c}`]) : esc(ch)).join('')).join('\n');
-    if ($('lcdView').dataset.html !== html) { $('lcdView').innerHTML = html; $('lcdView').dataset.html = html; }
-    $('lcdView').classList.toggle('dark', !lcd.backlight);
-  }
-  if (oled) { const ctx = $('oledView').getContext('2d'), img = ctx.createImageData(128, 64); for (let y = 0; y < 64; y++) for (let x = 0; x < 128; x++) { const on = oled.on && oled.pixel(x, y), i = (y * 128 + x) * 4; img.data[i] = on ? 140 : 6; img.data[i + 1] = on ? 220 : 12; img.data[i + 2] = on ? 255 : 28; img.data[i + 3] = 255; } ctx.putImageData(img, 0, 0); }
+  for (const { part, device: d } of bound) { const el = document.querySelector(`[data-view="${part.id}"]`); if (!el) continue;
+    if (d.lines) { // caracteres criados (CGRAM) viram os 5×8 pontos de verdade
+      const g = d.glyphs?.() || {}, esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      const cell = rows => `<svg class="lcd-glyph" viewBox="0 0 5 8">${rows.map((bits, y) => [0, 1, 2, 3, 4].filter(x => (bits >> (4 - x)) & 1).map(x => `<rect x="${x}" y="${y}" width=".9" height=".9"/>`).join('')).join('')}</svg>`;
+      const html = d.lines().map((l, r) => [...l].map((ch, c) => g[`${r},${c}`] ? cell(g[`${r},${c}`]) : esc(ch)).join('')).join('\n');
+      if (el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; } el.classList.toggle('dark', d.backlight === false); continue; }
+    if (el._v === d.version) continue; el._v = d.version; const ctx = el.getContext('2d');
+    if (d.rgba) { ctx.putImageData(new ImageData(d.rgba(), d.width, d.height), 0, 0); continue; }
+    const img = ctx.createImageData(d.width, d.height); for (let y = 0; y < d.height; y++) for (let x = 0; x < d.width; x++) { const on = d.on && d.pixel(x, y), i = (y * d.width + x) * 4; img.data[i] = on ? 140 : 6; img.data[i + 1] = on ? 220 : 12; img.data[i + 2] = on ? 255 : 28; img.data[i + 3] = 255; } ctx.putImageData(img, 0, 0); }
   const items = []; let toneHz = 0;
   for (const name of Object.keys(pins)) { const p = mcu.pulseInfo(name); if (!p || !p.periodUs) continue;
     if (p.periodUs > 15000 && p.periodUs < 25000 && p.highUs > 400 && p.highUs < 2600) items.push(`${name} · servo ${Math.round((p.highUs - 544) / (2400 - 544) * 180)}° (${Math.round(p.highUs)} µs)`);
@@ -142,15 +161,3 @@ $('serialForm').onsubmit = e => { e.preventDefault(); if (!mcu) return; mcu.seri
 $('clearSerial').onclick = () => { $('serial').textContent = ''; };
 document.addEventListener('visibilitychange', () => { if (document.hidden && running) { pause(); } });
 
-$('lcdOn').onchange = $('lcdParOn').onchange = $('oledOn').onchange = () => { if (hexText) reboot('dispositivos alterados'); };
-
-function applySensors() {
-  const n = id => Number($(id).value);
-  if (sensors.bme) { sensors.bme.temperature = n('bmeT'); sensors.bme.humidity = n('bmeH'); }
-  if (sensors.mpu) { const a = n('mpuX') * Math.PI / 180; sensors.mpu.accel = [0, -Math.sin(a), Math.cos(a)]; }
-  if (sensors.bh) sensors.bh.lux = n('bhLux');
-  if (sensors.dht) { sensors.dht.temperature = n('dhtT'); sensors.dht.humidity = n('dhtH'); }
-  if (sensors.sonar) sensors.sonar.distanceCm = n('sonarCm');
-}
-for (const id of ['bmeT', 'bmeH', 'mpuX', 'bhLux', 'dhtT', 'dhtH', 'sonarCm']) $(id).oninput = applySensors;
-document.querySelectorAll('[data-dev]').forEach(c => c.onchange = () => { if (hexText) reboot('sensores alterados'); });

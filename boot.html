@@ -3,7 +3,7 @@
 <meta name="description" content="Dê boot no firmware.hex do PlatformIO num Arduino Uno ou Mega 2560 emulado, direto no navegador.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%230f7c8a' d='M1 3h14v10H1z'/%3E%3Cpath fill='%23ffb347' d='M11 5h2v2h-2z'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="./src/display.css"><script src="./src/display.js"></script>
-<link rel="stylesheet" href="./src/editor/parts.css"><script src="./src/editor/parts-art.js"></script>
+<link rel="stylesheet" href="./src/editor/parts.css"><script src="./src/editor/parts-art.js"></script><script src="./src/parts/catalog.js"></script>
 <link rel="stylesheet" href="./src/boot/boot.css"><script type="module" src="./src/boot/boot.mjs"></script>
 </head><body>
 <header class="bar"><a class="brand" href="./">hardware<b>studio</b></a><h1 class="crumb">/ boot</h1>
@@ -25,17 +25,8 @@
     <label class="analog"><span class="label"><select id="aPin" aria-label="Entrada analógica"><option>A0</option></select> <b id="a0Value">2,50 V</b></span><input id="a0Slider" type="range" min="0" max="5" step="0.01" value="2.5"></label>
   </div>
   <div class="devices">
-    <div class="dev"><label class="label"><input type="checkbox" id="lcdOn" checked> LCD 16×2 I²C · 0x27</label><label class="label"><input type="checkbox" id="lcdParOn"> LCD paralelo · RS 12, EN 11, D4–D7 nos pinos 5–2</label><pre id="lcdView" class="lcd-view">                
-                </pre></div>
-    <div class="dev"><label class="label"><input type="checkbox" id="oledOn" checked> OLED SSD1306 · 0x3C</label><canvas id="oledView" width="128" height="64"></canvas></div>
-    <div class="dev sensors"><span class="label">Sensores I²C</span>
-      <label><input type="checkbox" data-dev="bme" checked> BME280 0x76 · <input type="number" id="bmeT" value="24" step="0.5"> °C <input type="number" id="bmeH" value="55" step="1"> %</label>
-      <label><input type="checkbox" data-dev="mpu" checked> MPU6050 0x68 · incl. X <input type="number" id="mpuX" value="0" step="5"> °</label>
-      <label><input type="checkbox" data-dev="bh" checked> BH1750 0x23 · <input type="number" id="bhLux" value="320" step="10"> lx</label>
-      <label><input type="checkbox" data-dev="rtc"> DS3231 0x68 (troque com o MPU)</label>
-      <label><input type="checkbox" data-dev="sonar"> HC-SR04 · TRIG D9, ECHO D10 · <input type="number" id="sonarCm" value="100" step="5"> cm</label>
-      <label><input type="checkbox" data-dev="dht" checked> DHT22 no D4 · <input type="number" id="dhtT" value="24" step="0.5"> °C <input type="number" id="dhtH" value="55" step="1"> %</label>
-    </div>
+    <div class="dev bench"><span class="label">Peças na bancada</span><small>Geradas do catálogo: cada peça liga na fiação padrão (I²C no SDA/SCL da placa). Mudou, o chip reinicia.</small><div id="benchList" class="bench-list"></div></div>
+    <div id="benchViews" class="bench-views"></div>
     <div class="dev"><span class="label">Pulsos medidos <label class="snd"><input type="checkbox" id="soundOn" checked> som do tone()</label></span><ul id="pulseView" class="pulse-view"><li>—</li></ul><div id="neoView" class="neo-view"></div></div>
   </div>
 </section>

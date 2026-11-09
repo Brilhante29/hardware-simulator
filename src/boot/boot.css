@@ -61,3 +61,4 @@ code{font:12px ui-monospace,monospace;background:var(--panel);padding:1px 5px}
 .serial-input select{padding:8px 6px}
 .pin-grid:has(> :nth-child(15)){grid-template-columns:repeat(9,1fr);max-height:220px;overflow:auto}
 .lcd-glyph{display:inline-block;width:.6em;height:1.05em;vertical-align:-.2em;fill:currentColor}
+.bench-list{display:grid;gap:6px;margin-top:8px;max-height:320px;overflow:auto}.bench-item label{font-size:13px}.bench-item small{color:var(--muted)}.bench-ctl{display:inline-block;margin:4px 10px 0 22px;font-size:12px}.bench-ctl input{width:64px;font:12px ui-monospace,monospace;padding:2px 4px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}.bench-views{display:contents}.dev canvas{display:block;margin-top:8px;max-width:100%;image-rendering:pixelated;background:#060c1c}.dev canvas.round{border-radius:50%;width:180px;height:180px;image-rendering:auto}
