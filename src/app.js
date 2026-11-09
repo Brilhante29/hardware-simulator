@@ -70,7 +70,9 @@ function readCustomParts(){try{const value=JSON.parse(localStorage.getItem(CUSTO
 // Campos com _ são do tempo de execução (dispositivo emulado, pasta aberta, OLED): nunca vão para o arquivo nem para o desfazer.
 const saveJSON=v=>JSON.stringify(v,(k,x)=>k[0]==='_'?undefined:x);
 function saveProject(showToast=false){try{localStorage.setItem(STORE_KEY,saveJSON(project));$('#saveStatus').textContent='Todas as alterações salvas';$('#projectTitle').textContent=project.title;$('#savedDot')?.classList.remove('unsaved');if(showToast)toast('Projeto salvo neste navegador')}catch{toast('Não foi possível salvar neste navegador')}}
-function markChanged(){ $('#saveStatus').textContent='Salvando…'; clearTimeout(saveTimer); saveTimer=setTimeout(()=>saveProject(),450)}
+function markChanged(){ $('#saveStatus').textContent='Salvando…'; clearTimeout(saveTimer); saveTimer=setTimeout(()=>{saveProject();saveCircuitToFolder()},450)}
+// Modo projeto local: o circuito também vai para hardware-studio.json na pasta (versionável junto com o código).
+function saveCircuitToFolder(){if(!localProject)return;const c=circuitForFile(),text=JSON.stringify(c);if(text===localProject.written)return;localProject.written=text;fetch('api/project/circuit',{method:'POST',headers:{'content-type':'application/json'},body:text}).then(r=>{if(r.ok)$('#saveStatus').textContent=`Salvo em ${localProject.name}/${CIRCUIT_FILE}`}).catch(()=>{})}
 function snapshot(){undoStack.push(saveJSON(project));if(undoStack.length>50)undoStack.shift();redoStack=[];updateHistoryButtons()}
 function restoreSnapshot(raw){stopSimulation();project=JSON.parse(raw);selectedId=null;selectedWire=null;pendingPin=null;$('#codeEditor').value=project.code||STARTER_CODE;renderAll();markChanged()}
 function undo(){if(!undoStack.length)return;redoStack.push(saveJSON(project));restoreSnapshot(undoStack.pop());updateHistoryButtons()}
@@ -279,19 +281,50 @@ async function pickProject(part){
   const input=document.createElement('input');input.type='file';input.webkitdirectory=true;input.multiple=true;
   input.onchange=()=>{const list=[...input.files].filter(f=>!f.webkitRelativePath.split('/').some(s=>SKIP_DIRS.test(s))).map(f=>({path:f.webkitRelativePath,file:f}));compileProject(part,list)};input.click();
 }
-async function compileProject(part,source){
+async function compileProject(part,source){let io;
   let files;try{files=Array.isArray(source)?source:await readDirHandle(source,source.name+'/')}catch(e){toast(`Não consegui ler a pasta: ${e.message}`);return}
   if(!files.some(f=>/(^|\/)platformio\.ini$/.test(f.path))){toast('A pasta precisa ter um platformio.ini');return}
   const total=files.reduce((n,f)=>n+f.file.size,0);if(total>40*1024*1024){toast('Projeto grande demais (máx. 40 MB sem a pasta .pio)');return}
-  const name=files[0].path.split('/')[0],io=ioOf(part);
+  const name=files[0].path.split('/')[0];io=ioOf(part);
   const body={name,mcu:io.mcu,files:await Promise.all(files.map(async f=>{const b=new Uint8Array(await f.file.arrayBuffer());let bin='';for(let i=0;i<b.length;i+=32768)bin+=String.fromCharCode(...b.subarray(i,i+32768));return{path:f.path,data:btoa(bin)}}))};
   showSerial(true);serialLog(`\n── compilando ${name} (${files.length} arquivos) com PlatformIO… ──\n`);toast(`Compilando ${name}…`);
   let r;try{const res=await fetch('api/build',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});r=await res.json()}catch{serialLog('Sem compilador: rode  node tools/studio-server.mjs  e abra o editor pelo endereço que ele mostrar.\n');toast('Para compilar, abra o Studio pelo servidor local (node tools/studio-server.mjs)');return}
   if(!r.ok){serialLog((r.log||'').split('\n').slice(-25).join('\n')+`\n✗ ${r.error}\n`);toast(r.error);return}
   serialLog(`■ ${r.env}: ${r.boardName||r.board} (${r.mcu}) · ${r.size} bytes\n`);
   if(!r.runnable){serialLog(`${r.reason}\n`);toast(r.reason);return}
+  if(r.circuit&&applyCircuit(r.circuit,`${name}/${CIRCUIT_FILE}`)){part=boardForBuild({...r,project:name});if(!part){toast(`O circuito de ${name} não tem placa ${r.mcu}`);return}io=ioOf(part)}
   if(r.mcu!==io.mcu){const fits=Object.entries(BOARD_IO).filter(([,v])=>v.mcu===r.mcu).map(([k])=>defFor(k).name).join(' ou ');const msg=`${r.env} compila para ${r.mcu}; esta placa é ${io.chip}. Use ${fits||'outra placa'} ou um [env] com board = ${io.env}.`;serialLog(msg+'\n');toast(msg);return}
   setFirmware(part,r.hex,`${name} · ${r.env}`);renderInspector();
+}
+// ---------- Projeto local vigiado (node tools/studio-server.mjs --project pasta, extensão do VS Code, app desktop) ----------
+// Cada salvar na pasta recompila no servidor; o firmware novo entra na placa certa e a simulação reinicia sozinha.
+function projectBadge(text,state){let el=$('#projectBadge');if(!el){el=document.createElement('div');el.id='projectBadge';el.style.cssText='position:fixed;left:270px;bottom:34px;z-index:15;max-width:520px;padding:7px 11px;border-radius:7px;font:10px var(--mono);background:#26332b;color:#e8f1eb;box-shadow:0 6px 20px #17291d2c;cursor:pointer';el.title='Clique para recompilar';el.onclick=()=>fetch('api/project/build',{method:'POST'});document.body.appendChild(el)}el.textContent=text;el.style.background=state==='err'?'#7c2d26':state==='busy'?'#5b5521':'#26332b'}
+function boardForBuild(r){
+  let board=project.parts.find(p=>isBoard(p)&&ioOf(p).mcu===r.mcu&&p.settings?.firmwareName?.startsWith(r.project+' ·'))||project.parts.find(p=>isBoard(p)&&ioOf(p).mcu===r.mcu);
+  if(board||project.parts.some(isBoard))return board;
+  // Projeto sem placa: põe a placa do platformio.ini (Nano, Uno ou Mega) no circuito.
+  const type=r.mcu==='atmega2560'?'mega':/nano/i.test(r.board||'')?'nano':'uno';addPart(type);return project.parts[project.parts.length-1];
+}
+// Circuito da pasta do projeto (hardware-studio.json): peças, fios e ajustes; o firmware vem sempre da compilação.
+const CIRCUIT_FILE='hardware-studio.json',KEEP_SETTINGS=['value','color','position','bounce','trigger','ad0','voltage','sensor','rating'];
+function circuitForFile(){return{version:1,title:project.title,parts:project.parts.map(p=>({id:p.id,type:p.type,name:p.name,x:Math.round(p.x),y:Math.round(p.y),settings:Object.fromEntries(KEEP_SETTINGS.filter(k=>p.settings?.[k]!==undefined).map(k=>[k,p.settings[k]]))})),wires:project.wires.map(({id,a,b,color})=>({id,a,b,...(color?{color}:{})}))}}
+function applyCircuit(value,from){try{const next=sanitizeProject(value);stopSimulation();snapshot();project={...next,code:project.code};selectedId=null;selectedWire=null;pendingPin=null;renderAll();fitCircuit();saveProject();toast(`Circuito de ${from} carregado`);return true}catch{toast(`${CIRCUIT_FILE} inválido`);return false}}
+let localProject=null;
+async function connectLocalProject(){
+  let info;try{const res=await fetch('api/health');if(!res.ok)return;info=await res.json()}catch{return}
+  if(!info.project)return;projectBadge(`📁 ${info.project} · aguardando compilação…`,'busy');
+  localProject={name:info.project,written:''};
+  try{const p=await(await fetch('api/project')).json();if(p.circuit){applyCircuit(p.circuit,info.project);localProject.written=JSON.stringify(circuitForFile())}}catch{}
+  let seen=0;const es=new EventSource('api/project/events');
+  es.addEventListener('circuit',e=>{const c=JSON.parse(e.data);if(JSON.stringify(c)===localProject.written)return;const running=!!simulationTimer;const fwBoards=project.parts.filter(p=>p.settings?.firmware).map(p=>[ioOf(p)?.mcu,p.settings.firmware,p.settings.firmwareName]);if(applyCircuit(c,CIRCUIT_FILE)){localProject.written=JSON.stringify(circuitForFile());for(const[mcu,hex,name]of fwBoards){const b=project.parts.find(p=>isBoard(p)&&ioOf(p).mcu===mcu);if(b){b.settings.firmware=hex;b.settings.firmwareName=name}}if(running)runSimulation()}});
+  es.addEventListener('building',e=>{const d=JSON.parse(e.data);projectBadge(`📁 ${info.project} · compilando (${d.reason})…`,'busy')});
+  es.addEventListener('build',e=>{const r=JSON.parse(e.data);if(r.seq<=seen)return;seen=r.seq;showSerial(true);
+    if(!r.ok){projectBadge(`📁 ${info.project} · ✗ ${r.error}`,'err');serialLog(`\n${(r.log||'').split('\n').slice(-20).join('\n')}\n✗ ${r.error}\n`);return}
+    if(!r.runnable){projectBadge(`📁 ${info.project} · ${r.env}: compilou, não roda aqui`,'err');serialLog(`\n■ ${r.env}: ${r.boardName} (${r.mcu})\n${r.reason}\n`);return}
+    const board=boardForBuild(r);if(!board){const msg=`${r.env} é ${r.mcu}; nenhuma placa com esse chip no circuito.`;projectBadge(`📁 ${info.project} · ${msg}`,'err');serialLog(msg+'\n');return}
+    projectBadge(`📁 ${info.project} · ✓ ${r.env} · ${(r.size/1024).toFixed(0)} KB · ${new Date().toLocaleTimeString()}`);
+    const running=!!simulationTimer;setFirmware(board,r.hex,`${r.project} · ${r.env}`);if(!running)runSimulation()});
+  es.onerror=()=>projectBadge(`📁 ${info.project} · servidor desconectado`,'err');
 }
 // Sketch rodando sem firmware: o tempo dos capacitores segue o relógio da parede (até 0,1 s por passo).
 function sketchDt(){const now=performance.now(),dt=simulationTimer&&simulationTimer!=='firmware'&&lastSketchSolve?Math.min(0.1,(now-lastSketchSolve)/1000):0;lastSketchSolve=now;return dt}
@@ -548,14 +581,9 @@ function normalizeCustomDefinitions(definitions){
     return{type:d.type.slice(0,48),name:d.name.slice(0,30),category:categories.some(c=>c[0]===d.category)?d.category:'Customizados',tag:String(d.tag||'CUSTOM').slice(0,8),width:layout.width,height:layout.height,icon:'custom',description:String(d.description||'Componente importado com pinos personalizados.').slice(0,120),kind,pins:layout.pins};
   });
 }
-function importProject(file){
-  const reader=new FileReader();
-  reader.onload=()=>{
-    try{
-      const value=JSON.parse(reader.result);
-      if(Array.isArray(value.connections)&&!Array.isArray(value.wires)){toast('Esse arquivo é de outra ferramenta. Importe um projeto exportado pelo Hardware Studio (.json).');return}
-      if(!Array.isArray(value.parts)||!Array.isArray(value.wires))throw new Error('invalid');
-      snapshot();
+// Projeto vindo de fora (arquivo importado ou hardware-studio.json da pasta do projeto): só campos conhecidos e limitados.
+function sanitizeProject(value){
+  if(!value||!Array.isArray(value.parts)||!Array.isArray(value.wires))throw new Error('invalid');
       const definitions=normalizeCustomDefinitions(Array.isArray(value.customComponents)?value.customComponents:[]);
       customParts=[...customParts.filter(def=>!definitions.some(next=>next.type===def.type)),...definitions];localStorage.setItem(CUSTOM_KEY,JSON.stringify(customParts));
       const safeParts=value.parts.slice(0,250).map((part,index)=>{
@@ -568,7 +596,15 @@ function importProject(file){
       }).filter(Boolean);
       const ids=new Set(safeParts.map(part=>part.id));
       const safeWires=value.wires.slice(0,1000).filter(wire=>wire&&ids.has(wire.a?.part)&&ids.has(wire.b?.part)&&pinDef(safeParts.find(part=>part.id===wire.a.part),String(wire.a.pin))&&pinDef(safeParts.find(part=>part.id===wire.b.part),String(wire.b.pin))).map((wire,index)=>({id:String(wire.id||`wire-${index}`).slice(0,60),a:{part:String(wire.a.part),pin:String(wire.a.pin)},b:{part:String(wire.b.part),pin:String(wire.b.pin)},...(typeof wire.color==='string'&&/^#[\da-f]{6}$/i.test(wire.color)?{color:wire.color}:{})}));
-      project={version:1,title:String(value.title||'Projeto importado').slice(0,80),parts:safeParts,wires:safeWires,code:String(value.code||STARTER_CODE).slice(0,20000)};
+      return{version:1,title:String(value.title||'Projeto importado').slice(0,80),parts:safeParts,wires:safeWires,code:String(value.code||STARTER_CODE).slice(0,20000)};
+}
+function importProject(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const value=JSON.parse(reader.result);
+      if(Array.isArray(value.connections)&&!Array.isArray(value.wires)){toast('Esse arquivo é de outra ferramenta. Importe um projeto exportado pelo Hardware Studio (.json).');return}
+      const next=sanitizeProject(value);snapshot();project=next;
       $('#codeEditor').value=project.code;selectedId=null;selectedWire=null;pendingPin=null;renderAll();markChanged();
       toast('Projeto importado com sucesso');
     }catch{toast('JSON inválido ou formato de circuito desconhecido')}
@@ -592,6 +628,7 @@ $('#codeEditor').addEventListener('input',()=>{project.code=$('#codeEditor').val
 $('#propertiesTab').addEventListener('click',()=>showInspectorTab('properties'));
 $('#codeTab').addEventListener('click',()=>showInspectorTab('code'));
 $('#runButton').addEventListener('click',runSimulation);
+connectLocalProject();
 $('#saveButton').addEventListener('click',()=>saveProject(true));
 $('#undoButton').addEventListener('click',undo);$('#redoButton').addEventListener('click',redo);
 $('#exportButton').addEventListener('click',exportProject);$('#importButton').addEventListener('click',()=>$('#importFile').click());$('#importFile').addEventListener('change',event=>{const file=event.target.files?.[0];if(file)importProject(file);event.target.value=''});

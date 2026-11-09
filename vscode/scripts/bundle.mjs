@@ -1,0 +1,9 @@
+// Copia o Studio (páginas, src/, tools/, exemplos) para media/ antes de empacotar a extensão (.vsix).
+import { cpSync, rmSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const here = dirname(fileURLToPath(import.meta.url)), repo = join(here, '..', '..'), media = join(here, '..', 'media');
+rmSync(media, { recursive: true, force: true }); mkdirSync(media, { recursive: true });
+for (const p of ['editor.html', 'boot.html', 'src', 'tools/studio-server.mjs', 'tools/lib', 'data', 'examples/firmware/relogio/relogio-nano.hex', 'LICENSE'])
+  cpSync(join(repo, p), join(media, p), { recursive: true });
+console.log('Studio copiado para', media);

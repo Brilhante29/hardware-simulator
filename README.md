@@ -16,7 +16,8 @@ Abra `http://localhost:8080`. O aplicativo não exige conta, não envia projetos
 - `studio.html`: bancada de medição, cenários editáveis, biblioteca e validação.
 - `editor.html`: editor livre com peças em pixel art, fios, sketch Arduino simplificado e projetos JSON.
 - `lab/sn74hc595.html`: registrador digital interativo.
-- `boot.html`: dá boot no `firmware.hex` do PlatformIO num Arduino Uno ou Mega 2560 emulado (o chip é detectado pelo arquivo).
+- `boot.html`: dá boot no `firmware.hex` do PlatformIO num Arduino Uno, Nano ou Mega 2560 emulado (o chip é detectado pelo arquivo).
+- `node tools/studio-server.mjs`: o mesmo Studio, compilando projetos PlatformIO inteiros (ver abaixo).
 
 ## Tour em vídeo
 
@@ -63,6 +64,22 @@ O `simulate.py` passa o `build.mcu` da placa do `platformio.ini` para o emulador
 - **Editor (`editor.html`):** selecione o Uno ou o Mega 2560 → **Carregar .hex** (ou **Vigiar**). O circuito é resolvido em corrente contínua (`src/editor/circuit.js`): resistores com o valor escrito, pinos com 25 Ω de saída, pull-up interno de 35 kΩ, LEDs e diodos com Vf, NPN com corte/saturação/região ativa (Ic = hFE·Ib, hFE 100), capacitores que carregam no tempo da simulação (Euler implícito), relé e porta AND. Assim o firmware lê o que o circuito real daria (botão com pull-down, divisor com LDR no `analogRead`) e o editor avisa quando um LED passa de 30 mA ou um pino passa de 40 mA. Com a simulação rodando, o botão é momentâneo (conduz enquanto você segura) e trepida como uma chave real (2–5 trocas em ~2 ms; dá para desligar por peça), o servo anda a 600°/s como um SG90 e o motor tem inércia. O firmware real move o circuito: LEDs (com brilho de PWM), buzzer com som, botões e chaves viram entradas, potenciômetro vira tensão no pino analógico, servo gira, LCD e OLED ligados no I²C da placa (A4/A5 no Uno, D20/D21 no Mega) mostram a tela. Exemplo pronto: importe `examples/firmware/painel-projeto.json` (fonte em `examples/firmware/painel`).
 
 No editor, placas se falam por serial (TX→RX; no Mega também TX1/RX1 D18/D19, TX2/RX2 D16/D17, TX3/RX3 D14/D15), I²C (SDA/SCL em comum) ou SPI (SCK/MOSI e SS); os chips ligados rodam em passo de 10 µs. Fica de fora outra arquitetura de CPU (ESP32/ESP-IDF, Xtensa/RISC-V): é outro emulador inteiro. `node tests/avr.mjs` roda os testes com firmwares reais compilados pelo PlatformIO (`tests/fixtures/avr`) e repete a suíte do Uno com os mesmos firmwares compilados para o Mega (`tests/fixtures/avr/mega`). Onde o chip real erra, o emulador erra igual: `pulseIn` lê alguns µs a menos porque o ISR do `millis` pausa o laço de contagem.
+
+## Projeto inteiro: pasta → compila → roda (VS Code ou navegador)
+
+Um projeto PlatformIO é um conjunto de arquivos: `platformio.ini`, `src/`, `include/`, `lib/` e, aqui, um `hardware-studio.json` com o circuito (peças, fios e ajustes). O Hardware Studio compila esse conjunto com o **seu** PlatformIO e roda o firmware no circuito, sem copiar `.hex` à mão.
+
+```sh
+node tools/studio-server.mjs --project caminho/do/projeto   # vigia a pasta: cada salvar recompila e reinicia a simulação
+node tools/studio-server.mjs                               # sem pasta: no editor, placa → "Compilar pasta…"
+```
+
+- **Extensão do VS Code** (`vscode/`, 187 KB): `cd vscode && npm run package` gera o `.vsix`; instale com *Extensions → Install from VSIX*. O comando **Hardware Studio: Simular projeto PlatformIO** abre o Studio ao lado do código, compila ao abrir e a cada salvar, e carrega o circuito do `hardware-studio.json`. Mudanças no circuito feitas no Studio voltam para esse arquivo; editar o arquivo no VS Code atualiza o Studio.
+- **Navegador:** com o servidor rodando, selecione a placa e use **Compilar pasta…** (no Chrome/Edge aparece também **Recompilar**). Se a pasta tiver `hardware-studio.json`, o circuito vem junto.
+- O `[env]` usado é o do `default_envs`, a menos que outro `[env]` seja para o chip da placa selecionada (ex.: o mesmo projeto com `nano` e `mega`). Alvos que o emulador não executa (8 MHz, ESP32) compilam e dizem o motivo.
+- O servidor só escuta em 127.0.0.1 e recusa pedidos de páginas de outra origem.
+
+Exemplo: [`examples/firmware/relogio`](examples/firmware/relogio) é um relógio de pulso (Arduino Nano, OLED SSD1306, RTC DS3231, passos pelo MPU6050 em 0x69, botão de tela, vibracall com transistor e bateria Li-ion num divisor). No editor, **Exemplos → Relógio de pulso**; no controle **Caminhada** do MPU6050 o relógio conta passos e vibra na meta.
 
 ## Aparência
 
@@ -119,7 +136,9 @@ Veja [modelos elétricos e evidências](docs/ELECTRICAL_MODELS.md) e [primeira v
 node tests/all.mjs
 node tests/avr.mjs
 node tests/editor.mjs
+node tests/build.mjs        # compila o relógio de exemplo com o PlatformIO (pulado sem pio)
 node tests/display-contrast.mjs
+cd vscode && npm test       # extensão com um VS Code simulado
 ```
 
 24 grupos: 8 digitais + 16 elétricos. Incluem os 256 valores do registrador, solução RC fechada, partição de passos, balanço de potência em 500 configurações e consequências das falhas. `tests/editor.mjs` cobre o interpretador de sketch do editor (13 casos, incluindo que expressões não executam código arbitrário). Os 24 grupos também podem ser executados em **Bancada → Validação** e exportados como JSON. Não são ensaios destrutivos de hardware físico.

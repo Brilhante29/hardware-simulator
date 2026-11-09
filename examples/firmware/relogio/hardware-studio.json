@@ -1,0 +1,427 @@
+{
+  "version": 1,
+  "title": "Relógio de pulso",
+  "parts": [
+    {
+      "id": "n1",
+      "type": "nano",
+      "name": "Arduino Nano",
+      "x": 420,
+      "y": 190,
+      "settings": {}
+    },
+    {
+      "id": "o1",
+      "type": "oled",
+      "name": "OLED 128×64",
+      "x": 640,
+      "y": 90,
+      "settings": {}
+    },
+    {
+      "id": "rt1",
+      "type": "ds3231",
+      "name": "RTC DS3231",
+      "x": 660,
+      "y": 220,
+      "settings": {}
+    },
+    {
+      "id": "m1",
+      "type": "mpu6050",
+      "name": "MPU6050",
+      "x": 660,
+      "y": 330,
+      "settings": {
+        "ad0": "HIGH"
+      }
+    },
+    {
+      "id": "sw1",
+      "type": "button",
+      "name": "Botão de tela",
+      "x": 180,
+      "y": 190,
+      "settings": {}
+    },
+    {
+      "id": "g1",
+      "type": "gnd",
+      "name": "GND",
+      "x": 60,
+      "y": 300,
+      "settings": {}
+    },
+    {
+      "id": "v1",
+      "type": "vcc",
+      "name": "5 V",
+      "x": 60,
+      "y": 420,
+      "settings": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "name": "R1 · 1 kΩ",
+      "x": 160,
+      "y": 470,
+      "settings": {
+        "value": "1 kΩ"
+      }
+    },
+    {
+      "id": "q1",
+      "type": "transistor",
+      "name": "Q1 · BC547",
+      "x": 330,
+      "y": 450,
+      "settings": {}
+    },
+    {
+      "id": "mo1",
+      "type": "motor",
+      "name": "Vibracall",
+      "x": 490,
+      "y": 450,
+      "settings": {}
+    },
+    {
+      "id": "d1",
+      "type": "diode",
+      "name": "D1 · 1N4148",
+      "x": 490,
+      "y": 560,
+      "settings": {}
+    },
+    {
+      "id": "b1",
+      "type": "source",
+      "name": "Bateria Li-ion",
+      "x": 640,
+      "y": 650,
+      "settings": {
+        "voltage": 3.9
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "name": "R2 · 10 kΩ",
+      "x": 300,
+      "y": 650,
+      "settings": {
+        "value": "10 kΩ"
+      }
+    },
+    {
+      "id": "r3",
+      "type": "resistor",
+      "name": "R3 · 10 kΩ",
+      "x": 460,
+      "y": 720,
+      "settings": {
+        "value": "10 kΩ"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "a": {
+        "part": "o1",
+        "pin": "VCC"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w2",
+      "a": {
+        "part": "o1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w3",
+      "a": {
+        "part": "o1",
+        "pin": "SDA"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A4"
+      }
+    },
+    {
+      "id": "w4",
+      "a": {
+        "part": "o1",
+        "pin": "SCL"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A5"
+      }
+    },
+    {
+      "id": "w5",
+      "a": {
+        "part": "rt1",
+        "pin": "VCC"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w6",
+      "a": {
+        "part": "rt1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w7",
+      "a": {
+        "part": "rt1",
+        "pin": "SDA"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A4"
+      }
+    },
+    {
+      "id": "w8",
+      "a": {
+        "part": "rt1",
+        "pin": "SCL"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A5"
+      }
+    },
+    {
+      "id": "w9",
+      "a": {
+        "part": "m1",
+        "pin": "VCC"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w10",
+      "a": {
+        "part": "m1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w11",
+      "a": {
+        "part": "m1",
+        "pin": "SDA"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A4"
+      }
+    },
+    {
+      "id": "w12",
+      "a": {
+        "part": "m1",
+        "pin": "SCL"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A5"
+      }
+    },
+    {
+      "id": "w13",
+      "a": {
+        "part": "sw1",
+        "pin": "2"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "D2"
+      }
+    },
+    {
+      "id": "w14",
+      "a": {
+        "part": "sw1",
+        "pin": "1"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w15",
+      "a": {
+        "part": "n1",
+        "pin": "D5"
+      },
+      "b": {
+        "part": "r1",
+        "pin": "2"
+      }
+    },
+    {
+      "id": "w16",
+      "a": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "b": {
+        "part": "q1",
+        "pin": "B"
+      }
+    },
+    {
+      "id": "w17",
+      "a": {
+        "part": "q1",
+        "pin": "E"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w18",
+      "a": {
+        "part": "q1",
+        "pin": "C"
+      },
+      "b": {
+        "part": "mo1",
+        "pin": "−"
+      }
+    },
+    {
+      "id": "w19",
+      "a": {
+        "part": "mo1",
+        "pin": "+"
+      },
+      "b": {
+        "part": "v1",
+        "pin": "VCC"
+      }
+    },
+    {
+      "id": "w20",
+      "a": {
+        "part": "d1",
+        "pin": "A"
+      },
+      "b": {
+        "part": "mo1",
+        "pin": "−"
+      }
+    },
+    {
+      "id": "w21",
+      "a": {
+        "part": "d1",
+        "pin": "K"
+      },
+      "b": {
+        "part": "mo1",
+        "pin": "+"
+      }
+    },
+    {
+      "id": "w22",
+      "a": {
+        "part": "b1",
+        "pin": "+"
+      },
+      "b": {
+        "part": "r2",
+        "pin": "1"
+      }
+    },
+    {
+      "id": "w23",
+      "a": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A0"
+      }
+    },
+    {
+      "id": "w24",
+      "a": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "b": {
+        "part": "r3",
+        "pin": "1"
+      }
+    },
+    {
+      "id": "w25",
+      "a": {
+        "part": "r3",
+        "pin": "2"
+      },
+      "b": {
+        "part": "b1",
+        "pin": "−"
+      }
+    },
+    {
+      "id": "w26",
+      "a": {
+        "part": "b1",
+        "pin": "−"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w27",
+      "a": {
+        "part": "n1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "hardware-studio",
+  "displayName": "Hardware Studio",
+  "description": "Simula o firmware do seu projeto PlatformIO (Arduino Uno, Nano, Mega) num circuito virtual: compila a cada salvar e roda o .hex real.",
+  "version": "0.1.0",
+  "publisher": "brilhante29",
+  "license": "MIT",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other", "Debuggers"],
+  "keywords": ["arduino", "platformio", "simulator", "avr", "emulator"],
+  "activationEvents": ["workspaceContains:**/platformio.ini"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "hardwareStudio.open", "title": "Simular projeto PlatformIO", "category": "Hardware Studio", "icon": "$(circuit-board)" },
+      { "command": "hardwareStudio.rebuild", "title": "Recompilar e reiniciar a simulação", "category": "Hardware Studio" }
+    ],
+    "menus": {
+      "editor/title": [{ "command": "hardwareStudio.open", "when": "resourceFilename == platformio.ini || resourceExtname =~ /^\\.(cpp|ino|h|c)$/", "group": "navigation" }]
+    },
+    "configuration": {
+      "title": "Hardware Studio",
+      "properties": {
+        "hardwareStudio.pioPath": { "type": "string", "default": "", "description": "Caminho do pio (vazio: PATH ou ~/.platformio/penv)." }
+      }
+    }
+  },
+  "scripts": {
+    "bundle": "node scripts/bundle.mjs",
+    "test": "node scripts/test.cjs",
+    "package": "node scripts/bundle.mjs && npx --yes @vscode/vsce@3 package --allow-missing-repository --skip-license"
+  }
+}
