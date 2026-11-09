@@ -51,10 +51,10 @@ const SEGMENTS = {
     await D.click('#runButton', 2200);
     await select(D, 'm1');
     await D.caption('', 'Simular <b>queda</b>', 'right top');
-    await D.click('#mpuFall', 300);
+    await D.click('[data-event="fall"]', 300);
     await D.cam('#partLayer .part[data-part=o1]', 2.2, 800, .5, .5); await D.wait(4600);
     await D.caption('', '10 s sem resposta: <b>sirene</b>', 'right top');
-    await D.wait(8200);
+    await D.wait(6200);
     await D.camReset(600); await D.hide();
     await D.click('#runButton', 200);
     await D.cover(520);
@@ -95,7 +95,7 @@ const SEGMENTS = {
     await D.uncover(520);
     await D.caption('HS-Pulse', 'Ritmo <b>sinusal</b>', 'right top');
     await D.scrollTo('#painel', 'start', 900);
-    await D.wait(9000);
+    await D.wait(6500);
     await D.caption('Fibrilação atrial', 'Intervalos <b>irregulares</b>', 'right top');
     await D.click('[data-rhythm=af]', 200); await slide(D, '#bpm', 108);
     await p.waitForFunction(() => /fibrila/.test(document.querySelector('#status').textContent), null, { timeout: 60000 }).catch(() => {});
@@ -135,13 +135,36 @@ const SEGMENTS = {
     await D.cover(520);
   },
 
-  async '9-codigo'(D) {
+  async '9-boot'(D) {
     const p = D.page;
-    await D.title('08', 'no seu <b>VS Code</b>', 'salvou → compilou → rodou', 1500);
+    await D.title('08', 'a bancada vem do <b>catálogo</b>', 'qualquer peça com firmware aparece sozinha', 1600);
+    await D.goto('/boot.html', { covered: true });
+    await p.check('[data-bench="gc9a01"]'); await p.uncheck('[data-bench="dht22"]');
+    await D.uncover(520);
+    await D.caption('boot.html', 'Solte o <b>.hex</b>', 'right top');
+    await p.setInputFiles('#fileInput', path.join(__dirname, '../../tests/fixtures/avr/relogio_cor.hex'));
+    await D.wait(1800); await D.scrollTo('#benchViews', 'center', 900);
+    await D.cam('[data-view="gc9a01"]', 1.7, 800); await D.wait(2600); await D.camReset(500); await D.hide();
+    await D.cover(520);
+  },
+
+  async '10-arquitetura'(D) {
+    const p = D.page;
+    await D.goto('/__demo/arch.html', { covered: true });
+    await p.addStyleTag({ content: '#demo-cursor{display:none!important}' });
+    await D.uncover(480);
+    await p.waitForFunction(() => window.__done === true, null, { timeout: 30000 });
+    D.sfx('win'); await D.wait(900);
+    await D.cover(500);
+  },
+
+  async '11-codigo'(D) {
+    const p = D.page;
+    await D.title('09', 'no seu <b>VS Code</b>', 'salvou → compilou → rodou', 1500);
     await D.goto('/__demo/image.html?src=/docs/media/vscode-relogio.png', { covered: true });
     await D.uncover(500); await D.wait(3200);
     await D.cover(480);
-    await D.goto('/__demo/terminal.html?fast', { covered: true });
+    await D.goto('/__demo/suites.html?fast', { covered: true });
     await p.addStyleTag({ content: '#demo-cursor{display:none!important}' });
     await D.uncover(480);
     await p.waitForFunction(() => window.__done === true, null, { timeout: 60000 });

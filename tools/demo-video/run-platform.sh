@@ -3,7 +3,7 @@
 # Uso: tools/demo-video/run-platform.sh [prefixos de capítulo]
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/../.." && pwd)"
-{ for t in pcb editor all display-contrast; do echo "\$ node tests/$t.mjs"; node "$ROOT/tests/$t.mjs" | tail -4; echo; done; } > "$HERE/demo/tests.txt" 2>&1 || true
+{ for t in parts projects pcb editor all display-contrast; do echo "\$ node tests/$t.mjs"; node "$ROOT/tests/$t.mjs" | tail -4; echo; done; } > "$HERE/demo/tests.txt" 2>&1 || true
 cp "$ROOT/assets/fonts/pixelify-sans.woff" "$HERE/demo/"
 node "$HERE/server.cjs" "$ROOT" "$HERE/demo" 8080 & SERVER=$!; trap 'kill $SERVER' EXIT; sleep 0.5
 node "$HERE/platform.cjs" "$@"

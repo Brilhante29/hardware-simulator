@@ -5,7 +5,7 @@ import numpy as np
 SR = 44100
 rng = np.random.default_rng(7)
 clip_dir, out = sys.argv[1], sys.argv[2]
-clips = sorted(glob.glob(os.path.join(clip_dir, '[0-9]-*.mp4')))
+clips = sorted(glob.glob(os.path.join(clip_dir, '[0-9]*-*.mp4')), key=lambda p: int(os.path.basename(p).split('-')[0]))
 durs = [float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', c])) for c in clips]
 total = sum(durs)
 N = int((total + 0.5) * SR)

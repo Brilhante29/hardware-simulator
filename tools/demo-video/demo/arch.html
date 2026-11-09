@@ -1,0 +1,48 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Arquitetura</title>
+<style>
+@font-face{font-family:Px;src:url('./pixelify-sans.woff') format('woff')}
+*{box-sizing:border-box}
+body{margin:0;height:100vh;background:#0b0f14;color:#eef2f6;font-family:system-ui,sans-serif;display:grid;grid-template-columns:1.05fr 1fr;gap:56px;padding:70px 80px;overflow:hidden;background-image:radial-gradient(900px 500px at 75% 20%,#12303a 0,transparent 70%)}
+h1{font:700 56px/1.05 Px,monospace;margin:0 0 26px;letter-spacing:-1px}h1 b{color:#2bd99f}
+.layers{display:flex;flex-direction:column;gap:12px}
+.layer{border:2px solid #223040;border-radius:14px;padding:14px 18px;background:#0e151d;opacity:0;transform:translateX(-30px);transition:all .5s cubic-bezier(.2,1.4,.4,1)}
+.layer.on{opacity:1;transform:none}.layer b{display:block;font:600 13px ui-monospace,monospace;letter-spacing:2px;color:#2bd99f;margin-bottom:4px;text-transform:uppercase}
+.layer span{font-size:19px;color:#c5d0da}.layer code{color:#ffd166;font-size:16px}
+.right{display:flex;flex-direction:column;gap:18px}
+pre{margin:0;background:#05080b;border:2px solid #223040;border-radius:14px;padding:18px 20px;font:15px/1.6 ui-monospace,monospace;color:#7ef0c4;white-space:pre-wrap;min-height:260px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{border:2px solid #2bd99f;border-radius:999px;padding:8px 16px;font-size:18px;opacity:.15;transition:all .35s}.chip.on{opacity:1;background:#2bd99f22}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.num{background:#0e151d;border:2px solid #223040;border-radius:14px;padding:12px 14px;opacity:0;transition:opacity .5s}.num.on{opacity:1}
+.num b{display:block;font:700 40px Px,monospace;color:#2bd99f}.num span{color:#9aa6b2;font-size:15px}
+</style></head><body>
+<div><h1>uma peça nova =<br><b>uma entrada</b></h1>
+<div class="layers">
+<div class="layer"><b>aplicações</b><span>editor · boot · PCB · relógio · HS-Pulse · VS Code · CLI</span></div>
+<div class="layer"><b>composição</b><span><code>core/bind.mjs</code> circuito → dispositivos · <code>core/rig.mjs</code></span></div>
+<div class="layer"><b>dados</b><span><code>parts/catalog.js</code> pinos · fw · pcb · ajustes · bancada</span></div>
+<div class="layer"><b>modelos</b><span>elétrico · protocolo · footprint · arte</span></div>
+<div class="layer"><b>motores</b><span>CPU AVR · solver CC · roteador + DRC · Gerber</span></div>
+</div></div>
+<div class="right">
+<pre id="code"></pre>
+<div class="chips"><span class="chip">biblioteca</span><span class="chip">inspector</span><span class="chip">firmware real</span><span class="chip">bancada do boot</span><span class="chip">netlist + PCB</span><span class="chip">41 contratos</span></div>
+<div class="nums"><div class="num"><b>0</b><span>desvios por tipo no editor (eram 79)</span></div><div class="num"><b>1</b><span>caminho circuito → firmware</span></div><div class="num"><b>212</b><span>testes passando</span></div></div>
+</div>
+<script>
+const code = `{ type: 'tmp117',
+  name: 'Temperatura corporal TMP117',
+  pins: [['VCC',..],['GND',..],['SCL',..],['SDA',..]],
+  controls: [['temperature','Temperatura','°C',30,43,0.1,36.6]],
+  fw:    { bus: 'i2c', device: 'Tmp117', address: 0x48,
+           addressSetting: { key: 'add0', HIGH: 0x49 } },
+  pcb:   { header: ['VCC','GND','SCL','SDA'] },
+  bench: { on: false } }`;
+const wait = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  for (const l of document.querySelectorAll('.layer')) { await wait(260); l.classList.add('on'); }
+  const pre = document.getElementById('code'); for (let i = 0; i <= code.length; i += 3) { pre.textContent = code.slice(0, i); await wait(14); }
+  for (const c of document.querySelectorAll('.chip')) { await wait(330); c.classList.add('on'); }
+  for (const n of document.querySelectorAll('.num')) { await wait(350); n.classList.add('on'); }
+  await wait(900); window.__done = true;
+})();
+</script></body></html>
