@@ -74,6 +74,8 @@ node tools/studio-server.mjs --project caminho/do/projeto   # vigia a pasta: cad
 node tools/studio-server.mjs                               # sem pasta: no editor, placa → "Compilar pasta…"
 ```
 
+![Relógio de pulso rodando no VS Code](docs/media/vscode-relogio.png)
+
 - **Extensão do VS Code** (`vscode/`, 187 KB): `cd vscode && npm run package` gera o `.vsix`; instale com *Extensions → Install from VSIX*. O comando **Hardware Studio: Simular projeto PlatformIO** abre o Studio ao lado do código, compila ao abrir e a cada salvar, e carrega o circuito do `hardware-studio.json`. Mudanças no circuito feitas no Studio voltam para esse arquivo; editar o arquivo no VS Code atualiza o Studio.
 - **Navegador:** com o servidor rodando, selecione a placa e use **Compilar pasta…** (no Chrome/Edge aparece também **Recompilar**). Se a pasta tiver `hardware-studio.json`, o circuito vem junto.
 - O `[env]` usado é o do `default_envs`, a menos que outro `[env]` seja para o chip da placa selecionada (ex.: o mesmo projeto com `nano` e `mega`). Alvos que o emulador não executa (8 MHz, ESP32) compilam e dizem o motivo.
