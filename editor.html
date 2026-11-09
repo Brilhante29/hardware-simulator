@@ -11,7 +11,7 @@
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <a class="brand" href="#" aria-label="Hardware Simulator início">
+        <a class="brand" href="./">
           <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v4m8-4v4M8 16v4m8-4v4M4 8h4m8 0h4M4 16h4m8 0h4M8 8h8v8H8z" /></svg></span>
           <span class="brand-name">hardware<span>simulator</span></span>
         </a>
@@ -28,7 +28,7 @@
         </div>
       </header>
 
-      <aside class="library-panel">
+      <aside class="library-panel" aria-label="Biblioteca de componentes">
         <div class="panel-heading"><div><p class="eyebrow">BIBLIOTECA</p><h1>Componentes</h1></div><button id="customPartButton" class="icon-button add-button" title="Criar componente" aria-label="Criar componente">＋</button></div>
         <label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input id="searchInput" type="search" placeholder="Buscar peça..." /><kbd>/</kbd></label>
         <div id="categoryList" class="category-list" aria-label="Categorias"></div>
@@ -66,7 +66,7 @@
         <div class="statusbar"><span><span class="status-led"></span><span id="saveStatus">Todas as alterações salvas</span></span><span class="status-center">Simulação local <span>·</span> seus projetos ficam neste navegador</span><span id="statusZoom">100%</span></div>
       </main>
 
-      <aside class="inspector-panel">
+      <aside class="inspector-panel" aria-label="Propriedades e código">
         <div class="inspector-tabs"><button id="propertiesTab" class="inspector-tab active">Propriedades</button><button id="codeTab" class="inspector-tab">Código <span class="code-dot"></span></button></div>
         <div id="propertiesView" class="inspector-view"></div>
         <div id="codeView" class="inspector-view code-view" hidden>

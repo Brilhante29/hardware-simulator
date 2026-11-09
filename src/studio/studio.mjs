@@ -159,3 +159,11 @@ $('codePreview').textContent=sketch;$('downloadArduino').onclick=()=>download('h
 window.addEventListener('hashchange',()=>showView(location.hash.slice(1)));document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('pagehide',()=>pause());
 const requestedScenario=new URLSearchParams(location.search).get('scenario');if(SCENARIOS.some(s=>s.id===requestedScenario))useScenario(requestedScenario);
 motionUI();syncControls();render();showView(location.hash.slice(1)||'bench');
+
+// Peças clicáveis do esquema: um alvo transparente por cima de cada peça é o botão (nome = rótulo, sem o texto
+// desenhado do visor); clique e teclas sobem para o grupo da peça, que já trata os dois.
+for (const g of document.querySelectorAll('#circuit [role="button"]')) {
+  const b = g.getBBox(), hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  for (const [k, v] of Object.entries({ x: b.x, y: b.y, width: b.width, height: b.height, rx: 12, fill: 'transparent', class: 'part-hit', role: 'button', tabindex: '0', 'aria-label': g.getAttribute('aria-label') })) hit.setAttribute(k, v);
+  g.removeAttribute('role'); g.removeAttribute('tabindex'); g.removeAttribute('aria-label'); g.appendChild(hit);
+}

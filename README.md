@@ -157,6 +157,8 @@ cd vscode && npm test       # extensão com um VS Code simulado
 
 24 grupos: 8 digitais + 16 elétricos. Incluem os 256 valores do registrador, solução RC fechada, partição de passos, balanço de potência em 500 configurações e consequências das falhas. `tests/editor.mjs` cobre o interpretador de sketch do editor (13 casos, incluindo que expressões não executam código arbitrário). Os 24 grupos também podem ser executados em **Bancada → Validação** e exportados como JSON. Não são ensaios destrutivos de hardware físico.
 
+`tools/a11y-audit.cjs` roda o axe-core em todas as páginas (desktop e celular) e falha com qualquer violação ou rolagem horizontal; hoje: zero violações. As placas do PCB e as peças da bancada são operáveis por teclado (Tab, setas, Enter) e têm nome acessível.
+
 A verificação de aparência testa 80 pares de tokens reais de texto/fundo nas quatro paletas contra 4,5:1. Ela não equivale a uma auditoria completa de acessibilidade nem a validação clínica da pista óptica.
 
 ## Desempenho e acessibilidade

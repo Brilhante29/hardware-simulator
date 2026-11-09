@@ -41,7 +41,7 @@ function bodySvg(c) {
   if (/LED/.test(t)) return R(-1, -.62, 2, 1.25, '#f5f5f5') + R(-.4, -.4, .8, .8, '#ff5a4f');
   if (/SOD-123/.test(t)) return R(-1.35, -.8, 2.7, 1.6, '#1b1b1b') + R(-1.35, -.8, .5, 1.6, '#9a9a9a');
   if (/SOT-23/.test(t)) return R(-1.45, -.65, 2.9, 1.3, '#1b1b1b');
-  if (/Crystal/.test(t)) return R(-1.6, -1.25, 3.2, 2.5, '#c8ccd0', 'rx=".25"') + `<text x="0" y=".35" font-size=".8" text-anchor="middle" fill="#555">16M</text>`;
+  if (/Crystal/.test(t)) return R(-1.6, -1.25, 3.2, 2.5, '#c8ccd0', 'rx=".25"') + R(-1.2, -.15, 2.4, .3, '#9aa0a6');
   if (/SW_PUSH/.test(t)) return R(-3, -3, 6, 6, '#232323', 'rx=".4"') + `<circle r="1.75" fill="#8a8f96"/>`;
   if (/JST/.test(t)) return R(-3, -2.25, 6, 4.5, '#efe3c6', 'rx=".2"') + R(-2.2, -1.6, 4.4, 2.2, '#d8caa4');
   if (/Vibration/.test(t)) return `<circle r="5" fill="none" stroke="#c0c4c9" stroke-width=".25" stroke-dasharray=".8 .5"/>`;
@@ -65,7 +65,7 @@ function render() {
   if (L.rats) base += `<g stroke="#ffcc00" stroke-width=".18" stroke-dasharray=".5 .35">${ratsnest(d)}</g>`;
   if (state.marker) base += `<circle class="marker" cx="${state.marker.x}" cy="${state.marker.y}" r="1.4"/>`;
   const comps = d.nl.comps.map((c, i) => { const pl = d.placements[i]; if (!pl) return ''; const b = courtyard(c, pl);
-    return `<g class="comp${state.selected === i ? ' selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${esc(`${c.ref}, ${c.value}, em ${pl.x.toFixed(1)} por ${pl.y.toFixed(1)} mm, ${pl.rot} graus`)}"><rect class="sel" x="${f2(b.x0)}" y="${f2(b.y0)}" width="${f2(b.x1 - b.x0)}" height="${f2(b.y1 - b.y0)}" fill="transparent"/>${L.bodies ? `<g transform="translate(${pl.x} ${pl.y}) rotate(${pl.rot})" pointer-events="none">${bodySvg(c)}</g>` : ''}</g>`; }).join('');
+    return `<g class="comp${state.selected === i ? ' selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${esc(`${c.ref}, ${c.value}, em ${pl.x.toFixed(1)} por ${pl.y.toFixed(1)} mm, ${pl.rot} graus`)}"><rect class="sel" x="${f2(b.x0)}" y="${f2(b.y0)}" width="${f2(b.x1 - b.x0)}" height="${f2(b.y1 - b.y0)}" fill="transparent"/>${L.bodies ? `<g transform="translate(${pl.x} ${pl.y}) rotate(${pl.rot})" pointer-events="none" aria-hidden="true">${bodySvg(c)}</g>` : ''}</g>`; }).join('');
   const edges = [6, 5, 4, 3, 2, 1].map(z => `<svg class="edge-3d" viewBox="${vb}" style="transform:translateZ(-${z}px)" aria-hidden="true">${shape(edgeC)}</svg>`).join('');
   scene.innerHTML = `${edges}<svg viewBox="${vb}" role="img" aria-label="Placa ${esc(state.title)}: ${d.nl.comps.length} componentes, ${d.drc.stats.traces} trechos de trilha, ${d.drc.stats.vias} vias">${base}</svg><svg class="bodies-3d" viewBox="${vb}" aria-label="Componentes">${comps}</svg>`;
   bindComps();
