@@ -190,7 +190,8 @@ export class Mpu6050 extends RegisterDevice {
 
 // DS3231 (Maxim, 0x68): relógio em BCD que anda com o tempo simulado; flag OSF ligada no "primeiro boot".
 export class Ds3231 extends RegisterDevice {
-  constructor({ address = 0x68, start = Date.UTC(2026, 0, 1), temperature = 25 } = {}) { super(address); this.baseMs = start; this.baseT = 0; this.temperature = temperature; this.reg[0x0f] = 0x80; this.reg[0x0e] = 0x1c; this.pending = null; }
+  // lostPower: módulo novo (OSF = 1, o RTClib.lostPower() acerta a hora); false = bateria CR2032 manteve a hora.
+  constructor({ address = 0x68, start = Date.UTC(2026, 0, 1), temperature = 25, lostPower = true } = {}) { super(address); this.baseMs = start; this.baseT = 0; this.temperature = temperature; this.reg[0x0f] = lostPower ? 0x80 : 0; this.reg[0x0e] = 0x1c; this.pending = null; }
   nowMs() { return this.baseMs + (this.time - this.baseT) * 1000; }
   prepareRead() {
     const d = new Date(this.nowMs()), bcd = n => ((Math.floor(n / 10) << 4) | (n % 10));

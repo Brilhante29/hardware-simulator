@@ -48,6 +48,21 @@
       s += R(140, 62, 10, 6, on ? 'ledL on' : 'ledL') + T(152, 69, 'L', 'p', 7) + R(140, 80, 10, 6, 'g') + T(152, 87, 'ON', 'p', 7);
       return s;
     },
+    // Nano: 18 × 45 mm, em pé; D1/D0/D2–D12 à esquerda, D13/A0–A7/5V/GND à direita, mini-USB em cima.
+    nano(def, part) {
+      let s = R(6, 2, 80, 192, 'k') + R(8, 4, 76, 188, 'ub');
+      s += R(10, 18, 10, 162, 'k') + R(72, 18, 10, 138, 'k');
+      for (let i = 0; i < 13; i++) { const y = 26 + i * 12; s += R(0, y - 1, 10, 2, 'mt') + R(13, y - 2, 4, 4, 'mt'); }
+      for (let i = 0; i < 11; i++) { const y = 26 + i * 12; s += R(75, y - 2, 4, 4, 'mt') + R(82, y - 1, 10, 2, 'mt'); }
+      s += R(32, 0, 28, 16, 'mt2') + R(35, 2, 22, 10, 'mt');
+      s += R(30, 82, 32, 32, 'k') + R(32, 84, 28, 28, 'ic') + R(34, 86, 4, 4, 'mt2');
+      for (let i = 0; i < 6; i++) { const o = 35 + i * 4; s += R(o, 79, 2, 3, 'mt') + R(o, 114, 2, 3, 'mt') + R(27, o + 47, 3, 2, 'mt') + R(62, o + 47, 3, 2, 'mt'); }
+      s += R(36, 132, 20, 12, 'k') + R(38, 134, 16, 8, 'o');
+      s += T(46, 170, 'NANO', 'c', 13, 'middle');
+      const on = part?.settings?.outputs?.D13 === 1;
+      s += R(28, 40, 8, 5, on ? 'ledL on' : 'ledL') + T(40, 46, 'L', 'p', 7) + R(52, 40, 8, 5, 'g') + T(62, 46, 'ON', 'p', 7);
+      return s;
+    },
     // Mega 2560: 101,6 × 53,3 mm (Uno: 68,6 mm), em pé como o Uno. D0–D21 à esquerda, A0–A15 à direita, D22–D53 no conector duplo.
     mega(def, part) {
       let s = R(6, 2, 170, 336, 'k') + R(8, 4, 166, 332, 'ub');
@@ -88,8 +103,9 @@
       const on = !!part?.settings?.pressed;
       return leadL(34, 24) + leadR(34, 70, 94) + R(22, 20, 50, 28, 'k') + R(24, 22, 46, 24, 'd') + R(30, 30, 34, 8, 'k') + R(on ? 48 : 32, 26, 14, 16, 'c') + R(on ? 50 : 34, 28, 10, 2, 'p') + T(47, 16, on ? 'ON' : 'OFF', on ? 'g' : 'm', 8, 'middle');
     },
-    source() {
-      let s = R(8, 4, 64, 60, 'k') + R(10, 6, 60, 56, 'p') + R(16, 12, 48, 20, 'k') + T(40, 27, '5.0V', 'g', 12, 'middle');
+    source(def, part) {
+      const v = Number(part?.settings?.voltage) || 5;
+      let s = R(8, 4, 64, 60, 'k') + R(10, 6, 60, 56, 'p') + R(16, 12, 48, 20, 'k') + T(40, 27, v.toFixed(1) + 'V', 'g', 12, 'middle');
       s += R(0, 35, 14, 2, 'mt') + F(12, 32, 10, 10, '#e25a4f') + F(14, 34, 6, 6, '#ff8b7d');
       s += R(66, 35, 14, 2, 'mt') + R(58, 32, 10, 10, 'k') + R(60, 34, 6, 6, 'd');
       return s + disc(40, 48, 6, 'm') + R(39, 43, 2, 5, 'k') + T(16, 58, 'PSU', 'm', 7);

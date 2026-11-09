@@ -149,6 +149,17 @@ export function runAvrTests({ mega: megaPass = false } = {}) {
   test('Mega: consumo do 2560 (~20 mA ativo a 16 MHz) e pelo menos 1× o tempo real', 'Atmel 2549Q §31.1', () => {
     const m = mega('mega_serial'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); ok(Math.abs(m.powerUsage().averageMa - 20) < 0.01);
   });
+  test('Relógio de pulso (examples/firmware/relogio): hora do DS3231, passos do MPU6050 em 0x69, botão, bateria e vibracall', 'Adafruit SSD1306 + RTClib + Wire', () => {
+    const m = boot('relogio'), oled = m.attachI2C(0x3c, new Ssd1306()), rtc = m.attachI2C(0x68, new Ds3231({ start: Date.UTC(2026, 10, 9, 13, 59, 57) })), imu = m.attachI2C(0x69, new Mpu6050({ address: 0x69 }));
+    rtc.reg[0x0f] = 0; // oscilador nunca parou: o firmware não reescreve a hora com a da compilação
+    m.analog[0] = 1.95; m.setInput('D2', 1); let vib = 0; m.onPinChange = c => { if (c.D5?.level) vib++; };
+    m.runSeconds(1.5); for (let i = 0; i < 12; i++) { imu.accel = [0, 0, 1.6]; m.runSeconds(0.2); imu.accel = [0, 0, 1]; m.runSeconds(0.2); }
+    m.setInput('D2', 0); m.runSeconds(0.1); m.setInput('D2', 1); m.runSeconds(1.2);
+    ok(m.out.includes('relogio pronto') && m.out.includes('13:59:58 passos=0 bat=66% tela=0'), m.out.slice(0, 120));
+    ok(m.out.includes('meta de passos!') && /14:00:0\d passos=12 bat=66% tela=1/.test(m.out), m.out.slice(-160));
+    eq(vib, 4); // boot, meta de passos, hora cheia e troca de tela
+    ok(oled.ascii(1).split('\n').some(l => /#{40}/.test(l)), 'barra de passos não desenhada');
+  });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;
 }
