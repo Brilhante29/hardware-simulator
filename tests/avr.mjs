@@ -1,7 +1,7 @@
 // Firmware real (compilado pelo PlatformIO) rodando no emulador: ATmega328P (Uno) e ATmega2560 (Mega 2560).
 import { readFileSync } from 'node:fs';
 import { ATmega328P, ATmega2560, createMcu, detectChip, parseHex } from '../src/emulator/avr.mjs';
-import { LcdI2C, LcdParallel, HcSr04, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750, Dht } from '../src/emulator/devices.mjs';
+import { LcdI2C, LcdParallel, HcSr04, Ssd1306, Bme280, Mpu6050, Ds3231, Bh1750, Dht, Gc9a01, Max30102 } from '../src/emulator/devices.mjs';
 // Bordas de pinos (em ciclos) e UART 8N1 por bit: para bibliotecas que fazem serial em software.
 const edgeLog = (m, pins) => { const log = Object.fromEntries(pins.map(p => [p, []])), prev = m.onPinChange; m.onPinChange = (c, t, all) => { for (const p of pins) if (c[p]) log[p].push([m.cycles, c[p].level]); prev?.(c, t, all); }; return log; };
 const levelAt = (edges, c, idle = 1) => { let v = idle; for (const [t, l] of edges) { if (t > c) break; v = l; } return v; };
@@ -159,6 +159,16 @@ export function runAvrTests({ mega: megaPass = false } = {}) {
     ok(m.out.includes('meta de passos!') && /14:00:0\d passos=12 bat=66% tela=1/.test(m.out), m.out.slice(-160));
     eq(vib, 4); // boot, meta de passos, hora cheia e troca de tela
     ok(oled.ascii(1).split('\n').some(l => /#{40}/.test(l)), 'barra de passos não desenhada');
+  });
+  test('Relógio colorido: tela redonda GC9A01 por SPI (Adafruit_GC9A01A) e batimento do MAX30102 (SparkFun) no ritmo certo', 'SPI + CS/DC, FIFO do PPG', () => {
+    const m = boot('relogio_cor'), tft = m.attachPinDevice('D10', new Gc9a01({ cs: 'D10', dc: 'D9', rst: 'D8' }));
+    const ppg = m.attachI2C(0x57, new Max30102({ bpm: 90 })); m.attachI2C(0x68, new Ds3231({ start: Date.UTC(2026, 10, 9, 10, 9, 0), lostPower: false })); m.attachI2C(0x69, new Mpu6050({ address: 0x69 }));
+    m.analog[0] = 1.95; m.setInput('D2', 1); m.runSeconds(9);
+    ok(m.out.includes('relogio cor pronto'), m.out.slice(0, 80)); const last = m.out.trim().split('\n').pop(); const bpm = +(/bpm=(\d+)/.exec(last) || [])[1];
+    ok(Math.abs(bpm - 90) <= 4, last); ok(tft.on && !tft.sleep && tft.invert, 'tela não ligada como a biblioteca faz');
+    const white = (x, y) => tft.rgb(x, y).every(c => c > 200); let lit = 0; for (let y = 72; y < 120; y++) for (let x = 30; x < 210; x++) lit += white(x, y);
+    ok(lit > 1500, `${lit} pontos brancos na hora`); ok(tft.rgb(120, 2).every(c => c < 30), 'fundo deveria ser preto');
+    ppg.finger = false; m.runSeconds(3); ok(/bpm=0 /.test(m.out.trim().split('\n').pop()), 'sem dedo deveria zerar');
   });
   test('Velocidade: pelo menos 1× o tempo real', 'Desempenho', () => { const m = boot('blink'); const t = performance.now(); m.runSeconds(1); const ms = performance.now() - t; ok(ms < 1000, `${ms.toFixed(0)} ms para 1 s`); });
   return results;

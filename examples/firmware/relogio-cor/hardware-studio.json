@@ -1,0 +1,523 @@
+{
+  "version": 1,
+  "title": "Relógio colorido",
+  "parts": [
+    {
+      "id": "n1",
+      "type": "nano",
+      "name": "Arduino Nano",
+      "x": 430,
+      "y": 200,
+      "settings": {}
+    },
+    {
+      "id": "t1",
+      "type": "gc9a01",
+      "name": "Tela GC9A01",
+      "x": 700,
+      "y": 40,
+      "settings": {}
+    },
+    {
+      "id": "h1",
+      "type": "max30102",
+      "name": "MAX30102",
+      "x": 720,
+      "y": 260,
+      "settings": {}
+    },
+    {
+      "id": "rt1",
+      "type": "ds3231",
+      "name": "RTC DS3231",
+      "x": 720,
+      "y": 370,
+      "settings": {}
+    },
+    {
+      "id": "m1",
+      "type": "mpu6050",
+      "name": "MPU6050",
+      "x": 720,
+      "y": 470,
+      "settings": {
+        "ad0": "HIGH"
+      }
+    },
+    {
+      "id": "sw1",
+      "type": "button",
+      "name": "Botão",
+      "x": 200,
+      "y": 200,
+      "settings": {}
+    },
+    {
+      "id": "g1",
+      "type": "gnd",
+      "name": "GND",
+      "x": 80,
+      "y": 320,
+      "settings": {}
+    },
+    {
+      "id": "v1",
+      "type": "vcc",
+      "name": "5 V",
+      "x": 80,
+      "y": 450,
+      "settings": {}
+    },
+    {
+      "id": "r1",
+      "type": "resistor",
+      "name": "R1 · 1 kΩ",
+      "x": 160,
+      "y": 520,
+      "settings": {
+        "value": "1 kΩ"
+      }
+    },
+    {
+      "id": "q1",
+      "type": "transistor",
+      "name": "Q1 · BC547",
+      "x": 320,
+      "y": 500,
+      "settings": {}
+    },
+    {
+      "id": "mo1",
+      "type": "motor",
+      "name": "Vibracall",
+      "x": 470,
+      "y": 500,
+      "settings": {}
+    },
+    {
+      "id": "d1",
+      "type": "diode",
+      "name": "D1 · 1N4148",
+      "x": 470,
+      "y": 610,
+      "settings": {}
+    },
+    {
+      "id": "b1",
+      "type": "source",
+      "name": "Bateria Li-ion",
+      "x": 160,
+      "y": 640,
+      "settings": {
+        "voltage": 3.9
+      }
+    },
+    {
+      "id": "r2",
+      "type": "resistor",
+      "name": "R2 · 10 kΩ",
+      "x": 320,
+      "y": 650,
+      "settings": {
+        "value": "10 kΩ"
+      }
+    },
+    {
+      "id": "r3",
+      "type": "resistor",
+      "name": "R3 · 10 kΩ",
+      "x": 470,
+      "y": 700,
+      "settings": {
+        "value": "10 kΩ"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "a": {
+        "part": "t1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w2",
+      "a": {
+        "part": "t1",
+        "pin": "VCC"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w3",
+      "a": {
+        "part": "t1",
+        "pin": "SCL"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "D13"
+      }
+    },
+    {
+      "id": "w4",
+      "a": {
+        "part": "t1",
+        "pin": "SDA"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "D11"
+      }
+    },
+    {
+      "id": "w5",
+      "a": {
+        "part": "t1",
+        "pin": "RES"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "D8"
+      }
+    },
+    {
+      "id": "w6",
+      "a": {
+        "part": "t1",
+        "pin": "DC"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "D9"
+      }
+    },
+    {
+      "id": "w7",
+      "a": {
+        "part": "t1",
+        "pin": "CS"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "D10"
+      }
+    },
+    {
+      "id": "w8",
+      "a": {
+        "part": "t1",
+        "pin": "BLK"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w9",
+      "a": {
+        "part": "h1",
+        "pin": "VIN"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w10",
+      "a": {
+        "part": "h1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w11",
+      "a": {
+        "part": "h1",
+        "pin": "SDA"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A4"
+      }
+    },
+    {
+      "id": "w12",
+      "a": {
+        "part": "h1",
+        "pin": "SCL"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A5"
+      }
+    },
+    {
+      "id": "w13",
+      "a": {
+        "part": "rt1",
+        "pin": "VCC"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w14",
+      "a": {
+        "part": "rt1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w15",
+      "a": {
+        "part": "rt1",
+        "pin": "SDA"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A4"
+      }
+    },
+    {
+      "id": "w16",
+      "a": {
+        "part": "rt1",
+        "pin": "SCL"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A5"
+      }
+    },
+    {
+      "id": "w17",
+      "a": {
+        "part": "m1",
+        "pin": "VCC"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "5V"
+      }
+    },
+    {
+      "id": "w18",
+      "a": {
+        "part": "m1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w19",
+      "a": {
+        "part": "m1",
+        "pin": "SDA"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A4"
+      }
+    },
+    {
+      "id": "w20",
+      "a": {
+        "part": "m1",
+        "pin": "SCL"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A5"
+      }
+    },
+    {
+      "id": "w21",
+      "a": {
+        "part": "sw1",
+        "pin": "2"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "D2"
+      }
+    },
+    {
+      "id": "w22",
+      "a": {
+        "part": "sw1",
+        "pin": "1"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w23",
+      "a": {
+        "part": "n1",
+        "pin": "D5"
+      },
+      "b": {
+        "part": "r1",
+        "pin": "2"
+      }
+    },
+    {
+      "id": "w24",
+      "a": {
+        "part": "r1",
+        "pin": "1"
+      },
+      "b": {
+        "part": "q1",
+        "pin": "B"
+      }
+    },
+    {
+      "id": "w25",
+      "a": {
+        "part": "q1",
+        "pin": "E"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w26",
+      "a": {
+        "part": "q1",
+        "pin": "C"
+      },
+      "b": {
+        "part": "mo1",
+        "pin": "−"
+      }
+    },
+    {
+      "id": "w27",
+      "a": {
+        "part": "mo1",
+        "pin": "+"
+      },
+      "b": {
+        "part": "v1",
+        "pin": "VCC"
+      }
+    },
+    {
+      "id": "w28",
+      "a": {
+        "part": "d1",
+        "pin": "A"
+      },
+      "b": {
+        "part": "mo1",
+        "pin": "−"
+      }
+    },
+    {
+      "id": "w29",
+      "a": {
+        "part": "d1",
+        "pin": "K"
+      },
+      "b": {
+        "part": "mo1",
+        "pin": "+"
+      }
+    },
+    {
+      "id": "w30",
+      "a": {
+        "part": "b1",
+        "pin": "+"
+      },
+      "b": {
+        "part": "r2",
+        "pin": "1"
+      }
+    },
+    {
+      "id": "w31",
+      "a": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "b": {
+        "part": "n1",
+        "pin": "A0"
+      }
+    },
+    {
+      "id": "w32",
+      "a": {
+        "part": "r2",
+        "pin": "2"
+      },
+      "b": {
+        "part": "r3",
+        "pin": "1"
+      }
+    },
+    {
+      "id": "w33",
+      "a": {
+        "part": "r3",
+        "pin": "2"
+      },
+      "b": {
+        "part": "b1",
+        "pin": "−"
+      }
+    },
+    {
+      "id": "w34",
+      "a": {
+        "part": "b1",
+        "pin": "−"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    },
+    {
+      "id": "w35",
+      "a": {
+        "part": "n1",
+        "pin": "GND"
+      },
+      "b": {
+        "part": "g1",
+        "pin": "GND"
+      }
+    }
+  ]
+}

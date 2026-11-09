@@ -261,3 +261,94 @@ export class HcSr04 {
     m.schedule(start + dur + 200 * 16, () => { this.busy = false; });
   }
 }
+
+// GC9A01 (Galaxycore): tela redonda de 1,28" com 240 × 240 pontos RGB565 por SPI, a mais comum em relógios DIY.
+// Escuta o SPI do chip quando o CS está em nível baixo; DC = 0 é comando, DC = 1 é dado. Implementa o conjunto MIPI DCS que
+// as bibliotecas usam (CASET, RASET, RAMWR, MADCTL, SLPOUT, DISPON, INVON) e aceita os comandos de fábrica com parâmetros.
+export class Gc9a01 {
+  constructor({ cs = 'D10', dc = 'D9', rst = null, width = 240, height = 240 } = {}) {
+    Object.assign(this, { cs, dc, rst, width, height }); this.fb = new Uint16Array(width * height); this.reset();
+  }
+  reset() { this.cmd = 0; this.args = []; this.xs = 0; this.xe = this.width - 1; this.ys = 0; this.ye = this.height - 1; this.x = 0; this.y = 0; this.half = -1; this.madctl = 0x48; this.on = false; this.sleep = true; this.invert = false; this.version = (this.version || 0) + 1; this.pixels = 0; }
+  attach(mcu) {
+    this.mcu = mcu; const prev = mcu.spiDevice;
+    mcu.spiDevice = b => { if (mcu.levelOf(this.cs)) return prev ? prev(b) : 0xff; if (this.rst && !mcu.levelOf(this.rst)) { this.reset(); return 0xff; } this.byte(b, mcu.levelOf(this.dc)); return 0xff; };
+  }
+  byte(b, data) {
+    if (!data) {
+      this.cmd = b; this.args = []; this.half = -1;
+      if (b === 0x2c) { this.x = this.xs; this.y = this.ys; } else if (b === 0x11) this.sleep = false; else if (b === 0x10) this.sleep = true;
+      else if (b === 0x29) this.on = true; else if (b === 0x28) this.on = false; else if (b === 0x21) this.invert = true; else if (b === 0x20) this.invert = false; else if (b === 0x01) this.reset();
+      this.version++; return;
+    }
+    if (this.cmd === 0x2c || this.cmd === 0x3c) { if (this.half < 0) { this.half = b; return; } this.put((this.half << 8) | b); this.half = -1; return; }
+    const a = this.args; a.push(b);
+    if (this.cmd === 0x2a && a.length === 4) { this.xs = (a[0] << 8) | a[1]; this.xe = (a[2] << 8) | a[3]; this.x = this.xs; }
+    else if (this.cmd === 0x2b && a.length === 4) { this.ys = (a[0] << 8) | a[1]; this.ye = (a[2] << 8) | a[3]; this.y = this.ys; }
+    else if (this.cmd === 0x36 && a.length === 1) this.madctl = b;
+  }
+  // Endereço da memória → ponto na tela, pela orientação do MADCTL (rotação 0 das bibliotecas = MX ligado).
+  put(px) {
+    const m = this.madctl, mv = m & 0x20, mx = !(m & 0x40), my = m & 0x80;
+    let col = this.x, row = this.y; if (mv) [col, row] = [row, col]; if (mx) col = this.width - 1 - col; if (my) row = this.height - 1 - row;
+    if (col >= 0 && row >= 0 && col < this.width && row < this.height) { this.fb[row * this.width + col] = px; this.pixels++; this.version++; }
+    if (++this.x > this.xe) { this.x = this.xs; if (++this.y > this.ye) this.y = this.ys; }
+  }
+  // O vidro do GC9A01 é invertido de fábrica: sem INVON (0x21) as cores saem negativas; as bibliotecas sempre mandam INVON.
+  rgb(x, y) { const v = this.fb[y * this.width + x], r = ((v >> 11) & 31) * 255 / 31, g = ((v >> 5) & 63) * 255 / 63, b = (v & 31) * 255 / 31, k = this.invert ? 0 : 255; return [Math.round(Math.abs(k - r)), Math.round(Math.abs(k - g)), Math.round(Math.abs(k - b))]; }
+  // Quadro RGBA para um canvas (preto se a tela está desligada ou dormindo).
+  rgba(out = new Uint8ClampedArray(this.width * this.height * 4)) {
+    const lit = this.on && !this.sleep;
+    for (let i = 0, n = this.width * this.height; i < n; i++) { const v = lit ? this.fb[i] : 0; let r = ((v >> 11) & 31) << 3, g = ((v >> 5) & 63) << 2, b = (v & 31) << 3; if (lit && !this.invert) { r = 255 - r; g = 255 - g; b = 255 - b; } out[i * 4] = r; out[i * 4 + 1] = g; out[i * 4 + 2] = b; out[i * 4 + 3] = 255; }
+    return out;
+  }
+}
+
+// MAX30102 (Analog Devices, 0x57): oxímetro de pulso com LED vermelho e infravermelho e FIFO de 32 amostras.
+// O sinal é sintético mas com a forma de um PPG (pico sistólico + nó dicrótico) no ritmo e na saturação escolhidos:
+// AC/DC de 0,6 % no infravermelho (dedo, faixa típica 0,5–2 %); R = (AC/DC vermelho)/(AC/DC infravermelho) segue
+// SpO2 ≈ 110 − 25·R, a aproximação usada nas notas de aplicação. Testado com o checkForBeat da SparkFun de 50 a 150 bpm.
+export class Max30102 extends RegisterDevice {
+  constructor({ address = 0x57, bpm = 72, spo2 = 98, finger = true } = {}) { super(address); Object.assign(this, { bpm, spo2, finger }); this.boot(); }
+  boot() { this.reg.fill(0); this.reg[0xff] = 0x15; this.reg[0xfe] = 0x03; this.reg[0x00] = 0x01; this.fifo = []; this.wr = 0; this.rd = 0; this.ovf = 0; this.t0 = null; this.byteIdx = 0; this.made = 0; }
+  get rate() { const sr = [50, 100, 200, 400, 800, 1000, 1600, 3200][(this.reg[0x0a] >> 2) & 7], avg = 1 << Math.min(5, (this.reg[0x08] >> 5) & 7); return sr / avg; }
+  get leds() { const m = this.reg[0x09] & 7; return m === 2 ? 1 : m === 3 ? 2 : m === 7 ? [this.reg[0x11] & 7, (this.reg[0x11] >> 4) & 7, this.reg[0x12] & 7, (this.reg[0x12] >> 4) & 7].filter(Boolean).length : 0; }
+  ppg(t, red) {
+    if (!this.finger) return 900 + Math.round(200 * Math.random());
+    const phase = (t * this.bpm / 60) % 1, shape = Math.exp(-(((phase - 0.15) / 0.06) ** 2)) + 0.2 * Math.exp(-(((phase - 0.42) / 0.1) ** 2));
+    const R = (110 - this.spo2) / 25, dc = red ? 80000 : 110000, ac = red ? dc * 0.006 * R : dc * 0.006;
+    const bits = 15 + (this.reg[0x0a] & 3), v = Math.round(dc - ac * shape + (Math.random() - 0.5) * 40);
+    return Math.max(0, Math.min(0x3ffff, v)) >> (18 - bits) << (18 - bits);
+  }
+  produce() {
+    const shdn = this.reg[0x09] & 0x80, n = this.leds; if (shdn || !n) { this.t0 = null; return; }
+    const now = this.time; if (this.t0 === null) { this.t0 = now; this.made = 0; return; }
+    const due = Math.floor((now - this.t0) * this.rate) - this.made;
+    for (let k = 0; k < Math.min(due, 64); k++) {
+      const t = this.t0 + (this.made + k + 1) / this.rate, sample = [this.ppg(t, true), this.ppg(t, false)].slice(0, n);
+      if (this.fifo.length >= 32) { if (this.reg[0x08] & 0x10) this.fifo.shift(); else { this.ovf = Math.min(31, this.ovf + 1); continue; } }
+      this.fifo.push(sample); this.wr = (this.wr + 1) & 31;
+    }
+    this.made += Math.max(0, due); if (this.fifo.length) this.reg[0x00] |= 0x40;
+  }
+  prepareRead() { this.produce(); this.byteIdx = 0; }
+  writeReg(r, v) {
+    if (r === 0x09 && (v & 0x40)) { this.boot(); return; }
+    if (r === 0x04) { this.wr = v & 31; return; } if (r === 0x06) { this.rd = v & 31; this.fifo.length = 0; return; } if (r === 0x05) { this.ovf = v & 31; return; }
+    if (r === 0x21 && (v & 1)) { this.reg[0x1f] = 31; this.reg[0x20] = 4; this.reg[0x01] |= 0x02; return; }
+    this.reg[r] = v; if (r === 0x09 || r === 0x0a || r === 0x08) { this.t0 = null; }
+  }
+  read() {
+    if (this.ptr !== 0x07) return super.read();
+    // FIFO_DATA não avança o ponteiro de registrador: 3 bytes por LED, depois a próxima amostra.
+    const s = this.fifo[0], n = this.leds || 1, li = Math.floor(this.byteIdx / 3) % n, part = this.byteIdx % 3, v = s ? s[li] ?? 0 : 0;
+    if (++this.byteIdx >= 3 * n) { this.byteIdx = 0; if (s) { this.fifo.shift(); this.rd = (this.rd + 1) & 31; } }
+    return part === 0 ? (v >> 16) & 3 : part === 1 ? (v >> 8) & 0xff : v & 0xff;
+  }
+  readReg(r) {
+    if (r === 0x00) { this.produce(); const v = this.reg[0x00]; this.reg[0x00] = 0; return v; }
+    if (r === 0x01) { const v = this.reg[0x01]; this.reg[0x01] = 0; return v; }
+    if (r === 0x04) { this.produce(); return this.wr; } if (r === 0x05) return this.ovf; if (r === 0x06) return this.rd;
+    return this.reg[r];
+  }
+}

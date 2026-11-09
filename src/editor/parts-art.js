@@ -61,6 +61,18 @@
       s += R(12, 8, 48, 28, 'mt') + R(14, 10, 44, 24, 'mt2') + R(16, 12, 40, 4, 'hl');
       return s + T(36, 28, '16.000', 'p', 8, 'middle');
     },
+    // GC9A01: módulo de 1,28" com a tela redonda no meio; o canvas recebe os 240 × 240 pontos do firmware.
+    gc9a01() {
+      let s = R(10, 0, 140, 176, 'k') + R(12, 2, 136, 172, 'ub') + disc(80, 82, 64, 'k') + disc(80, 82, 61, 'd');
+      for (let i = 0; i < 8; i++) s += R(0, 29 + i * 20, 12, 2, 'mt');
+      s += '<foreignObject x="20" y="22" width="120" height="120"><canvas xmlns="http://www.w3.org/1999/xhtml" width="240" height="240" style="width:120px;height:120px;border-radius:50%;display:block;background:#000"></canvas></foreignObject>';
+      return s + T(80, 166, 'GC9A01 1.28"', 'p', 8, 'middle');
+    },
+    max30102() {
+      let s = R(8, 4, 92, 76, 'k') + R(10, 6, 88, 72, 'ub') + R(36, 26, 32, 22, 'k') + R(40, 30, 24, 14, 'd') + R(43, 33, 6, 6, 'ledL on') + R(55, 33, 6, 6, 'mt2');
+      s += R(0, 15, 10, 2, 'mt') + R(0, 35, 10, 2, 'mt') + R(0, 63, 10, 2, 'mt') + R(94, 23, 10, 2, 'mt') + R(94, 47, 10, 2, 'mt');
+      return s + T(52, 70, 'MAX30102', 'p', 8, 'middle');
+    },
     // Nano: 18 × 45 mm, em pé; D1/D0/D2–D12 à esquerda, D13/A0–A7/5V/GND à direita, mini-USB em cima.
     nano(def, part) {
       let s = R(6, 2, 80, 192, 'k') + R(8, 4, 76, 188, 'ub');

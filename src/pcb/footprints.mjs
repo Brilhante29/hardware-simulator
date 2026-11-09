@@ -40,7 +40,7 @@ export const FOOTPRINTS = {
 export const headerFootprint = pins => ({ name: `PinHeader_1x${String(pins.length).padStart(2, '0')}_P2.54mm`, body: [2.54, pins.length * 2.54], court: [3.2, pins.length * 2.54 + 0.6], pads: header(pins), header: true });
 
 // Peça do editor → footprint, prefixo de referência e sugestão de peça LCSC (confira o estoque antes de pedir).
-const MODULE_PINS = { oled: ['GND', 'VCC', 'SCL', 'SDA'], display: ['GND', 'VCC', 'SDA', 'SCL'], ds3231: ['VCC', 'GND', 'SCL', 'SDA'], mpu6050: ['VCC', 'GND', 'SCL', 'SDA'], bme280: ['VCC', 'GND', 'SCL', 'SDA'], bh1750: ['VCC', 'GND', 'SCL', 'SDA'] };
+const MODULE_PINS = { oled: ['GND', 'VCC', 'SCL', 'SDA'], display: ['GND', 'VCC', 'SDA', 'SCL'], ds3231: ['VCC', 'GND', 'SCL', 'SDA'], mpu6050: ['VCC', 'GND', 'SCL', 'SDA'], bme280: ['VCC', 'GND', 'SCL', 'SDA'], bh1750: ['VCC', 'GND', 'SCL', 'SDA'], gc9a01: ['GND', 'VCC', 'SCL', 'SDA', 'RES', 'DC', 'CS', 'BLK'], max30102: ['VIN', 'SDA', 'SCL', 'INT', 'GND'] };
 export function footprintFor(part, usedPins) {
   const t = part.type, v = String(part.settings?.value || '');
   switch (t) {
