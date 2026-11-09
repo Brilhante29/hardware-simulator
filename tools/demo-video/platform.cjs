@@ -147,9 +147,6 @@ const SEGMENTS = {
     await p.waitForFunction(() => window.__done === true, null, { timeout: 60000 });
     D.sfx('win'); await D.wait(1400);
     await D.cover(500);
-  },
-
-  async '10-final'(D) {
     await D.title('', 'hardware<b>studio</b>', 'simule antes de comprar · fabrique com confiança', 2600);
     await D.title('código aberto · MIT', 'github.com/<b>Brilhante29</b>', 'hardware-simulator', 2400);
   },
